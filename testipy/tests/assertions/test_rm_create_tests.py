@@ -22,6 +22,7 @@ class SuiteRM_CreateTests:
             current_test = rm.startTest(None)
         except ValueError as ve:
             current_test = rm.startTest(td)
+            rm.testStep(current_test=current_test, state=enums_data.STATE_PASSED, reason_of_state="screenshot", take_screenshot=True)
             assert str(ve) == expected_error, f"The error should be '{expected_error}', and not '{ve}'"
             rm.testPassed(current_test, "Failed with expected ValueError")
         except Exception as ex:
