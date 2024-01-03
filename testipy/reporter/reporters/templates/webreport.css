@@ -1,0 +1,101 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+}
+
+.buttons {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    font-size: 12pt;
+    width: 100%;
+}
+
+table {
+    border-spacing: 12px;
+    vertical-align: top;
+}
+
+table.no_spacing { border-spacing: 1px; }
+td.no_spacing { padding: 1px; vertical-align: top; }
+table.list {
+    border-spacing: 3px;
+}
+caption {
+    border-radius: 5px;
+    color: #fefefe;
+    font-size: 11pt;
+    background-color: #a3a3bb;
+    font-weight: bold;
+    padding: 8px;
+}
+th {
+    border-radius: 5px;
+    border: 1px solid #cfd3ff;
+    color: rgb(15, 15, 31);
+}
+
+td {
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 10pt;
+}
+td.label {
+    border: 1px solid #cfd3ff;
+    color: rgb(15, 15, 31);
+}
+td.label_value {
+    color: rgb(51, 51, 204);
+    background-color: #EFEFEF;
+}
+
+td.passed {
+    padding: 3px;
+    color: rgb(18, 18, 76);
+    background-color: #cbffcf;
+    font-family: "Lucida Console", "Courier New", monospace;
+    font-size: 11px;
+}
+td.failed {
+    padding: 3px;
+    color: rgb(18, 18, 76);
+    background-color: #ffb2b2;
+    font-family: "Lucida Console", "Courier New", monospace;
+    font-size: 11px;
+}
+td.failed_bug {
+    padding: 3px;
+    color: rgb(18, 18, 76);
+    background-color: #ffcbcb;
+    font-family: "Lucida Console", "Courier New", monospace;
+    font-size: 11px;
+}
+td.skipped {
+    padding: 3px;
+    color: rgb(18, 18, 76);
+    background-color: #fff6cb;
+    font-family: "Lucida Console", "Courier New", monospace;
+    font-size: 11px;
+}
+
+.log {
+    border-radius: 5px;
+    color: #ffffff;
+    background-color: #0A0A0A;
+    box-shadow: 2px 3px 12px 1px rgba(131,131,131,0.80);
+    font-family: monospace, "Courier New", Courier;
+    font-size: 12px;
+    letter-spacing: 0;
+    padding: 8px;
+    overflow-y: auto;
+    overflow-x: scroll;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+td.method_running {
+    color: rgb(51, 51, 204);
+    background-color: #f8eead;
+}
+
+td.method_ended {
+    color: rgb(51, 51, 204);
+    background-color: #b1ecf8;
+}

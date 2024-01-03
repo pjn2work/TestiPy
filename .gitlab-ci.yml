@@ -1,0 +1,25 @@
+stages:
+  - develop
+  - build
+
+
+develop:
+  stage: develop
+  image: "python:3.11-alpine"
+  script:
+    - pip list
+
+
+docker-build:
+  stage: build
+  only:
+    refs:
+      - master
+  image: docker:20.10.17
+  services:
+    - docker:20.10.17-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"

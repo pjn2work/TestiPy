@@ -1,0 +1,23 @@
+# duplicate this tag with env_name here as tag
+default:
+  url: &rp_url "http://reportportal.com"
+  token: &rp_token "ffr343-006985"
+  rp_proj: "local"
+  default_project_name: "local"
+
+
+# DEV environments
+dev: &DEV
+  url: *rp_url
+  token: *rp_token
+  rp_proj: "dev"
+  default_project_name: "local"
+
+
+# QA environments
+qa: &QA
+  url: *rp_url
+  token: *rp_token
+  rp_proj: "qa1"
+  default_project_name: "local"
+

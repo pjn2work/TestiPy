@@ -1,0 +1,41 @@
+FROM mcr.microsoft.com/playwright
+
+LABEL MAINTAINER="Pedro Nunes <pjn2work@github.com>"
+
+EXPOSE 9204/tcp
+
+WORKDIR /opt/testipy/
+COPY testipy .
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# 1. Update base image
+RUN DEBIAN_FRONTEND="noninteractive" apt-get --fix-missing update
+
+# 2. Install Python3.9
+RUN apt-get install -y python3.9 python3.9-distutils curl unixodbc-dev && \
+    rm /usr/bin/python && ln -s /usr/bin/python3.9 /usr/bin/python && \
+    rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3 && \
+    python -m pip install --upgrade pip && \
+    pip -V && echo "----------------------------------------------------------------------"
+
+# 3. Install libs for python requirements
+RUN apt-get install -y gcc wget bzip2 libzbar-dev apt-utils \
+    && apt-get install -y libgtk-3-0 gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils unzip \
+    && apt-get clean
+
+# 4. Install python modules
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Install TestiPy
+COPY install.sh ..
+COPY setup.py ..
+COPY MANIFEST.in ..
+COPY readme.md ..
+RUN cd .. && ./install.sh
+
+# 6. Install playwright
+RUN playwright install && playwright install-deps
+
+
+ENTRYPOINT ["python", "-u", "run.py", "-tf", "/opt/testipy/tests", "--headless"]
