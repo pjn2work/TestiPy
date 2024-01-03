@@ -137,7 +137,7 @@ class ReporterWeb(ReportBase):
     def _format_info(self, current_test):
         mb = self.get_report_manager_base()  # get manager base
 
-        str_res = "<br><strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
+        str_res = "<strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
         str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {mb.get_full_name(current_test, True)} - {current_test.get_usecase()} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
         str_res += f"{current_test.get_counters().get_begin_time()} - {current_test.get_counters().get_end_time()} took {format_duration(current_test.get_duration())}"
 

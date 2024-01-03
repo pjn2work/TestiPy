@@ -1,3 +1,5 @@
+import os
+
 from typing import Dict
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -7,7 +9,7 @@ from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.report_manager import ReportManager, ReportBase
 from testipy.configs import enums_data
 
-SLACK_API_TOKEN = "xoxb-6252891959235-6246669369366-33mxY0qp9NYfswUi4hPag2Uo"
+SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
 DEFAULT_CHANNEL = "C06BQ1UP6KG"
 NOTIFY_USERS: dict[str, str] = dict()  # {"Pedro Nunes": "D067TJE96NM"}
 RATE_WAIT_SEC = 0.45
