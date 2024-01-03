@@ -25,15 +25,14 @@ __app__, __version__, __app_full__ = get_app_version()
 def show_intro():
     try:
         from pyfiglet import Figlet
-        print("\n\n")
+        print()
         print(Figlet(font="slant").renderText(f"{__app__} {__version__}"))
         print(sys.version)
     except:
         print("WARNING", "no fun if no pyfiglet installed.\nuse: pip3 install pyfiglet", file=sys.stderr)
 
     print(f"{__app_full__} - {__version__}")
-    print("="*160)
-    print("\n\n")
+    print("="*160, "\n")
 # </editor-fold>
 
 
@@ -121,7 +120,7 @@ def run_testipy(args=None):
                 else:
                     fails = runner.run()
 
-            print(f"exitcode={fails}, took {runner.duration} for {sa.foldername_runtime}")
+            print(f"exitcode={fails} | Results at {sa.results_folder_runtime}")
     except Exception as ex:
         print(ex, file=sys.stderr)
 

@@ -9,14 +9,14 @@
         -it         Include Test (ex: -it REST), can be several
         -et         Exclude Test
         -sb         filename of the StoryBoard to run (ex: -sb storyboard_QA_rest.json -sb "/qa/tests/sb/sb01.json"), can be several
-        -ilv        Include tests of level y  (v1.0.2)
-        -elv        Exclude tests of level y  (v1.0.2)
-        -alv        Include tests above level y  (v1.0.2)
-        -blv        Include tests below level y  (v1.0.2)
+        -ilv        Include tests of level y
+        -elv        Exclude tests of level y
+        -alv        Include tests above level y
+        -blv        Include tests below level y
         -if         Include tests by @FEATURES tag
         -ef         Exclude tests by @FEATURES tag
-        -itn        Include tests by @TN tag (beginsWith) (v1.3.2)
-        -etn        Exclude tests by @TN tag (beginsWith) (v1.3.2)
+        -itn        Include tests by @TN tag (beginsWith)
+        -etn        Exclude tests by @TN tag (beginsWith)
         
 
 - ## Select Reporters
@@ -32,14 +32,14 @@
     * **Slack:** tests results are sent to slack channel
     * **Web:** tests results can be seen in realtime on a browser
     * **TestProjectIO:** mostly dedicated for webpages tests (it replaces selenium)
-    * **JUnitXML:** test results will be saved on report.xml file   (since v1.4.1)
+    * **JUnitXML:** test results will be saved on report.xml file
 
 
 - ## Run:
     #### options:
         -rid        Run ID (ex: -rid 17, if not passed than current hour and minute will be used ex: 2359)
         -pn         Project Name (ex: -pn jules)
-        -env        Environment name to test (ex: -env dev)  (v1.0.4)
+        -env        Environment name to test (ex: -env dev)
         -rf         Results Folder (ex: -rf "/qa/test_results/"), where the tests results will be stored
         -tf         Tests Folder (ex: -tf "/qa/tests_scripts/jules/"), full path to where the tests are
         -repeat     Run the exact same pipeline that amount of times
@@ -48,12 +48,13 @@
         --dryrun    All tests will run but without really being executed (all of them will end with SKIPPED)
         --debugcode Disables the try/except on tests so errors are shown
         --1         Override test definitions of how many times tests will run (ncycle)
+        --prof      Create file .prof with profiling data
     
 
 - ## Mode of Operation:
     - #### Example of usage:
       ```
-      python3 run.py -reporter log -reporter portalio -rid 1 -sb "/qa/testipy/sb/sb01.json" -et NO_RUN -it DEV
+      python3 run.py -reporter log -reporter echo -rid 1 -tf "/home/testipy/my_test_scripts" -et NO_RUN -it DEV
       ```
     - #### Storyboard:      
         - If storyboard passed, tests will run by the order defined on json file

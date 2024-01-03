@@ -95,17 +95,17 @@ def get_datetime_now() -> datetime:
 
 def format_duration(seconds: float) -> str:
     if seconds < 1:
-        return f"{seconds*1000:.1f} ms"
+        return f"{seconds*1000:.1f}ms"
     if seconds < 60:
-        return f"{seconds:.3f} sec"
+        return f"{seconds:.3f}sec"
 
     secs = seconds % 60
     minutes = int(seconds // 60) % 60
     if seconds < 3600:
-        return f"{minutes:02d}:{secs:02.0f} min"
+        return f"{minutes:02d}:{secs:02.0f}min"
 
     hours = int(seconds // 3600)
-    return f"{hours}:{minutes:02d}:{secs:02.0f} hrs"
+    return f"{hours}:{minutes:02d}:{secs:02.0f}hrs"
 
 
 def _dict2pstr(data, sp: str = "", indent: int = 3):
