@@ -449,7 +449,7 @@ def run(execution_log, ap, storyboard_json_files, full_path_tests_scripts_folder
     if storyboard_json_files:
         all_tests = filter_tests_by_storyboard(execution_log, storyboard_json_files, all_tests)
 
-    #remove this comments for debugging purpose
+    # TODO remove this comments for debugging purpose
     if verbose and all_tests:
         show_test_structure(execution_log, all_tests)
 

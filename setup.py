@@ -20,6 +20,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pjn2work/testipy",
+    setup_requires=["wheel"],
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=install_requires,

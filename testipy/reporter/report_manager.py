@@ -293,7 +293,7 @@ class ReportManager(ReportBase):
         except:
             pass
 
-        self._execution_log("INFO", f"{color_status(end_state)} {self.get_foldername_runtime()} Tests took {format_duration(super().get_reporter_duration())} - [{totals}]")
+        self._execution_log("INFO", f"{color_status(end_state)} Tests took {format_duration(super().get_reporter_duration())} [{totals}]")
         return self
 
     def startPackage(self, name):
