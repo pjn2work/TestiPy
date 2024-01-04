@@ -8,7 +8,6 @@ class SuiteDemo_01:
     @NAME DemoSuite_001
     @TAG DEMO no_run
     @LEVEL 1
-    @PRIO 50
     """
 
     def test_00_cannot_run(self, td, rm, ncycles=2, ntimes=5, param=dict()):
@@ -76,11 +75,10 @@ class SuiteDemo_02:
     """
     @LEVEL 1
     @TAG DEMO
-    @PRIO 80
     """
 
     # just pass the tests with OK reason
-    def test_04_simple_pass(self, td, rm, ncycles=4, ntimes=1, param=dict()):
+    def test_04_simple_pass(self, td, rm, ncycles=4, param=dict()):
         """
         @NAME sameName
         @TAG DEMO no_run
@@ -94,7 +92,7 @@ class SuiteDemo_02:
             rm.testPassed(current_test, "OK" +str(current_ncycle))
 
     # fail the test outside by raise exception from assert
-    def test_05_simple_fail(self, td, rm, ncycles=2, ntimes=1, param=dict()):
+    def test_05_simple_fail(self, td, rm, ncycles=2, param=dict()):
         """
         @NAME sameName
         @TAG DEMO no_run
@@ -111,7 +109,7 @@ class SuiteDemo_03:
     @LEVEL 1
     """
 
-    def run_test_without_prefix(self, td, rm, ncycles=4, ntimes=1, param=dict()):
+    def run_test_without_prefix(self, td, rm, ncycles=4, param=dict()):
         """
         @LEVEL 1
         """
@@ -121,11 +119,10 @@ class SuiteDemo_03:
 class SuiteDemoWeb:
     """
     @LEVEL 3
-    @PRIO 90
     @TAG WEB
     """
 
-    def test_search(self, td, rm, ncycles=1, ntimes=1, param=None):
+    def test_search(self, td, rm, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 50
@@ -138,19 +135,19 @@ class SuiteDemoWeb:
         rm.get_bm().goto("https://search.brave.com/").take_screenshot(current_test)
         rm.testStep(current_test, enums_data.STATE_PASSED, "open browser")
 
-        rm.get_bm().click_and_type("input[class='form-input']", text_to_send="pedro").take_screenshot(current_test)
+        rm.get_bm().click_and_type("input[id='searchbox']", text_to_send="Pedro Nunes").take_screenshot(current_test, "brave")
         rm.testStep(current_test, enums_data.STATE_PASSED, "search")
 
-        rm.get_bm().new_tab("https://pplware.sapo.pt/", "tab 2").take_screenshot(current_test)
+        rm.get_bm().new_tab("https://pplware.sapo.pt/", "tab 2").take_screenshot(current_test, "pplware")
         rm.testStep(current_test, enums_data.STATE_PASSED, "open new tab")
 
-        rm.get_bm().sleep(4).close_tab("tab 2")
+        rm.get_bm().close_tab("tab 2")
         rm.testStep(current_test, enums_data.STATE_PASSED, "close tab")
 
-        rm.get_bm().sleep(4).close_page()
+        rm.get_bm().close_page()
         rm.testStep(current_test, enums_data.STATE_PASSED, "close page")
 
-        rm.get_bm().sleep(4).stop()
+        rm.get_bm().sleep(1).stop()
         rm.testStep(current_test, enums_data.STATE_PASSED, "stop playwright")
 
         rm.testPassed(current_test, "ok")
