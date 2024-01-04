@@ -1,0 +1,14 @@
+area: QA
+package_list:
+  - package_name: assertions
+    ncycles: 2
+    suite_list:
+      - suite_name: SuiteRM_CreateTests
+        ncycles: 3
+        test_list:
+          - test_name: test_create_test_with_override_name
+            param:
+              name: sb_override_test_name
+          - test_name: test_create_test_with_usecase
+            ncycles: 2
+          - test_name: test_create_test_without_name

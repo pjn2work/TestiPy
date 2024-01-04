@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Any
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import webhook_http_listener as HL
 from testipy.lib_modules.textdecor import color_status
-from testipy.lib_modules.common_methods import prettify, format_duration
+from testipy.lib_modules.common_methods import format_duration
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
@@ -29,14 +29,11 @@ class ReportManager(ReportBase):
 
         self.browser_manager: BrowserManager = None
 
-    def add_reporter(self, name, new_reporter_class):
+    def _add_reporter(self, name, new_reporter_class):
         self._execution_log("DEBUG", f"Added reporter {name}")
         new_reporter_class.set_report_manager_base(self)  # Add myself as the ReportManager on this new_reporter_class
         self._reporters_list[name] = new_reporter_class
         return self
-
-    def get_reporter(self, name):
-        return self._reporters_list.get(name)
 
     def get_selected_tests(self) -> List:
         return self._selected_tests
@@ -45,7 +42,7 @@ class ReportManager(ReportBase):
         return self._ap
 
     def has_ap_flag(self, key: str) -> bool:
-        return self.get_ap().has_flag_or_option(key)
+        return self._ap.has_flag_or_option(key)
 
     def get_project_name(self) -> str:
         return self._sa.project_name
@@ -59,14 +56,14 @@ class ReportManager(ReportBase):
     def get_results_folder_runtime(self) -> str:
         return self._sa.results_folder_runtime
 
-    def get_full_path_tests_scripts_foldername(self) -> str:
+    def _get_full_path_tests_scripts_foldername_deprecated(self) -> str:
         return self._sa.full_path_tests_scripts_foldername
 
-    def get_full_path_package_foldername(self, package_name) -> str:
-        return os.path.join(self.get_full_path_tests_scripts_foldername(), package_name.replace(
-            default_config.separator_package, os.sep))
+    def _get_full_path_package_foldername_deprecated(self, package_name) -> str:
+        return os.path.join(self._get_full_path_tests_scripts_foldername_deprecated(),
+                            package_name.replace(default_config.separator_package, os.sep))
 
-    def get_results_folder_filename(self, current_test=None, filename="") -> str:
+    def get_results_folder_filename(self, current_test: TestDetails = None, filename: str = "") -> str:
         fn = self.get_results_folder_runtime()
 
         package_name = super().get_package_name()
@@ -499,7 +496,7 @@ def build_report_manager_with_reporters(execution_log, selected_tests, ap: ArgsP
     def _add_reporter(rep_name, rep_class):
         try:
             rep = rep_class(rm, sa)
-            rm.add_reporter(rep_name, rep)
+            rm._add_reporter(rep_name, rep)
         except Exception as ex:
             execution_log("WARNING", f"Internal error on build_report_manager_with_reporters for {rep_name} {ex}")
 

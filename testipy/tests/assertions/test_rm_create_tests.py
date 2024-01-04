@@ -48,9 +48,11 @@ class SuiteRM_CreateTests:
         """
         @LEVEL 1
         """
-        expected_test_name = "override_test_name"
+        expected_test_name = param.get("name", "override_test_name")
         current_test = rm.startTest(td, expected_test_name)
         current_test_name = current_test.get_name()
+
+        rm.testInfo(current_test, "Received parameters = " + str(param), level="INFO")
 
         assert expected_test_name == current_test_name, f"Expected {expected_test_name=}, not {current_test_name}"
 

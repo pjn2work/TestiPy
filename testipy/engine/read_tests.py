@@ -407,6 +407,11 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
                     if current_suite:
                         test_list = list()
 
+                        # add storyboard suite attributes, override values such as ncycle
+                        for k, v in sb_suite.items():
+                            if k in ["ncycles"]:
+                                current_suite[k] = v
+
                         # add all tests from suite if none specified on storyboard
                         if not sb_suite.get("test_list"):
                             sb_suite["test_list"] = [{"test_name": test["method_name"]} for test in current_suite["test_list"]]
@@ -415,6 +420,11 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
                         for sb_test in sb_suite["test_list"]:
                             current_test = get_dict_by_value(sb_test["test_name"], current_suite["test_list"], ["method_name", enums_data.TAG_NAME], execution_log, make_copy=True)
                             if current_test:
+                                # add storyboard test attributes, override values such as ncycle and param
+                                for k, v in sb_test.items():
+                                    if k in ["ncycles", "param"]:
+                                        current_test[k] = v
+
                                 test_list.append(current_test)
 
                         # add to selected_tests
@@ -427,6 +437,11 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
                             suite_list.append(current_suite)
 
                 if suite_list:
+                    # add storyboard package attributes, override values such as ncycle
+                    for k, v in sb_package.items():
+                        if k in ["ncycles"]:
+                            current_package[k] = v
+
                     current_package["suite_list"] = suite_list
                     selected_tests.append(current_package)
 

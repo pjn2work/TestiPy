@@ -58,7 +58,7 @@ class ReportBase(ABC):
     }
     """
 
-    _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Exec", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
+    _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Steps", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
 
     def __init__(self, reporter_name):
         self._all_test_results = dict()
@@ -189,14 +189,14 @@ class ReportBase(ABC):
     @abstractmethod
     def __teardown__(self, end_state):
         self.end_state = end_state
-        self._all_test_results["details"]._end_timer()
+        self._all_test_results["details"].end_timer()
         return self
 
     @abstractmethod
     def startPackage(self, package_name):
         if package_name in self._all_test_results["package_list"]:
             self._current_package = self._all_test_results["package_list"][package_name]
-            self._current_package["details"]._inc_cycle()
+            self._current_package["details"].inc_cycle()
         else:
             self._current_package = dict()
             self._current_package["details"] = ReportDetails(None, package_name)
@@ -207,14 +207,14 @@ class ReportBase(ABC):
 
     @abstractmethod
     def endPackage(self):
-        self._current_package["details"]._end_timer()
+        self._current_package["details"].end_timer()
         return self
 
     @abstractmethod
     def startSuite(self, suite_name, attr=None):
         if suite_name in self._current_package["suite_list"]:
             self._current_suite = self._current_package["suite_list"][suite_name]
-            self._current_suite["details"]._inc_cycle()
+            self._current_suite["details"].inc_cycle()
         else:
             self._current_suite = dict()
             self._current_suite["details"] = ReportDetails(attr, suite_name)
@@ -225,7 +225,7 @@ class ReportBase(ABC):
 
     @abstractmethod
     def endSuite(self):
-        self._current_suite["details"]._end_timer()
+        self._current_suite["details"].end_timer()
         return self
 
     def __create_new_test(self, attr, test_name, usecase, description):
@@ -247,7 +247,7 @@ class ReportBase(ABC):
 
         if test_name in self._current_suite["test_list"]:
             self._current_suite["test_list"][test_name].append(current_test)
-            current_test._set_cycle(len(self._current_suite["test_list"][test_name]))
+            current_test.set_cycle(len(self._current_suite["test_list"][test_name]))
         else:
             self._current_suite["test_list"][test_name] = [current_test]
 
@@ -292,7 +292,7 @@ class ReportBase(ABC):
 
     def __endTest(self, current_test, state, reason_of_state, exc_value: BaseException = None):
         # finish current test
-        current_test._end_timer()
+        current_test.end_timer()
         current_test.counters.inc_state(state, reason_of_state=reason_of_state, description="end test", qty=1, exc_value=exc_value)
 
         # update package and suite
@@ -354,16 +354,16 @@ class ReportDetails:
     def get_cycle(self) -> int:
         return self.attr["cycle_number"]
 
-    def _set_cycle(self, current_cycle: int):
+    def set_cycle(self, current_cycle: int):
         self.attr["cycle_number"] = current_cycle
         return self
 
-    def _inc_cycle(self):
+    def inc_cycle(self):
         self.attr["cycle_number"] += 1
         self.end_time = None
         return self
 
-    def _end_timer(self):
+    def end_timer(self):
         self.end_time = get_datetime_now()
         return self
 
