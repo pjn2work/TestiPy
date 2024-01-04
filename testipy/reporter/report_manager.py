@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+from __future__ import annotations
 import os
 
 from typing import List, Dict, Tuple, Any
@@ -29,7 +29,7 @@ class ReportManager(ReportBase):
 
         self.browser_manager: BrowserManager = None
 
-    def _add_reporter(self, name, new_reporter_class):
+    def _add_reporter(self, name, new_reporter_class) -> ReportManager:
         self._execution_log("DEBUG", f"Added reporter {name}")
         new_reporter_class.set_report_manager_base(self)  # Add myself as the ReportManager on this new_reporter_class
         self._reporters_list[name] = new_reporter_class
@@ -87,14 +87,14 @@ class ReportManager(ReportBase):
             return self._test_running_list[meid]
         return []
 
-    def add_test_running(self, current_test):
+    def add_test_running(self, current_test) -> ReportManager:
         meid = current_test.get_method_id()
         if meid not in self._test_running_list:
             self._test_running_list[meid] = list()
         self._test_running_list[meid].append(current_test)
         return self
 
-    def remove_test_running(self, current_test):
+    def remove_test_running(self, current_test) -> ReportManager:
         meid = current_test.get_method_id()
         if meid in self._test_running_list and current_test in self._test_running_list[meid]:
             self._test_running_list[meid].remove(current_test)
@@ -139,7 +139,7 @@ class ReportManager(ReportBase):
     def is_browser_setup(self) -> bool:
         return self.browser_manager is not None and self.browser_manager.is_browser_setup()
 
-    def set_default_webdriver(self, default_browser_settings):
+    def set_default_webdriver(self, default_browser_settings) -> ReportManager:
         if self.browser_manager is None:
             self.browser_manager = BrowserManager(self)
 
@@ -222,8 +222,8 @@ class ReportManager(ReportBase):
         if delete_source:
             try:
                 os.remove(orig_filename)
-            except Exception:
-                self._execution_log("DEBUG", f"Failed to delete file '{orig_filename}'")
+            except Exception as ex:
+                self._execution_log("DEBUG", f"Failed to delete file '{orig_filename}', {ex}")
 
         return attachment
 
@@ -256,7 +256,7 @@ class ReportManager(ReportBase):
         return dict(headers=["meid", "Package", "Sp", "Suite", "Tp", "Test", "Level", "TAGs", "Features", "Number", "Description"],
                     data=formatted_test_list)
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests) -> ReportManager:
         fts_selected_tests = self.__format_test_structure(selected_tests)
         super().__startup__(fts_selected_tests)
         for reporter_name, reporter in self._reporters_list.items():
@@ -269,7 +269,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def __teardown__(self, end_state):
+    def __teardown__(self, end_state) -> ReportManager:
         totals = super().get_reporter_counter()
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
         end_state = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
@@ -293,7 +293,7 @@ class ReportManager(ReportBase):
         self._execution_log("INFO", f"{color_status(end_state)} Tests took {format_duration(super().get_reporter_duration())} [{totals}]")
         return self
 
-    def startPackage(self, name):
+    def startPackage(self, name) -> ReportManager:
         super().startPackage(name)
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -305,7 +305,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def startSuite(self, name, attr=None):
+    def startSuite(self, name, attr=None) -> ReportManager:
         super().startSuite(name, attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -330,7 +330,7 @@ class ReportManager(ReportBase):
 
         return current_test
 
-    def testInfo(self, current_test, info, level="DEBUG", attachment=None):
+    def testInfo(self, current_test, info, level="DEBUG", attachment=None) -> ReportManager:
         super().testInfo(current_test, info, level, attachment)
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -342,7 +342,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None) -> ReportManager:
         super().testStep(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
 
         if take_screenshot and self.is_browser_setup():
@@ -363,7 +363,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testSkipped(current_test, reason_of_state, exc_value)
         self.remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
@@ -376,7 +376,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testPassed(current_test, reason_of_state, exc_value)
         self.remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
@@ -389,7 +389,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testFailed(current_test, reason_of_state, exc_value)
         self.remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
@@ -402,7 +402,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testFailedKnownBug(current_test, reason_of_state, exc_value)
         self.remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
@@ -415,7 +415,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testEndAs(self, current_test, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None):
+    def testEndAs(self, current_test, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         if state == enums_data.STATE_PASSED:
             self.testPassed(current_test, reason_of_state, exc_value)
         elif state == enums_data.STATE_SKIPPED:
@@ -426,7 +426,7 @@ class ReportManager(ReportBase):
             self.testFailed(current_test, reason_of_state, exc_value)
         return self
 
-    def endSuite(self):
+    def endSuite(self) -> ReportManager:
         super().endSuite()
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -438,7 +438,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def endPackage(self):
+    def endPackage(self) -> ReportManager:
         super().endPackage()
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -450,7 +450,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def showStatus(self, message: str):
+    def showStatus(self, message: str) -> ReportManager:
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.showStatus(message)
@@ -461,7 +461,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def showAlertMessage(self, message: str):
+    def showAlertMessage(self, message: str) -> ReportManager:
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.showAlertMessage(message)
