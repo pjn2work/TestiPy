@@ -231,12 +231,12 @@ class ReportManager(ReportBase):
         return self._sa.debugcode
 
     @staticmethod
-    def __format_test_structure(selected_tests: list) -> dict:
-        formatted_test_list = list()
+    def __format_test_structure(selected_tests: List) -> Dict:
+        formatted_test_list = []
         for package in selected_tests:
             package_name = package["package_name"]
 
-            for suite in sorted(package["suite_list"], key=lambda x: x[enums_data.TAG_PRIO], reverse=True):
+            for suite in sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True):
                 suite_name = suite[enums_data.TAG_NAME]
                 suite_prio = suite[enums_data.TAG_PRIO]
 

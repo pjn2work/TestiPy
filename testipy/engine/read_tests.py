@@ -15,7 +15,7 @@ TYPE_SELECTED_TESTS_LIST = List[Dict]
 
 
 # returns dict of doc from class or method
-def get_doc_dict(obj, name="") -> TYPE_DOC:
+def get_doc_dict(obj, name: str = "") -> TYPE_DOC:
     doc_dict = dict()
     doc_dict[enums_data.TAG_NAME] = name
     doc_dict[enums_data.TAG_TAG] = set()
@@ -165,10 +165,10 @@ def show_test_structure(execution_log, test_list: TYPE_SELECTED_TESTS_LIST):
 def sort_test_structure(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
     method_id = 0
     for package in test_list:
-        package["suite_list"] = sorted(package["suite_list"], key=lambda x: x[enums_data.TAG_PRIO], reverse=True)
+        package["suite_list"] = sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
 
         for suite in package["suite_list"]:
-            suite["test_list"] = sorted(suite["test_list"], key=lambda x: x[enums_data.TAG_PRIO], reverse=True)
+            suite["test_list"] = sorted(suite["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
 
             for test in suite["test_list"]:
                 method_id += 1
@@ -250,25 +250,26 @@ def get_tests(execution_log,
 
         # find tests (methods) under the same suite (class)
         for method_name, obj in inspect.getmembers(suite_obj):
-            mname = method_name[len(default_config.prefix_tests):] if default_config.trim_prefix_tests else method_name
-            doc = get_doc_dict(obj, mname)
-            doc["@TN"] = suite_doc["@TN"] + doc["@TN"]
+            if method_name.startswith(default_config.prefix_tests):
+                mname = method_name[len(default_config.prefix_tests):] if default_config.trim_prefix_tests else method_name
+                doc = get_doc_dict(obj, mname)
+                doc["@TN"] = suite_doc["@TN"] + doc["@TN"]
 
-            # create new test and add to test_methods
-            current_method = dict(method_name=method_name,
-                                  test_obj=obj,
-                                  test_comment=py_inspector.get_comment(obj) or "",
-                                  ncycles=py_inspector.get_method_parameter_default_value(obj, "ncycles", 1),
-                                  param=py_inspector.get_method_parameter_default_value(obj, "param", None))
-            current_method.update(doc)
-            _test_methods[method_name] = current_method
+                # create new test and add to test_methods
+                current_method = dict(method_name=method_name,
+                                      test_obj=obj,
+                                      test_comment=py_inspector.get_comment(obj) or "",
+                                      ncycles=py_inspector.get_method_parameter_default_value(obj, "ncycles", 1),
+                                      param=py_inspector.get_method_parameter_default_value(obj, "param", None))
+                current_method.update(doc)
+                _test_methods[method_name] = current_method
 
-            # add to selected tests and add dependency to other tests
-            if is_valid_test(obj, current_method, method_name):
-                test_list.append(current_method)
+                # add to selected tests and add dependency to other tests
+                if is_valid_test(obj, current_method, method_name):
+                    test_list.append(current_method)
 
-                # update auto include tests that have dependency to other tests, based on prio
-                depends_prio_tests_to_auto_include.update(doc[enums_data.TAG_DEPENDS])
+                    # update auto include tests that have dependency to other tests, based on prio
+                    depends_prio_tests_to_auto_include.update(doc[enums_data.TAG_DEPENDS])
 
         # find tests (methods) that must be included because of dependency
         changes_were_made = len(depends_prio_tests_to_auto_include) > 0
@@ -286,7 +287,7 @@ def get_tests(execution_log,
         # order test list
         if test_list:
             if len(test_list) > AUTO_INCLUDED_TESTS:
-                test_list = sorted(test_list, key=lambda x: x[enums_data.TAG_PRIO], reverse=True)
+                test_list = sorted(test_list, key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
             else:
                 test_list = []
 
@@ -297,19 +298,20 @@ def get_tests(execution_log,
         suite_list = []
 
         for suite_name, obj in py_inspector.get_members_from_file(fpn):
-            sname = suite_name[len(default_config.prefix_suite):] if default_config.trim_prefix_suite else suite_name
-            doc = get_doc_dict(obj, sname)
-            if is_valid_suite(obj, doc, suite_name):
-                test_list = get_test_list_from_suite_obj(obj, doc)
-                if test_list:
-                    current_suite = dict(filename=filename,
-                                         suite_name=suite_name,
-                                         suite_obj=obj,
-                                         suite_comment=py_inspector.get_comment(obj),
-                                         test_list=test_list)
+            if suite_name.startswith(default_config.prefix_suite):
+                sname = suite_name[len(default_config.prefix_suite):] if default_config.trim_prefix_suite else suite_name
+                doc = get_doc_dict(obj, sname)
+                if is_valid_suite(obj, doc, suite_name):
+                    test_list = get_test_list_from_suite_obj(obj, doc)
+                    if test_list:
+                        current_suite = dict(filename=filename,
+                                             suite_name=suite_name,
+                                             suite_obj=obj,
+                                             suite_comment=py_inspector.get_comment(obj),
+                                             test_list=test_list)
 
-                    current_suite.update(doc)
-                    suite_list.append(current_suite)
+                        current_suite.update(doc)
+                        suite_list.append(current_suite)
 
         return suite_list
 
@@ -342,7 +344,7 @@ def get_tests(execution_log,
 
         # add all suites under this package (store them ordered)
         if vp and package_dict["suite_list"]:
-            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: x[enums_data.TAG_PRIO], reverse=True)
+            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
             result_list.append(package_dict)
 
         return result_list
