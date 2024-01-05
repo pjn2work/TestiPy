@@ -89,7 +89,7 @@ class ReporterEcho(ReportBase):
 
         print("\n"*5)
         print("-"*_line_size)
-        print(f"> Starting new test: {current_test} <".center(_line_size, "-"))
+        print(f"> Starting test: {current_test} <".center(_line_size, "-"))
         # print("\n".join([f"{k} {str(v).replace('set()', '')}" for k, v in attr.items() if k.startswith("@")]))
 
     def testInfo(self, current_test, info, level, attachment=None):
@@ -129,12 +129,11 @@ class ReporterEcho(ReportBase):
         full_name = mb.get_full_name(current_test, True)
         duration = current_test.get_duration()
         usecase = current_test.get_usecase()
-        ending_state = textdecor.color_status(ending_state)
+        end_state = textdecor.color_status(ending_state)
 
         self.__log_test_steps(current_test)
 
-        print()
-        print(f"> Ending test {full_name} - {ending_state} - took {format_duration(duration)} - {usecase} - reason: {end_reason} <".center(_line_size, "-"))
+        print(f"> Ending test {full_name} - {end_state} - took {format_duration(duration)} - {usecase} - reason: {end_reason} <".center(_line_size + len(end_state) - len(ending_state), "-"))
         print("-"*_line_size)
 
     def __log_test_steps(self, current_test):

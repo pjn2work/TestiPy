@@ -77,4 +77,15 @@ class ReporterTemplate(ReportBase):
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
         test_usecase = current_test.get_usecase()
+
         test_duration = current_test.get_duration()
+        test_start = current_test.get_starttime()
+        test_end = current_test.get_endtime()
+
+        test_tags = " ".join(current_test.get_tags())
+        test_level = current_test.get_level()
+        test_prio = current_test.get_prio()
+        test_parameters = str(current_test.get_test_param_parameter())
+        test_features = current_test.get_features()
+        test_number = current_test.get_test_number()
+        test_comment = current_test.get_comment()
