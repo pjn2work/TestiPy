@@ -7,6 +7,7 @@ from typing import Union, List, Tuple, Dict, Any
 
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import py_inspector, common_methods as cm
+from testipy.helpers import load_config
 
 
 AUTO_INCLUDED_TESTS = 0
@@ -390,7 +391,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
     selected_tests = []
 
     for sb_json_file in storyboard_json_files:
-        storyboard = cm.load_config(sb_json_file)
+        storyboard = load_config(sb_json_file)
 
         for sb_package in storyboard["package_list"]:
             # get cloned package dict, based on package_of_storyboard, from all tests
@@ -466,8 +467,7 @@ def run(execution_log, ap, storyboard_json_files, full_path_tests_scripts_folder
     if storyboard_json_files:
         all_tests = filter_tests_by_storyboard(execution_log, storyboard_json_files, all_tests)
 
-    # TODO remove this comments for debugging purpose
-    if verbose and all_tests:
+    if verbose and all_tests and ap.has_flag_or_option("--debug-testipy"):
         show_test_structure(execution_log, all_tests)
 
     return all_tests

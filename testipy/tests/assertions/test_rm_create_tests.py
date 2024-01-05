@@ -1,8 +1,8 @@
 from typing import Dict
 
-from testipy.reporter import ReportManager
 from testipy.configs import enums_data
-from testipy.lib_modules.common_methods import prettify
+from testipy.helpers import prettify
+from testipy.reporter import ReportManager
 
 
 class SuiteRM_CreateTests:

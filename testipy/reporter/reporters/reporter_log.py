@@ -5,10 +5,11 @@ from typing import Dict
 from tabulate import tabulate
 from mss import mss
 
-from testipy.lib_modules.common_methods import get_app_version, list_traceback, prettify, format_duration
+from testipy.configs import enums_data
+from testipy.helpers import get_traceback_list, prettify, format_duration
+from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.report_manager import ReportManager, ReportBase
-from testipy.configs import enums_data
 
 default_format ="%(asctime)s %(levelname)s - %(message)s"
 
@@ -183,7 +184,7 @@ class ReporterLog(ReportBase):
 
             test_full_name = mb.get_full_name(current_test, True)
             usecase = current_test.get_usecase()
-            info = prettify(list_traceback(exc_value))
+            info = prettify(get_traceback_list(exc_value))
 
             self.log(f"{test_full_name} - {usecase}: {type(exc_value).__name__}\n{info}", "ERROR")
 

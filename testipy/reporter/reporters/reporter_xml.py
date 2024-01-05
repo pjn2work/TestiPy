@@ -2,11 +2,11 @@ import os
 
 from typing import Dict
 
+from testipy.configs import enums_data, default_config
+from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
-from testipy.lib_modules.common_methods import list_traceback
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.report_manager import ReportManager, ReportBase
-from testipy.configs import enums_data, default_config
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 
@@ -194,7 +194,7 @@ class ReporterJUnitXML(ReportBase):
             xml_file.write(f'   <failure message="{message}" type="{failure_type}">\n')
 
             if exc_value:
-                tbl = list_traceback(exc_value)[-1]
+                tbl = get_traceback_list(exc_value)[-1]
                 tbld = tbl["error_lines"][-1]
 
                 category = tbl["type"]

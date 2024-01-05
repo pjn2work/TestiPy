@@ -5,9 +5,9 @@ import os
 from typing import List, Dict, Tuple, Any
 
 from testipy.configs import enums_data, default_config
+from testipy.helpers import format_duration
 from testipy.lib_modules import webhook_http_listener as HL
 from testipy.lib_modules.textdecor import color_status
-from testipy.lib_modules.common_methods import format_duration
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
