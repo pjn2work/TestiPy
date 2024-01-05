@@ -1,11 +1,11 @@
 import pandas as pd
 
-from typing import Dict, Any
+from typing import Dict, List, Any
 from abc import abstractmethod, ABC
 from mimetypes import guess_type
 from tabulate import tabulate
 
-from testipy.lib_modules.common_methods import format_duration, get_current_date_time_ns, get_timestamp, get_datetime_now
+from testipy.lib_modules.common_methods import format_duration, get_current_date_time_ns, get_timestamp, get_datetime_now, prettify
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.configs import enums_data, default_config
 
@@ -65,19 +65,19 @@ class ReportBase(ABC):
         self._all_test_results["details"] = ReportDetails(None, reporter_name)
         self._all_test_results["package_list"] = dict()
 
-        self._selected_tests = None
+        self._selected_tests: pd.DataFrame = None
 
-        self._current_package = None
-        self._current_suite = None
-        self._current_test = None
+        self._current_package: Dict = None
+        self._current_suite: Dict = None
+        self._current_test: Dict = None
 
-        self.end_state = None
+        self.end_state: str = None
 
         # sequencial counter for test_id
         self._test_id_counter = 0
 
         # common for all reporters
-        self._rm_base = None
+        self._rm_base: ReportBase = None
 
         # results stored in da Pandas Dataframe
         self._df = pd.DataFrame(columns=self._columns)
@@ -91,7 +91,7 @@ class ReportBase(ABC):
         return self._rm_base
 
     # <editor-fold desc="--- Gets ---">
-    def get_selected_tests(self):
+    def get_selected_tests(self) -> pd.DataFrame:
         return self._selected_tests
 
     def get_df(self):
@@ -411,7 +411,7 @@ class TestDetails(ReportDetails):
     def get_test_id(self) -> int:
         return self.attr["test_id"]
 
-    def get_tags(self) -> list:
+    def get_tags(self) -> List:
         return list(self.attr[enums_data.TAG_TAG])
 
     def get_level(self) -> int:
@@ -439,7 +439,7 @@ class TestDetails(ReportDetails):
         self._info.append((ts, current_time, str(level).upper(), info, attachment))
         return self
 
-    def get_info(self) -> list:
+    def get_info(self) -> List:
         return list(self._info)
 
     def set_usecase(self, usecase):
@@ -486,7 +486,12 @@ class TestDetails(ReportDetails):
         return self.get_state() == enums_data.STATE_SKIPPED
 
     def __str__(self):
-        return f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name(True)}"
+        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name(True)}"
+        if usecase := self.get_usecase():
+            res += f" | {usecase}"
+        if state := self.get_state():
+            res += f" | {state=}"
+        return res
 
     def __repr__(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_test_name(True)}, status={self.get_state()})"
