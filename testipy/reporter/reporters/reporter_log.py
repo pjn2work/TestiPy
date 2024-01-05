@@ -22,6 +22,7 @@ class ReporterLog(ReportBase):
         self.filename = f"{rm.get_project_name()}.log"
         self.rm = rm
         self._logger: logging.Logger = None
+        self._screenshot_num = 0
 
         # create folder
         self.__create_folder(self.results_folder_runtime)
@@ -125,11 +126,13 @@ class ReporterLog(ReportBase):
         self.log(f"{test_full_name} - {usecase}: {info}", level)
 
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+        self.__log_exception(current_test, exc_value)
         if take_screenshot:
             with mss() as sct:
-                sct.shot(output="log_screenshot.png")
-                self.rm.copy_file(current_test, orig_filename="log_screenshot.png", delete_source=True)
-        self.__log_exception(current_test, exc_value)
+                self._screenshot_num += 1
+                output_file = f"log_screenshot_{self._screenshot_num:03.0f}.png"
+                sct.shot(output=output_file, mon=1)
+                self.rm.copy_file(current_test, orig_filename=output_file, delete_source=True)
 
     def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
         self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)

@@ -22,7 +22,7 @@ def _get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
         dict_states[state] = "sum"
 
     # aggregate mode
-    aggregate = {"T#": "size", "Exec": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}  # , "Reason": "unique"
+    aggregate = {"T#": "size", "Steps": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}  # , "Reason": "unique"
     aggregate.update(dict_states)
 
     # group by tests
@@ -44,7 +44,7 @@ def _get_state_summary(df, columns=("Package", "Suite", "Test", "Level", "State"
     df_ss = df.copy()
 
     # group by Reason of State
-    df_ss = df_ss.groupby(columns).agg({"T#": "size", "Exec": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}).rename(columns={"T#": "Total"}, inplace=False)
+    df_ss = df_ss.groupby(columns).agg({"T#": "size", "Steps": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}).rename(columns={"T#": "Total"}, inplace=False)
 
     # calc percentage of each row
     df_ss["%"] = df_ss["Total"] / df_ss["Total"].sum()
@@ -86,7 +86,7 @@ def get_package_dummies(df):
 
 # -----------------------------------------------------------------------------------------------------
 """
-Package    Suite        Test           Prio    Level  State    Usecase       Reason          Total    Exec    Duration  Start time               %
+Package    Suite        Test           Prio    Level  State    Usecase       Reason          Total   Steps    Duration  Start time               %
 ---------  -----------  -----------  ------  -------  -------  ------------  ------------  -------  ------  ----------  -------------------  -----
 qa.team01  suiteDemo01  GetClients       50        1  PASSED   before login  received 401        1       0       0.271  2020-06-19 15:14:20  33.33
 qa.team01  suiteDemo01  Login            40        1  PASSED                 received 200        1       0       0.201  2020-06-19 15:14:20  33.33

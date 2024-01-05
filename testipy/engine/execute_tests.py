@@ -76,30 +76,30 @@ class Executer:
     def get_total_failed_skipped(self):
         return self._total_failed_skipped
 
-    def _finish_current_method_test(self, report_manager: ReportManager, package, suite, test, had_exception, percent_completed):
+    def _finish_current_method_test(self, rm: ReportManager, package, suite, test, had_exception, percent_completed):
         # kill not properly ended tests (if had_exeption then they are already killed)
-        for current_test in list(report_manager.get_test_running_list(test["method_id"])):
+        for current_test in list(rm.get_test_running_list(test["method_id"])):
             tc = current_test.get_test_step_counters()
 
             if tc[enums_data.STATE_FAILED] > 0:
-                report_manager.testFailed(current_test, tc.get_last_reason_of_state(enums_data.STATE_FAILED) or "!", had_exception)
+                rm.testFailed(current_test, tc.get_last_reason_of_state(enums_data.STATE_FAILED) or "!", had_exception)
             if tc[enums_data.STATE_FAILED_KNOWN_BUG] > 0:
-                report_manager.testFailedKnownBug(current_test, tc.get_last_reason_of_state(
+                rm.testFailedKnownBug(current_test, tc.get_last_reason_of_state(
                     enums_data.STATE_FAILED_KNOWN_BUG) or "!", had_exception)
             elif tc[enums_data.STATE_SKIPPED] > 0:
-                report_manager.testSkipped(current_test, tc.get_last_reason_of_state(enums_data.STATE_SKIPPED) or "!", had_exception)
+                rm.testSkipped(current_test, tc.get_last_reason_of_state(enums_data.STATE_SKIPPED) or "!", had_exception)
             else:
-                report_manager.testPassed(current_test, tc.get_last_reason_of_state(enums_data.STATE_PASSED) or "!", had_exception)
+                rm.testPassed(current_test, tc.get_last_reason_of_state(enums_data.STATE_PASSED) or "!", had_exception)
 
         # sum all tests counter for this method, for all ncycle
-        all_tests_from_method_call = report_manager.get_test_list_by_method_id(test["method_id"])
+        all_tests_from_method_call = rm.get_test_list_by_method_id(test["method_id"])
         results = StateCounter()
         if len(all_tests_from_method_call) > 0:
             for current_test in all_tests_from_method_call:
                 results.inc_states(current_test.get_counters())
         else:
-            current_test = report_manager.startTest(test[enums_data.TAG_NAME], test, "AUTO-CREATED")
-            report_manager.testEndAs(current_test, default_config.if_no_test_started_mark_as, f"No test started by {test['method_name']}", had_exception)
+            current_test = rm.startTest(test[enums_data.TAG_NAME], test, "AUTO-CREATED")
+            rm.testEndAs(current_test, default_config.if_no_test_started_mark_as, f"No test started by {test['method_name']}", had_exception)
 
         # get Reason of Failure
         rof = results.get_last_reason_of_state(enums_data.STATE_FAILED)
@@ -114,8 +114,7 @@ class Executer:
         # increment global failed (skipped, bug)
         total_failed = sum([results[state] for state in default_config.count_as_failed_states])
         if total_failed == 0 and (had_exception or (
-                results[
-                    enums_data.STATE_PASSED] == 0 and default_config.if_no_test_started_mark_as in default_config.count_as_failed_states)):
+                results[enums_data.STATE_PASSED] == 0 and default_config.if_no_test_started_mark_as in default_config.count_as_failed_states)):
             total_failed = 1
         self._inc_failed(total_failed)
 
@@ -185,7 +184,8 @@ class Executer:
         total = 0
         for package in selected_tests:
             for suite in package["suite_list"]:
-                total += len(suite["test_list"])
+                for test in suite["test_list"]:
+                    total += 1 * suite.get("ncycles", 1) * package.get("ncycles", 1)
         return total
 
     def execute_tests(self, report_manager, selected_tests, dryrun_mode=True, debug_code=False, onlyonce=False):
@@ -193,21 +193,26 @@ class Executer:
         method_seq = 0
 
         for package in selected_tests:
-            self._change_cwd_to_package(package["package_name"])
-            report_manager.startPackage(package["package_name"])
+            for _ in range(1 if onlyonce else package.get("ncycles", 1)):
 
-            for suite in package["suite_list"]:
-                suite["app"] = suite["suite_obj"](**suite.get("suite_kwargs", dict()))  # initialize suite __init__()
-                report_manager.startSuite(suite[enums_data.TAG_NAME], cm.dict_without_keys(suite, "suite_obj"))
+                self._change_cwd_to_package(package["package_name"])
+                report_manager.startPackage(package["package_name"])
 
-                for test in suite["test_list"]:
-                    method_seq += 1
-                    self._run_test(package, suite, dict(test), report_manager, dryrun_mode, debug_code, onlyonce, method_seq * 100 / total_methods_to_call)
+                for suite in package["suite_list"]:
+                    for _ in range(1 if onlyonce else suite.get("ncycles", 1)):
 
-                report_manager.endSuite()
-                del suite["app"]
+                        # initialize suite __init__()
+                        suite["app"] = suite["suite_obj"](**suite.get("suite_kwargs", dict()))
+                        report_manager.startSuite(suite[enums_data.TAG_NAME], cm.dict_without_keys(suite, "suite_obj"))
 
-            report_manager.endPackage()
+                        for test in suite["test_list"]:
+                            method_seq += 1
+                            self._run_test(package, suite, dict(test), report_manager, dryrun_mode, debug_code, onlyonce, method_seq * 100 / total_methods_to_call)
+
+                        report_manager.endSuite()
+                        del suite["app"]
+
+                report_manager.endPackage()
 
 
 def run(execution_log, sa: StartArguments, selected_tests: List, report_manager: ReportManager) -> int:

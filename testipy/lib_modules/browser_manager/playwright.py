@@ -24,6 +24,7 @@ class PlaywrightController:
         self.iframes_selectors = list()
         self.default_browser_settings: dict = None
         self.browser_name = None
+        self._screenshot_num = 0
 
         # playwright stuff
         self.playwright = sync_playwright().start()
@@ -170,10 +171,10 @@ class PlaywrightController:
     def get_webdriver(self) -> Page:
         return self.page
 
-    def take_screenshot(self, current_test, name_of_file: str = None):
-        if name_of_file is None:
-            name_of_file = "playwright_screenshot"
-        name_of_file = f"{name_of_file}.png"
+    def take_screenshot(self, current_test, name_of_file: str = ""):
+        self._screenshot_num += 1
+        name_of_file = name_of_file or "playwright_screenshot"
+        name_of_file = f"{name_of_file}_{self._screenshot_num:03.0f}.png"
 
         if self.is_page_open():
             self.page.screenshot(path=name_of_file, full_page=True)
