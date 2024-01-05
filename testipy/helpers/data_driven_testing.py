@@ -339,13 +339,16 @@ class DDTMethods(DataReader):
 
         usecase_name = scenario_name if add_test_usecase else ""
         current_test = rm.startTest(td, usecase=usecase_name, description=description)
-        if not rm.has_ap_flag("--norun"):
+        if rm.has_ap_flag("--norun"):
+            rm.testSkipped(current_test, "--norun")
+        else:
             usecases = self.get_usecases_from_scenario(tag_name=tag, scenario_name=scenario_name)
 
             rm.testInfo(current_test, f"TEST_STEPS {tag=} {scenario_name=}:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
 
             _, failed_usecase = self._run_all_usecases_as_teststeps(rm, current_test, usecases)
-        endTest(rm, current_test, bug=bug)
+
+            endTest(rm, current_test, bug=bug)
 
     # create a test for each usecase under a scenario
     def auto_call_usecases(self, td: Dict, rm: ReportManager,
@@ -355,7 +358,9 @@ class DDTMethods(DataReader):
             current_test = rm.startTest(td, usecase=usecase_name, description=usecase.get("description"))
 
             end_reason = ""
-            if not rm.has_ap_flag("--norun"):
+            if rm.has_ap_flag("--norun"):
+                rm.testSkipped(current_test, "--norun")
+            else:
                 rm.testInfo(current_test, f"TEST_USECASE {tag=} {scenario_name=} {usecase_name=}:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
 
                 if usecase.get("skip_all"):
@@ -383,7 +388,7 @@ class DDTMethods(DataReader):
                             self.exec_toolbox.validate_expected_error(rm, current_test, usecase, usecase_name)
                             end_reason = st.get_ros()
 
-            endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("bug", ""))
+                endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("bug", ""))
 
     def _run_all_usecases_as_teststeps(self, rm, current_test, usecases: Dict):
         failed_usecase = ""
