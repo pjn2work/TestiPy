@@ -9,7 +9,7 @@ from collections import OrderedDict
 from testipy.configs import enums_data
 from testipy.reporter.report_base import TestDetails
 from testipy.reporter.report_manager import ReportManager
-from testipy.helpers import get_traceback_tabulate, load_config, prettify
+from testipy.helpers import get_traceback_tabulate, load_config, left_join_dicts, prettify
 from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
 
 
@@ -107,6 +107,7 @@ class DataReader:
 
 
         """
+
         result = OrderedDict()
 
         base = copy.deepcopy(self.get_tag(tag_name))
@@ -150,6 +151,11 @@ class DataReader:
                             raise NameError(f"In your scenario/usecase {scenario_name}/{usecase_name}, conflict with env {self.env_name}")
                         result[scenario_name][usecase_name] = usecase
 
+            # update useCases, from all scenarios, upon based_on option
+            for scenario in result.values():
+                for usecase_name, usecase in scenario.items():
+                    usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
+
             return result
 
         # extract only usecases
@@ -165,6 +171,10 @@ class DataReader:
                     if not allow_override and usecase_name in result:
                         raise NameError(f"In your usecase {usecase_name}, conflict with env {self.env_name}")
                     result[usecase_name] = usecase
+
+            # update useCases upon based_on option
+            for usecase_name, usecase in result.items():
+                usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
 
             return result
 
@@ -423,34 +433,33 @@ class DDTMethods(DataReader):
         return self.response_from_usecases, failed_usecase
 
 
-def _get_usecase_field_based_on_another_usecase(usecases: Dict, current_usecase: Dict, field_name: str = "data") -> Dict:
-    bo = current_usecase.get("based_on")
-    if bo:
-        # get usecase that is based_on
-        based_on = usecases
-        for name in bo.split("/"):
-            if name not in based_on:
-                raise KeyError(f"based_on {bo} - {name} not found in {based_on.keys()}")
-            based_on = based_on[name]
+def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase: Union[Dict, str]) -> Dict:
+    # in case it's the name of the useCase, find it first.
+    if isinstance(current_usecase, str):
+        curr_uc = usecases
+        for name in current_usecase.split("/"):
+            curr_uc = curr_uc[name]
+        current_usecase = curr_uc
 
-        # maybe this one as based_on as well
-        based_on_data = _get_usecase_field_based_on_another_usecase(usecases, based_on, field_name=field_name)
+    # this useCase is not based on any other, so nothing to update
+    if "based_on" not in current_usecase:
+        return dict()
 
-        # copy all fields from other if not contained already in current
-        data = dict(current_usecase[field_name]) if field_name in current_usecase else dict()
-        for k, v in based_on_data.items():
-            if k not in data:
-                data[k] = v
-        return data
+    bo_usecase_name, field_names = current_usecase["based_on"]
 
-    return current_usecase.get(field_name, dict())
+    # get the useCase that is based_on
+    based_on = usecases
+    for name in bo_usecase_name.split("/"):
+        if name not in based_on:
+            raise KeyError(f"based_on {bo_usecase_name} - {name} not found in {based_on.keys()}")
+        based_on = based_on[name]
 
+    # maybe this one as based_on as well
+    based_on_data = copy.deepcopy(based_on)
+    based_on_data.update(get_usecase_fields_based_on_another_usecase(usecases, based_on_data))
 
-def get_usecase_field_based_on_usecase_name(usecases: Dict, usecase_name: str, field_name: str = "data") -> Dict:
-    current_usecase = usecases
-    for name in usecase_name.split("/"):
-        current_usecase = current_usecase[name]
-    return _get_usecase_field_based_on_another_usecase(usecases, current_usecase, field_name)
+    # copy all fields from other if not contained already in current
+    return {field_name: left_join_dicts(based_on_data[field_name], current_usecase.get(field_name, dict())) for field_name in field_names}
 
 
 def get_known_bug_failure_issue(bug: Union[str, Dict, List], end_reason: str = "") -> str:

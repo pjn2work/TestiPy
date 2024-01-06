@@ -3,12 +3,23 @@ import sys
 import subprocess
 import json
 import yaml
+import copy
 
 from typing import Union, Dict, Tuple
 
 from testipy.helpers.errors import get_traceback_str, get_traceback_tabulate, get_traceback_list
 from testipy.helpers.timer import Timer
 from testipy.helpers.prettify import prettify, format_duration
+
+
+# define custom tag handler for string concatenation
+def yaml_join(loader, node):
+    seq = loader.construct_sequence(node)
+    return "".join([str(s) for s in seq])
+
+
+# register the tag handler for string concatenation
+yaml.add_constructor("!join", yaml_join)
 
 
 # returns full path filename, based on other file path
@@ -54,6 +65,20 @@ def read_text_from_file(fpn: str) -> str:
     with open(fpn, "r") as f:
         text = f.read()
     return str(text).rstrip("\n")
+
+
+def left_join_dicts(d1: Dict, d2: Dict) -> Dict:
+    # keep everything from d1 root
+    res = d1.copy()
+
+    # check for all items in d2 if they are new or to be replaced in d1
+    for k, v in d2.items():
+        if k in res and isinstance(v, dict):
+            res[k] = left_join_dicts(d1[k], v)
+            continue
+        res[k] = v
+
+    return res
 
 
 def exec_cmd(cmd: str, timeout: int = 2, change_to_path: str = "") -> Tuple[int, str, str]:
