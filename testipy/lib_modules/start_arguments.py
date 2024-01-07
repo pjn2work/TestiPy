@@ -8,8 +8,9 @@ from dataclasses import dataclass
 
 from testipy import __app__, __version__
 from testipy.configs import default_config
+from testipy.helpers import load_config
 from testipy.lib_modules.args_parser import ArgsParser
-from testipy.lib_modules.common_methods import get_current_short_time, get_current_short_date, load_config
+from testipy.lib_modules.common_methods import get_current_short_time, get_current_short_date
 
 
 @dataclass

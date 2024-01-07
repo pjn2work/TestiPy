@@ -8,9 +8,10 @@ from typing import List, Dict
 from threading import Thread
 from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
+from time import sleep
 
 from testipy.configs import enums_data
-from testipy.lib_modules.common_methods import Timer, sleep, format_duration, prettify
+from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.report_manager import ReportManager, ReportBase
 

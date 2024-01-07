@@ -9,13 +9,14 @@ from tabulate import tabulate
 # allow root folder to be available for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from testipy.configs import default_config
+from testipy.engine import read_tests, execute_tests
+from testipy.helpers import get_traceback_list, format_duration, prettify
 from testipy.lib_modules.args_parser import ArgsParser
-from testipy.lib_modules.common_methods import get_app_version, format_duration, list_traceback, prettify
+from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.execution_logger import ExecutionLogger
 from testipy.lib_modules.start_arguments import ParseStartArguments, StartArguments
-from testipy.engine import read_tests, execute_tests
 from testipy.reporter.report_manager import build_report_manager_with_reporters
-from testipy.configs import default_config
 
 
 __app__, __version__, __app_full__ = get_app_version()
@@ -39,6 +40,7 @@ def show_intro():
 class Runner:
     def __init__(self, ap: ArgsParser, sa: StartArguments, execution_log):
         # configurations and logging
+        self.ap = ap
         self.sa = sa
         self.execution_log = execution_log
 
@@ -55,7 +57,7 @@ class Runner:
                                              ap,
                                              sa.storyboard,
                                              sa.full_path_tests_scripts_foldername,
-                                             verbose=self.sa.dryrun)
+                                             verbose=self.sa.dryrun or ap.has_flag_or_option("--debug-testipy"))
         if len(self.selected_tests) == 0:
             raise FileNotFoundError(f"Found no tests under {sa.full_path_tests_scripts_foldername}")
 
@@ -73,8 +75,8 @@ class Runner:
             except Exception as ex:
                 total_fails += 1
                 self.execution_log("ERROR", f"Execution #{rep} - {ex}")
-                # TODO Remove this
-                if self.sa.debugcode:
+
+                if self.ap.has_flag_or_option("--debug-testipy"):
                     raise ex
 
         return total_fails
@@ -85,9 +87,10 @@ class Runner:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.report_manager.__teardown__(None)
-        # TODO Remove this
-        if self.sa.debugcode and exc_val:
-            print(prettify(list_traceback(exc_val)))
+
+        if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
+            print(prettify(get_traceback_list(exc_val)))
+
         return self
 
     @property

@@ -4,10 +4,11 @@ from typing import Dict
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from testipy.lib_modules.common_methods import get_app_version, Timer
+from testipy.configs import enums_data
+from testipy.helpers import Timer
+from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.report_manager import ReportManager, ReportBase
-from testipy.configs import enums_data
 
 SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
 DEFAULT_CHANNEL = "C06BQ1UP6KG"

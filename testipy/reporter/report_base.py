@@ -5,9 +5,10 @@ from abc import abstractmethod, ABC
 from mimetypes import guess_type
 from tabulate import tabulate
 
-from testipy.lib_modules.common_methods import format_duration, get_current_date_time_ns, get_timestamp, get_datetime_now, prettify
-from testipy.lib_modules.state_counter import StateCounter
 from testipy.configs import enums_data, default_config
+from testipy.helpers import format_duration
+from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now
+from testipy.lib_modules.state_counter import StateCounter
 
 
 class ReportBase(ABC):

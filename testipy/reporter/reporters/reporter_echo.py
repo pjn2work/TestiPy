@@ -1,12 +1,12 @@
 from typing import Dict
 from tabulate import tabulate
 
+from testipy.configs import enums_data
+from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
-from testipy.lib_modules.common_methods import format_duration, prettify
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
 from testipy.reporter.report_manager import ReportManager, ReportBase
-from testipy.configs import enums_data
 
 _line_size = 160
 

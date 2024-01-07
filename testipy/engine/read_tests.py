@@ -7,6 +7,7 @@ from typing import Union, List, Tuple, Dict, Any
 
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import py_inspector, common_methods as cm
+from testipy.helpers import load_config
 
 
 AUTO_INCLUDED_TESTS = 0
@@ -165,10 +166,10 @@ def show_test_structure(execution_log, test_list: TYPE_SELECTED_TESTS_LIST):
 def sort_test_structure(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
     method_id = 0
     for package in test_list:
-        package["suite_list"] = sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+        package["suite_list"] = sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
         for suite in package["suite_list"]:
-            suite["test_list"] = sorted(suite["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+            suite["test_list"] = sorted(suite["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
             for test in suite["test_list"]:
                 method_id += 1
@@ -287,7 +288,7 @@ def get_tests(execution_log,
         # order test list
         if test_list:
             if len(test_list) > AUTO_INCLUDED_TESTS:
-                test_list = sorted(test_list, key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+                test_list = sorted(test_list, key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
             else:
                 test_list = []
 
@@ -344,7 +345,7 @@ def get_tests(execution_log,
 
         # add all suites under this package (store them ordered)
         if vp and package_dict["suite_list"]:
-            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
             result_list.append(package_dict)
 
         return result_list
@@ -390,7 +391,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
     selected_tests = []
 
     for sb_json_file in storyboard_json_files:
-        storyboard = cm.load_config(sb_json_file)
+        storyboard = load_config(sb_json_file)
 
         for sb_package in storyboard["package_list"]:
             # get cloned package dict, based on package_of_storyboard, from all tests
@@ -466,8 +467,7 @@ def run(execution_log, ap, storyboard_json_files, full_path_tests_scripts_folder
     if storyboard_json_files:
         all_tests = filter_tests_by_storyboard(execution_log, storyboard_json_files, all_tests)
 
-    # TODO remove this comments for debugging purpose
-    if verbose and all_tests:
+    if verbose and all_tests and ap.has_flag_or_option("--debug-testipy"):
         show_test_structure(execution_log, all_tests)
 
     return all_tests
