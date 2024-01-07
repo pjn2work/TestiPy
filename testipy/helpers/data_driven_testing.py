@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-
 from typing import Union, Dict, List
 from abc import abstractmethod, ABC
 from collections import OrderedDict
@@ -463,7 +461,7 @@ def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase:
         based_on = based_on[name]
 
     # maybe this one as based_on as well
-    based_on_data = copy.deepcopy(based_on)
+    based_on_data = based_on.copy()
     based_on_data.update(get_usecase_fields_based_on_another_usecase(usecases, based_on_data))
 
     # copy all fields from other if not contained already in current
