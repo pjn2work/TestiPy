@@ -67,14 +67,14 @@ def read_text_from_file(fpn: str) -> str:
     return str(text).rstrip("\n")
 
 
-def left_join_dicts(d1: Dict, d2: Dict) -> Dict:
+def left_update_dict(d1: Dict, d2: Dict) -> Dict:
     # keep everything from d1 root
     res = d1.copy()
 
     # check for all items in d2 if they are new or to be replaced in d1
     for k, v in d2.items():
         if k in res and isinstance(v, dict):
-            res[k] = left_join_dicts(d1[k], v)
+            res[k] = left_update_dict(d1[k], v)
             continue
         res[k] = v
 

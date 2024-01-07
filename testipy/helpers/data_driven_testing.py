@@ -9,7 +9,7 @@ from collections import OrderedDict
 from testipy.configs import enums_data
 from testipy.reporter.report_base import TestDetails
 from testipy.reporter.report_manager import ReportManager
-from testipy.helpers import get_traceback_tabulate, load_config, left_join_dicts, prettify
+from testipy.helpers import get_traceback_tabulate, load_config, left_update_dict, prettify
 from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
 
 
@@ -38,16 +38,32 @@ class ExecutionToolbox(ABC):
 class DataReader:
 
     def __init__(self, data: Union[str, Dict], env_name: str):
-        self.data = load_config(data) if isinstance(data, str) else dict()
         self.env_name = env_name
+        self.data = self._compile_data(data)
 
-    def get_tag(self, tag_name: str):
+    def get_scenarios_or_usecases(self, tag_name: str, scenario_name: str = "") -> Dict:
         if tag_name not in self.data:
             raise AttributeError(f"{tag_name=} not found on data file")
-        return self.data[tag_name]
+        res = self.data[tag_name]
+
+        if scenario_name:
+            if scenario_name not in res:
+                raise AttributeError(f"{scenario_name=} not found under {tag_name=}")
+            res = res[scenario_name]
+
+        return res
+
+    def _compile_data(self, data: Union[str, Dict]) -> Dict:
+        if isinstance(data, str):
+            data = load_config(data)
+
+        result = OrderedDict()
+        for tag_name, tag_data in data.items():
+            result[tag_name] = self._compile_tag_data(tag_data)
+        return result
 
     # Keywords = [env_first: bool, allow_override: bool, env: Dict, no_env: Dict, scenarios: Dict, usecases: Dict, based_on: str]
-    def get_scenarios_from_testdata(self, tag_name: str, env_first: bool = True, allow_override: bool = False) -> Union[Dict, list]:
+    def _compile_tag_data(self, base: Dict) -> Dict:
         """
         my_TAG_NAME:
 
@@ -110,9 +126,8 @@ class DataReader:
 
         result = OrderedDict()
 
-        base = copy.deepcopy(self.get_tag(tag_name))
-        env_first = base.get("env_first", env_first)
-        allow_override = base.get("allow_override", allow_override)
+        env_first = base.get("env_first", False)
+        allow_override = base.get("allow_override", True)
 
         # extract env or no_env
         if "env" in base or "no_env" in base:
@@ -179,12 +194,6 @@ class DataReader:
             return result
 
         return res_1
-
-    def get_usecases_from_scenario(self, tag_name: str, scenario_name: str) -> Dict:
-        test_data = self.get_scenarios_from_testdata(tag_name)
-        if scenario_name not in test_data:
-            raise AttributeError(f"{scenario_name=} not found under {tag_name=}")
-        return test_data[scenario_name]
 
 
 class SafeTry:
@@ -325,8 +334,6 @@ class DDTMethods(DataReader):
     usecase testdata keywords:
         description: string with test description
         exec_method: method name to be executed
-        params: (test data dict/list/whatever)
-        expected_response: (test result for success or failure, dict/list/whatever)
         bug: 
           bug_issue: JIRA-XXXX
           bug_message: Division by zero
@@ -335,36 +342,37 @@ class DDTMethods(DataReader):
     """
 
     # under that tag, run all scenarios as a test, and the usesCases are testSteps
-    def auto_call_tag(self, td: Dict, rm: ReportManager, tag: str):
-        for scenario_name in self.get_scenarios_from_testdata(tag_name=tag):
-            self.auto_call_scenario(td, rm, tag=tag, scenario_name=scenario_name, add_test_usecase=True)
+    def run_all_scenarios_as_tests_usecases_as_teststeps_under_tag_name(self, td: Dict, rm: ReportManager,
+                                                                        tag_name: str):
+        for scenario_name in self.get_scenarios_or_usecases(tag_name=tag_name):
+            self.run_single_scenario_as_test_usecases_as_teststeps(td, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
 
     # create a single test for that scenario, so the usesCases will be testSteps
-    def auto_call_scenario(self, td: Dict, rm: ReportManager,
-                           tag: str,
-                           scenario_name: str,
-                           bug: Union[str, Dict, List] = "",
-                           description: str = "",
-                           add_test_usecase: bool = True):
+    def run_single_scenario_as_test_usecases_as_teststeps(self, td: Dict, rm: ReportManager,
+                                                          tag_name: str,
+                                                          scenario_name: str,
+                                                          bug: Union[str, Dict, List] = "",
+                                                          description: str = "",
+                                                          add_test_usecase: bool = True):
 
         usecase_name = scenario_name if add_test_usecase else ""
         current_test = rm.startTest(td, usecase=usecase_name, description=description)
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
         else:
-            usecases = self.get_usecases_from_scenario(tag_name=tag, scenario_name=scenario_name)
+            usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
 
-            rm.testInfo(current_test, f"TEST_STEPS {tag=} {scenario_name=}:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
+            rm.testInfo(current_test, f"TEST_STEPS {tag_name=} {scenario_name=}:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
 
             _, failed_usecase = self._run_all_usecases_as_teststeps(rm, current_test, usecases)
 
             endTest(rm, current_test, bug=bug)
 
-    # create a test for each usecase under a scenario
-    def auto_call_usecases(self, td: Dict, rm: ReportManager,
-                           tag: str,
-                           scenario_name: str):
-        for usecase_name, usecase in self.get_usecases_from_scenario(tag_name=tag, scenario_name=scenario_name).items():
+    # create a test for each useCase under a scenario
+    def run_all_usecases_as_tests(self, td: Dict, rm: ReportManager,
+                                  tag: str,
+                                  scenario_name: str):
+        for usecase_name, usecase in self.get_scenarios_or_usecases(tag_name=tag, scenario_name=scenario_name).items():
             current_test = rm.startTest(td, usecase=usecase_name, description=usecase.get("description"))
 
             end_reason = ""
@@ -459,7 +467,7 @@ def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase:
     based_on_data.update(get_usecase_fields_based_on_another_usecase(usecases, based_on_data))
 
     # copy all fields from other if not contained already in current
-    return {field_name: left_join_dicts(based_on_data[field_name], current_usecase.get(field_name, dict())) for field_name in field_names}
+    return {field_name: left_update_dict(based_on_data[field_name], current_usecase.get(field_name, dict())) if isinstance(based_on_data[field_name], dict) else based_on_data[field_name] for field_name in field_names}
 
 
 def get_known_bug_failure_issue(bug: Union[str, Dict, List], end_reason: str = "") -> str:

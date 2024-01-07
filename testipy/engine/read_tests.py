@@ -166,10 +166,10 @@ def show_test_structure(execution_log, test_list: TYPE_SELECTED_TESTS_LIST):
 def sort_test_structure(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
     method_id = 0
     for package in test_list:
-        package["suite_list"] = sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+        package["suite_list"] = sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
         for suite in package["suite_list"]:
-            suite["test_list"] = sorted(suite["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+            suite["test_list"] = sorted(suite["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
             for test in suite["test_list"]:
                 method_id += 1
@@ -288,7 +288,7 @@ def get_tests(execution_log,
         # order test list
         if test_list:
             if len(test_list) > AUTO_INCLUDED_TESTS:
-                test_list = sorted(test_list, key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+                test_list = sorted(test_list, key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
             else:
                 test_list = []
 
@@ -345,7 +345,7 @@ def get_tests(execution_log,
 
         # add all suites under this package (store them ordered)
         if vp and package_dict["suite_list"]:
-            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True)
+            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
             result_list.append(package_dict)
 
         return result_list

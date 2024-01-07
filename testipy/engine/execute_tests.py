@@ -201,16 +201,29 @@ class Executer:
                 for suite in package["suite_list"]:
                     for _ in range(1 if onlyonce else suite.get("ncycles", 1)):
 
-                        # initialize suite __init__()
-                        suite["app"] = suite["suite_obj"](**suite.get("suite_kwargs", dict()))
                         report_manager.startSuite(suite[enums_data.TAG_NAME], cm.dict_without_keys(suite, "suite_obj"))
 
-                        for test in suite["test_list"]:
-                            method_seq += 1
-                            self._run_test(package, suite, dict(test), report_manager, dryrun_mode, debug_code, onlyonce, method_seq * 100 / total_methods_to_call)
+                        # initialize suite __init__()
+                        try:
+                            suite["app"] = suite["suite_obj"](**suite.get("suite_kwargs", dict()))
+                        except Exception as ex:
+                            for test in suite["test_list"]:
+                                method_seq += 1
+                                percent_completed = method_seq * 100 / total_methods_to_call
+                                rof = f"Init suite failed: {ex}"
+
+                                report_manager.testSkipped(report_manager.startTest(test, usecase="AUTO-CREATED"), reason_of_state=rof, exc_value=ex)
+                                self.execution_log("INFO", "{} {:3.0f}% [{}s] ({}/{}) {}/{} - {}({}) | {}".format(
+                                    color_status(enums_data.STATE_SKIPPED), percent_completed, 0, 0, 1,
+                                    package["package_name"], suite["filename"], test["method_name"], test["method_id"],
+                                    rof[:70]))
+                        else:
+                            for test in suite["test_list"]:
+                                method_seq += 1
+                                self._run_test(package, suite, dict(test), report_manager, dryrun_mode, debug_code, onlyonce, method_seq * 100 / total_methods_to_call)
+                            del suite["app"]
 
                         report_manager.endSuite()
-                        del suite["app"]
 
                 report_manager.endPackage()
 
