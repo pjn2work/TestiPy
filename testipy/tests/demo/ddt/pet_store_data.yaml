@@ -60,7 +60,7 @@ SINGLE:
 STORY1:
   _scenarios_:
 
-    curd_pet:
+    crud_pet:
 
       step_post_pet:
         _exec_method_: post_pet

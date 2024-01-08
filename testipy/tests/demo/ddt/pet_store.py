@@ -19,64 +19,74 @@ class Toolbox(ExecutionToolbox):
     def clear_last_execution(self):
         handle_http_response.body = handle_http_response.raw = ""
 
-    @handle_http_response(expected_type=dict)
-    def _get_as_dict(self, url: str = "", timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
-        return requests.get(url, headers={"accept": "application/json"}, timeout=timeout)
-
-    @handle_http_response(expected_type=dict)
-    def _post_as_dict(self, url: str = "", data: Dict = None, timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
-        return requests.post(url, json=data, headers={"Content-Type": "application/json; charset=utf-8", "accept": "application/json"}, timeout=timeout)
-
-    @handle_http_response(expected_type=dict)
-    def _put_as_dict(self, url: str = "", data: Dict = None, timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
-        return requests.put(url, json=data, headers={"Content-Type": "application/json; charset=utf-8", "accept": "application/json"}, timeout=timeout)
-
-    @handle_http_response(expected_type=str)
-    def _delete_as_str(self, url: str = "", timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
-        return requests.delete(url, headers={"accept": "application/json"}, timeout=timeout)
-
+    # --- Execution Methods --------------------------------------------------------------------------------------------
     def post_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, st: SafeTry, **kwargs):
         url = f"https://petstore3.swagger.io/api/v3/pet"
         try:
-            response = self._post_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("_expected_response_"))
+            response = _post_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("_expected_response_"))
             rm.testInfo(current_test, f"{usecase_name} - POST {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
-            self._show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "POST", ex)
+            _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "POST", ex)
             raise
 
     def get_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, **kwargs):
         url = f"https://petstore3.swagger.io/api/v3/pet/" + str(usecase["param"])
         try:
-            response = self._get_as_dict(url, **usecase["control"], expected_response=usecase.get("_expected_response_"))
+            response = _get_as_dict(url, **usecase["control"], expected_response=usecase.get("_expected_response_"))
             rm.testInfo(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
-            self._show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "GET", ex)
+            _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "GET", ex)
             raise
 
     def put_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, **kwargs):
         url = f"https://petstore3.swagger.io/api/v3/pet"
         try:
-            response = self._put_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("_expected_response_"))
+            response = _put_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("_expected_response_"))
             rm.testInfo(current_test, f"{usecase_name} - PUT {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
-            self._show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "PUT", ex)
+            _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "PUT", ex)
             raise
 
     def delete_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, **kwargs):
         url = f"https://petstore3.swagger.io/api/v3/pet/" + str(usecase["param"])
         try:
-            response = self._delete_as_str(url, **usecase["control"], expected_response=usecase.get("_expected_response_"))
+            response = _delete_as_str(url, **usecase["control"], expected_response=usecase.get("_expected_response_"))
             rm.testInfo(current_test, f"{usecase_name} - DELETE {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
-            self._show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "DELETE", ex)
+            _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "DELETE", ex)
             raise
 
-    def _show_expected_payload_vs_received(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, url: str, http_method: str, ex: Exception):
+
+@handle_http_response(expected_type=dict)
+def _get_as_dict(url: str = "", timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
+    return requests.get(url, headers={"accept": "application/json"}, timeout=timeout)
+
+
+@handle_http_response(expected_type=dict)
+def _post_as_dict(url: str = "", data: Dict = None, timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
+    return requests.post(url, json=data,
+                         headers={"Content-Type": "application/json; charset=utf-8", "accept": "application/json"},
+                         timeout=timeout)
+
+
+@handle_http_response(expected_type=dict)
+def _put_as_dict(url: str = "", data: Dict = None, timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
+    return requests.put(url, json=data,
+                        headers={"Content-Type": "application/json; charset=utf-8", "accept": "application/json"},
+                        timeout=timeout)
+
+
+@handle_http_response(expected_type=str)
+def _delete_as_str(url: str = "", timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:
+    return requests.delete(url, headers={"accept": "application/json"}, timeout=timeout)
+
+
+def _show_expected_payload_vs_received(rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, url: str, http_method: str, ex: Exception):
+    rm.testInfo(current_test,
+                info=f"{usecase_name} - {http_method} {url} - received Error payload:\n" +
+                    prettify(handle_http_response.body, as_yaml=False),
+                level="DEBUG" if isinstance(ex, ExpectedError) else "ERROR")
+    if expected_response := usecase.get("_expected_response_"):
         rm.testInfo(current_test,
-                    info=f"{usecase_name} - {http_method} {url} - received Error payload:\n" +
-                        prettify(handle_http_response.body, as_yaml=False),
-                    level="DEBUG" if isinstance(ex, ExpectedError) else "ERROR")
-        if expected_response := usecase.get("_expected_response_"):
-            rm.testInfo(current_test,
-                        info=f"{usecase_name} - expected payload:\n{prettify(expected_response, as_yaml=False)}",
-                        level="DEBUG")
+                    info=f"{usecase_name} - expected payload:\n{prettify(expected_response, as_yaml=False)}",
+                    level="DEBUG")

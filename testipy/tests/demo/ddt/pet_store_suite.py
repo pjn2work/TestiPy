@@ -1,5 +1,3 @@
-import requests
-
 from typing import Dict
 
 from testipy.reporter import ReportManager
