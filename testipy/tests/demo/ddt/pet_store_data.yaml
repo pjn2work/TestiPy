@@ -1,0 +1,106 @@
+CONST_ER1: &ER1
+  id: 1
+  name: Sissi
+  category:
+    id: 1
+    name: Dogs
+  photoUrls:
+    - ""
+  tags:
+    - id: 0
+      name: Schnauzer
+    - id: 0
+      name: mini
+  status: available
+
+
+
+SINGLE:
+  _scenarios_:
+
+    valid:
+
+      post_pet:
+        _exec_method_: post_pet
+        control:
+          expected_status_code: 200
+        param: *ER1
+        _expected_response_: *ER1
+
+      get_pet:
+        _exec_method_: get_pet
+        control:
+          expected_status_code: 200
+        param: 1
+        _expected_response_: *ER1
+
+
+    invalid:
+
+      post_pet_without_id:
+        _exec_method_: post_pet
+        control:
+          expected_status_code: 500
+        param:
+          name: Sissi
+          category:
+            id: 1
+            name: Dogs
+          photoUrls:
+            - ""
+          tags:
+            - id: 0
+              name: Schnauzer
+            - id: 0
+              name: mini
+          status: available
+
+
+
+STORY1:
+  _scenarios_:
+
+    curd_pet:
+
+      step_post_pet:
+        _exec_method_: post_pet
+        control:
+          expected_status_code: 200
+        param: *ER1
+        _expected_response_: *ER1
+
+      step_put_pet:
+        _based_on_: ["crud_pet/step_post_pet", ["param", "_expected_response_"]]
+        _exec_method_: put_pet
+        control:
+          expected_status_code: 200
+        param:
+          category:
+            name: SmallDogs
+        _expected_response_:
+          category:
+            name: SmallDogs
+
+      step_get_pet:
+        _based_on_: ["crud_pet/step_post_pet", ["_expected_response_"]]
+        _exec_method_: get_pet
+        control:
+          expected_status_code: 200
+        param: 1
+        _expected_response_:
+          category:
+            name: SmallDogs
+
+      step_delete_pet:
+        _exec_method_: delete_pet
+        control:
+          expected_status_code: 200
+        param: 1
+        _expected_response_: "Pet deleted"
+
+      step_get_deleted_pet:
+        _exec_method_: get_pet
+        control:
+          expected_status_code: 404
+        param: 1
+        _expected_response_: "Pet not found"
