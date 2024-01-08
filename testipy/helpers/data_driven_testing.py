@@ -13,23 +13,11 @@ from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
 
 class ExecutionToolbox(ABC):
     @abstractmethod
-    def execute(self, rm: ReportManager, exec_method, usecase: Dict, usecase_name: str, current_test: TestDetails, st: SafeTry):
+    def execute(self, rm: ReportManager, current_test: TestDetails, exec_method, usecase: Dict, usecase_name: str, st: SafeTry):
         pass
 
     @abstractmethod
     def clear_last_execution(self):
-        pass
-
-    @abstractmethod
-    def log_example(self, rm: ReportManager, current_test: TestDetails, forced: bool = True, text: str = ""):
-        pass
-
-    @abstractmethod
-    def log_error(self, rm: ReportManager, current_test: TestDetails, exc_val, save_to_file: bool = False, text: str = ""):
-        pass
-
-    @abstractmethod
-    def validate_expected_error(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str):
         pass
 
 
@@ -60,21 +48,18 @@ class DataReader:
             result[tag_name] = self._compile_tag_data(tag_data)
         return result
 
-    # Keywords = [env_first: bool, allow_override: bool, env: Dict, no_env: Dict, scenarios: Dict, usecases: Dict, based_on: str]
+    # Keywords = [_env_: Dict, _no_env_: Dict, _scenarios_: Dict, _usecases_: Dict, _based_on_: str]
     def _compile_tag_data(self, base: Dict) -> Dict:
         """
         my_TAG_NAME:
 
-          env_first: false
-          allow_override: true
-
           no_env:
-            scenarios:
+            _scenarios_:
 
               my_scenario_1:
 
                 my_usecase_1:
-                  exec_method: create_user
+                  _exec_method_: create_user
                   save_name: my_var_1
                   params:
                     data:
@@ -82,7 +67,7 @@ class DataReader:
                       age: 41
 
                 my_usecase_2:
-                  exec_method: create_user
+                  _exec_method_: create_user
                   save_name: my_var_2
                   params:
                     data:
@@ -90,14 +75,14 @@ class DataReader:
                       age: Ten
                   control:
                     expected_status_code: 400
-                  expected_response:
+                  _expected_response_:
                     error: Invalid age
                     code: 100
 
               my_scenario_2:
 
                 my_usecase_3:
-                  exec_method: create_user
+                  _exec_method_: create_user
                   save_name: my_var_1
                   params:
                     data:
@@ -112,80 +97,79 @@ class DataReader:
                     my_scenario_1:
 
                         my_usecase_1:
-                          exec_method: create_user
+                          _exec_method_: create_user
                           save_name: my_var_1
                           params:
                             data:
-                              name: John
+                              name: Will Override Name in _no_env_ Same Scenario
                               age: 41
+                          _known_bug_:
+                            bug_issue: JIRA-1234
+                            bug_message: User already exists
 
 
         """
 
         result = OrderedDict()
 
-        env_first = base.get("env_first", False)
-        allow_override = base.get("allow_override", True)
-
         # extract env or no_env
-        if "env" in base or "no_env" in base:
-            res_env = base["env"].get(self.env_name) if "env" in base else None
-            res_no_env = base.get("no_env")
+        if "_env_" in base or "_no_env_" in base:
+            res_env = base["_env_"].get(self.env_name) if "_env_" in base else None
+            res_no_env = base.get("_no_env_")
         else:
             res_env = None
             res_no_env = base
 
-        # make sure the first dict has data and prio by "env_first"
-        if env_first and res_env:
-            res_1, res_2 = res_env, res_no_env
+        # make sure that either dict has data
+        if res_env:
+            if res_no_env:
+                res_1, res_2 = res_no_env, res_env
+            else:
+                res_1, res_2 = res_env, None
         else:
-            res_1, res_2 = res_no_env, res_env
+            if res_no_env:
+                res_1, res_2 = res_no_env, None
+            else:
+                return base
 
-        # no data to extract? this never happens (just a safeguard)
-        if not res_1:
-            return base
-
-        # extract scenarios (and usecases)
-        if isinstance(res_1, dict) and "scenarios" in res_1:
-            res_1 = res_1["scenarios"]
-            res_2 = res_2["scenarios"] if res_2 else None
+        # extract scenarios (and useCases)
+        if isinstance(res_1, dict) and "_scenarios_" in res_1:
+            res_1 = res_1["_scenarios_"]
+            res_2 = res_2["_scenarios_"] if res_2 else None
 
             # update result with all usecases from res_1
             result.update(res_1)
 
-            # check if scenarios collide and update them
+            # check for scenarios with same name under no_env and env and merge them
             if res_2:
                 for scenario_name in res_2:
                     if scenario_name not in result:
                         result[scenario_name] = OrderedDict()
 
+                    # check for useCases with same name under no_env and env under same scenario and replace them
                     for usecase_name, usecase in res_2[scenario_name].items():
-                        if not allow_override and usecase_name in result[scenario_name]:
-                            raise NameError(f"In your scenario/usecase {scenario_name}/{usecase_name}, conflict with env {self.env_name}")
                         result[scenario_name][usecase_name] = usecase
 
-            # update useCases, from all scenarios, upon based_on option
+            # update useCases, from all scenarios, upon _based_on_ option
             for scenario in result.values():
                 for usecase_name, usecase in scenario.items():
                     usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
 
             return result
 
-        # extract only usecases
-        if isinstance(res_1, dict) and "usecases" in res_1:
-            res_1 = res_1["usecases"]
-            res_2 = res_2["usecases"] if res_2 else None
+        # extract only useCases
+        if isinstance(res_1, dict) and "_usecases_" in res_1:
+            res_1 = res_1["_usecases_"]
+            res_2 = res_2["_usecases_"] if res_2 else None
 
             result.update(res_1)
 
-            # check if usecases collide and update them
+            # check for useCases with same name under no_env and env and merge them
             if res_2:
                 for usecase_name, usecase in res_2.items():
-                    if not allow_override and usecase_name in result:
-                        raise NameError(f"In your usecase {usecase_name}, conflict with env {self.env_name}")
                     result[usecase_name] = usecase
 
-            # update useCases upon based_on option
+            # update useCases upon _based_on_ option
             for usecase_name, usecase in result.items():
                 usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
 
@@ -205,8 +189,6 @@ class SafeTry:
                  ros_failure: str = "",
                  ros_expected_failure: str = "",
                  bug: str = "",
-                 log_text: str = "",
-                 log_response: bool = False,
                  take_screenshot: bool = False):
         self._toolbox = toolbox
         self.rm = rm
@@ -218,9 +200,7 @@ class SafeTry:
         self.ros_failure = ros_failure
         self.bug = bug
         self.ros = ""
-        self.log_text = log_text
 
-        self.log_output = log_response
         self.take_screenshot = take_screenshot
 
         self.exc_val = None
@@ -299,23 +279,18 @@ class SafeTry:
 
     def __enter__(self):
         self.exc_val = None
-        if self.log_output:
-            self._toolbox.clear_last_execution()
+        self._toolbox.clear_last_execution()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._end_last_step(exc_val)
 
         if exc_val is None or isinstance(exc_val, (ExpectedError, SkipTestError)):
-            if self.log_output:
-                self._toolbox.log_example(self.rm, self.current_test, forced=True, text=self.log_text)
+            pass
         else:
-            if self.log_output:
-                self._toolbox.log_error(self.rm, self.current_test, exc_val, save_to_file=False, text=self.log_text)
-            else:
-                if self.rm.is_debugcode():
-                    raise exc_val
-                self.rm.testInfo(self.current_test, get_traceback_tabulate(exc_val), "ERROR")
+            self.rm.testInfo(self.current_test, get_traceback_tabulate(exc_val), "ERROR")
+            if self.rm.is_debugcode():
+                raise exc_val
 
         return self
 
@@ -329,14 +304,14 @@ class DDTMethods(DataReader):
         self.exec_toolbox = exec_toolbox
 
     """
-    usecase testdata keywords:
-        description: string with test description
-        exec_method: method name to be executed
-        bug: 
-          bug_issue: JIRA-XXXX
-          bug_message: Division by zero
-        no_skip: boolean (used for auto_call_usecases)
-        skip_all: str = reason of skipping this test
+    usecase keywords:
+        _no_skip_: bool = execute useCase even if previous failed (used for _run_all_usecases_as_teststeps)
+        _skip_all_: str = reason of skipping all useCases
+        _description_: str = string with test description
+        _exec_method_: str = method name to be executed
+        _known_bug_: 
+          bug_issue: str = JIRA-XXXX
+          bug_message: str = Division by zero
     """
 
     # under that tag, run all scenarios as a test, and the usesCases are testSteps
@@ -355,21 +330,20 @@ class DDTMethods(DataReader):
 
         usecase_name = scenario_name if add_test_usecase else ""
         current_test = rm.startTest(td, usecase=usecase_name, description=description)
+        
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
         else:
             usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
-
-            rm.testInfo(current_test, f"TEST_STEPS {tag_name=} {scenario_name=}:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
+            rm.testInfo(current_test, f"{tag_name=} {scenario_name=} TEST_STEPS:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
 
             _, failed_usecase = self._run_all_usecases_as_teststeps(rm, current_test, usecases)
-
             endTest(rm, current_test, bug=bug)
 
     # create a test for each useCase under a scenario
     def run_all_usecases_as_tests(self, td: Dict, rm: ReportManager,
                                   tag: str,
-                                  scenario_name: str):
+                                  scenario_name: str):        
         for usecase_name, usecase in self.get_scenarios_or_usecases(tag_name=tag, scenario_name=scenario_name).items():
             current_test = rm.startTest(td, usecase=usecase_name, description=usecase.get("description"))
 
@@ -377,59 +351,42 @@ class DDTMethods(DataReader):
             if rm.has_ap_flag("--norun"):
                 rm.testSkipped(current_test, "--norun")
             else:
-                rm.testInfo(current_test, f"TEST_USECASE {tag=} {scenario_name=} {usecase_name=}:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
+                rm.testInfo(current_test, f"{tag=} {scenario_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
 
-                if usecase.get("skip_all"):
-                    rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("skip_all"), usecase_name)
+                if usecase.get("_skip_all_"):
+                    rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
                     break
                 else:
-                    # execute the test and assert valid response
-                    with SafeTry(self.exec_toolbox, rm, current_test, step_description="load usecase test data", log_response=True) as st:
+                    with SafeTry(self.exec_toolbox, rm, current_test, step_description=usecase_name) as st:
+                        # Execute the useCase
                         self.response_from_usecases[usecase_name] = self.exec_toolbox.execute(
-                            rm,
-                            usecase['exec_method'],
+                            rm=rm,
+                            current_test=current_test,
+                            exec_method=usecase["_exec_method_"],
                             usecase=usecase,
                             usecase_name=usecase_name,
-                            current_test=current_test,
                             st=st)
                     end_reason = st.get_ros() if st.is_success() else ""
 
-                    # log expected response
-                    if usecase.get("expected_response"):
-                        rm.testInfo(current_test, f"Expected response:\n{prettify(usecase['expected_response'])}", "INFO")
-
-                    # validate error response
-                    if st.is_expected_error():
-                        with SafeTry(self.exec_toolbox, rm, current_test, step_description="assert expected error", log_response=False) as ve:
-                            self.exec_toolbox.validate_expected_error(rm, current_test, usecase, usecase_name)
-                            end_reason = st.get_ros()
-
-                endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("bug", ""))
+                endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("_known_bug_", ""))
 
     def _run_all_usecases_as_teststeps(self, rm, current_test, usecases: Dict):
         failed_usecase = ""
         for usecase_name, usecase in usecases.items():
-            if usecase.get("skip_all"):
-                rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("skip_all"), usecase_name)
+            if usecase.get("_skip_all_"):
+                rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
                 break
             else:
-                if failed_usecase == "" or usecase.get("no_skip"):
-                    with SafeTry(self.exec_toolbox, rm, current_test, step_description=usecase_name, ros_failure=f"In usecase {usecase_name},", bug=usecase.get("bug", ""), log_response=True, take_screenshot=False, log_text=f"Express {usecase_name=}") as st:
-                        try:
-                            self.response_from_usecases[usecase_name] = self.exec_toolbox.execute(
-                                rm,
-                                usecase['exec_method'],
-                                usecase=usecase,
-                                usecase_name=usecase_name,
-                                current_test=current_test,
-                                st=st)
-                        except ExpectedError:
-                            self.exec_toolbox.validate_expected_error(rm, current_test, usecase, usecase_name)
-                            raise
-
-                    # log expected response
-                    if usecase.get("expected_response"):
-                        rm.testInfo(current_test, f"Express {usecase_name=} expected response:\n{prettify(usecase['expected_response'])}", "DEBUG")
+                if failed_usecase == "" or usecase.get("_no_skip_"):
+                    with SafeTry(self.exec_toolbox, rm, current_test, step_description=usecase_name, ros_failure=f"In usecase {usecase_name},", bug=usecase.get("_known_bug_", ""), take_screenshot=False) as st:
+                        # Execute the useCase
+                        self.response_from_usecases[usecase_name] = self.exec_toolbox.execute(
+                            rm=rm,
+                            current_test=current_test,
+                            exec_method=usecase["_exec_method_"],
+                            usecase=usecase,
+                            usecase_name=usecase_name,
+                            st=st)
 
                     if st.is_failed() and not failed_usecase:
                         failed_usecase = usecase_name
@@ -448,12 +405,12 @@ def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase:
         current_usecase = curr_uc
 
     # this useCase is not based on any other, so nothing to update
-    if "based_on" not in current_usecase:
+    if "_based_on_" not in current_usecase:
         return dict()
 
-    bo_usecase_name, field_names = current_usecase["based_on"]
+    bo_usecase_name, field_names = current_usecase["_based_on_"]
 
-    # get the useCase that is based_on
+    # get the useCase that is _based_on_
     based_on = usecases
     for name in bo_usecase_name.split("/"):
         if name not in based_on:

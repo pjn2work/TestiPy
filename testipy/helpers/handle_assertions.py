@@ -87,14 +87,14 @@ def assert_equal_unique_lists(lst1: List, lst2: List, name_list1: str = "list1",
 
 
 # It only works if there is no duplicated data inside lists
-def assert_data(expected_values: Dict, response: Dict, where="response", strict: bool = False, **kwargs):
+def assert_data(expected_values: Dict, response: Dict, where="", strict: bool = False, **kwargs):
     if isinstance(expected_values, dict):
         if strict and len(expected_values) != len(response):
             raise ExpectedFieldMissingError(f"Not same amount of keys: {expected_values.keys()=} not {response.keys()=}")
 
         for field, value in expected_values.items():
             if field not in response:
-                raise ExpectedFieldMissingError(f"{field=} not in {where}.")
+                raise ExpectedFieldMissingError(f"{field=} not in {where}")
             if isinstance(value, (list, tuple, set)):
                 assert_expected_type(response[field], type(value), where=f"{where}.{field}")
                 assert_equal_unique_lists(value, response[field], f"{where}/{field}[expected]", f"{where}/{field}[response]")
@@ -105,13 +105,15 @@ def assert_data(expected_values: Dict, response: Dict, where="response", strict:
                 assert_expected_value(value, response[field], where=f"{where}.{field}")
     elif isinstance(expected_values, list):
         assert_equal_unique_lists(expected_values, response, name_list1="expected", name_list2="received", strict=strict)
+    elif isinstance(expected_values, str):
+        assert expected_values == response, f"{where} Expected value does not meet received."
     else:
         if strict:
-            assert expected_values == response, "Expected value does not meet received."
+            assert expected_values == response, f"{where} Expected value does not meet received."
         else:
-            assert expected_values in response, "Expected value not part of received."
+            assert expected_values in response, f"{where} Expected value not part of received."
 
 
 def assert_status_code(expected_status_code, received_status_code):
     if expected_status_code != received_status_code:
-        raise UnexpectedValueError(f"Unexpected status_code {received_status_code}, expected {expected_status_code}.")
+        raise UnexpectedValueError(f"Unexpected status_code {received_status_code}, expected {expected_status_code}")
