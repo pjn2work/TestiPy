@@ -16,7 +16,7 @@ def _get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
 
     # assure all states
     dict_states = dict()
-    for state in enums_data.DEFAULT_STATES:
+    for state in enums_data.SEVERITY_STATES_ORDER:
         if state not in df_dummies.columns:
             df_dummies[state] = 0
         dict_states[state] = "sum"

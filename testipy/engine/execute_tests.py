@@ -84,8 +84,7 @@ class Executer:
             if tc[enums_data.STATE_FAILED] > 0:
                 rm.testFailed(current_test, tc.get_last_reason_of_state(enums_data.STATE_FAILED) or "!", had_exception)
             if tc[enums_data.STATE_FAILED_KNOWN_BUG] > 0:
-                rm.testFailedKnownBug(current_test, tc.get_last_reason_of_state(
-                    enums_data.STATE_FAILED_KNOWN_BUG) or "!", had_exception)
+                rm.testFailedKnownBug(current_test, tc.get_last_reason_of_state(enums_data.STATE_FAILED_KNOWN_BUG) or "!", had_exception)
             elif tc[enums_data.STATE_SKIPPED] > 0:
                 rm.testSkipped(current_test, tc.get_last_reason_of_state(enums_data.STATE_SKIPPED) or "!", had_exception)
             else:
@@ -120,10 +119,14 @@ class Executer:
 
         # show summary
         total = max(results.get_total(), total_failed)
-        test_result = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
         duration = f"{results.get_sum_time_laps():.2f}".rjust(6)
 
-        self.execution_log("INFO", "{} {:3.0f}% [{}s] ({}/{}) {}/{} - {}({}) | {}".format(color_status(test_result), percent_completed, duration, total_failed, total, package["package_name"], suite["filename"], test["method_name"], test["method_id"], rof))
+        test_result = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
+        # TODO to be tested
+        test_result, rof = results.get_state_by_severity()
+        rof = str(rof)[:70] if rof else "!"
+
+        self.execution_log("INFO", "{:<26} {:3.0f}% [{}s] ({}/{}) {}/{} - {}({}) | {}".format(color_status(test_result), percent_completed, duration, total_failed, total, package["package_name"], suite["filename"], test["method_name"], test["method_id"], rof))
 
     # !!!Run test!!!
     def _run_test(self, package, suite, test, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed):
