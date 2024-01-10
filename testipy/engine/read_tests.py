@@ -7,6 +7,7 @@ from typing import Union, List, Tuple, Dict, Any
 
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import py_inspector, common_methods as cm
+from testipy.lib_modules.args_parser import ArgsParser
 from testipy.helpers import load_config
 
 
@@ -190,8 +191,7 @@ def mark_meid(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
 
 
 # returns list of dict with all tests to run
-def get_tests(execution_log,
-              full_path_tests_scripts_foldername: str,
+def get_tests(full_path_tests_scripts_foldername: str,
               include_package=[], exclude_package=[],
               include_suite_tag=[], exclude_suite_tag=[],
               include_test_tag=[], exclude_test_tag=[],
@@ -453,10 +453,9 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
     return selected_tests
 
 
-def run(execution_log, ap, storyboard_json_files, full_path_tests_scripts_foldername, verbose=True):
+def read_files_to_get_selected_tests(execution_log, ap: ArgsParser, storyboard_json_files: List[str], full_path_tests_scripts_foldername: str, verbose=False):
     cm.TESTS_ROOT_FOLDER = full_path_tests_scripts_foldername
-    all_tests = get_tests(execution_log,
-                          full_path_tests_scripts_foldername=full_path_tests_scripts_foldername,
+    all_tests = get_tests(full_path_tests_scripts_foldername=full_path_tests_scripts_foldername,
                           include_package=ap.get_options_arguments("-ip"), exclude_package=ap.get_options_arguments("-ep"),
                           include_suite_tag=ap.get_options_arguments("-is"), exclude_suite_tag=ap.get_options_arguments("-es"),
                           include_test_tag=ap.get_options_arguments("-it"), exclude_test_tag=ap.get_options_arguments("-et"),
@@ -467,7 +466,7 @@ def run(execution_log, ap, storyboard_json_files, full_path_tests_scripts_folder
     if storyboard_json_files:
         all_tests = filter_tests_by_storyboard(execution_log, storyboard_json_files, all_tests)
 
-    if verbose and all_tests and ap.has_flag_or_option("--debug-testipy"):
+    if verbose and all_tests:
         show_test_structure(execution_log, all_tests)
 
     return all_tests
