@@ -10,13 +10,13 @@ from tabulate import tabulate
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from testipy.configs import default_config
-from testipy.engine import read_tests, execute_tests
+from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
+from testipy.reporter.report_manager import build_report_manager_with_reporters
 from testipy.helpers import get_traceback_list, format_duration, prettify
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.execution_logger import ExecutionLogger
 from testipy.lib_modules.start_arguments import ParseStartArguments, StartArguments
-from testipy.reporter.report_manager import build_report_manager_with_reporters
 
 
 __app__, __version__, __app_full__ = get_app_version()
@@ -53,11 +53,12 @@ class Runner:
         sys.path.insert(1, self.sa.full_path_tests_scripts_foldername)
 
         # Select tests to run based on args filters
-        self.selected_tests = read_tests.run(execution_log,
-                                             ap,
-                                             sa.storyboard,
-                                             sa.full_path_tests_scripts_foldername,
-                                             verbose=self.sa.dryrun or ap.has_flag_or_option("--debug-testipy"))
+        self.selected_tests = read_files_to_get_selected_tests(
+            execution_log=execution_log,
+            ap=ap,
+            storyboard_json_files=sa.storyboard,
+            full_path_tests_scripts_foldername=sa.full_path_tests_scripts_foldername,
+            verbose=ap.has_flag_or_option("--debug-testipy"))
         if len(self.selected_tests) == 0:
             raise FileNotFoundError(f"Found no tests under {sa.full_path_tests_scripts_foldername}")
 
@@ -71,7 +72,7 @@ class Runner:
         for rep in range(1, self.sa.repetitions + 1):
             self.execution_log("INFO", f"--- Execution #{rep} ---")
             try:
-                total_fails += execute_tests.run(self.execution_log, self.sa, self.selected_tests, self.report_manager)
+                total_fails += run_selected_tests(self.execution_log, self.sa, self.selected_tests, self.report_manager)
             except Exception as ex:
                 total_fails += 1
                 self.execution_log("ERROR", f"Execution #{rep} - {ex}")

@@ -29,7 +29,7 @@ class ReportManager(ReportBase):
 
         self.browser_manager: BrowserManager = None
 
-    def _add_reporter(self, name, new_reporter_class) -> ReportManager:
+    def add_reporter(self, name, new_reporter_class) -> ReportManager:
         self._execution_log("DEBUG", f"Added reporter {name}")
         new_reporter_class.set_report_manager_base(self)  # Add myself as the ReportManager on this new_reporter_class
         self._reporters_list[name] = new_reporter_class
@@ -272,7 +272,7 @@ class ReportManager(ReportBase):
     def __teardown__(self, end_state) -> ReportManager:
         totals = super().get_reporter_counter()
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
-        end_state = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
+        end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
 
         super().__teardown__(end_state)
         for reporter_name, reporter in self._reporters_list.items():
@@ -290,7 +290,7 @@ class ReportManager(ReportBase):
         except:
             pass
 
-        self._execution_log("INFO", f"{color_state(end_state)} Tests took {format_duration(super().get_reporter_duration())} [{totals}]")
+        self._execution_log("INFO", f"{color_state(end_state)} All took {format_duration(super().get_reporter_duration()):>10} [{totals}]")
         return self
 
     def startPackage(self, name) -> ReportManager:
@@ -496,7 +496,7 @@ def build_report_manager_with_reporters(execution_log, selected_tests, ap: ArgsP
     def _add_reporter(rep_name, rep_class):
         try:
             rep = rep_class(rm, sa)
-            rm._add_reporter(rep_name, rep)
+            rm.add_reporter(rep_name, rep)
         except Exception as ex:
             execution_log("WARNING", f"Internal error on build_report_manager_with_reporters for {rep_name} {ex}")
 

@@ -14,50 +14,6 @@ from testipy.helpers.prettify import format_duration
 from testipy.reporter.report_manager import ReportManager
 
 
-def _get_nok_on_success_or_on_failure(report_manager: ReportManager, test: Dict) -> str:
-    if test[enums_data.TAG_ON_SUCCESS] or test[enums_data.TAG_ON_FAILURE]:
-        # dict(k = @NAME, v = [current_test#1_(from_suite#1), c_t#2_s#1, c_t#3_s#2, ...])
-        all_tests = report_manager.get_test_list()
-
-        for prio in test[enums_data.TAG_ON_SUCCESS]:
-            # all tests under same suite (even if from different suite runs, not only from latest)
-            for test_name, test_list in all_tests.items():
-                # may have other tests with other priority under the same testName
-                for current_test in test_list:
-                    if current_test.get_prio() == prio:
-                        for ended_test in test_list[::-1]:
-                            if ended_test.is_passed():
-                                break   # goto next break (continue to next prio)
-                        else:
-                            continue    # continue to next current_test on test_list
-                        break           # goto next break (continue to next prio)
-                else:
-                    continue            # continue to next test_list on all_tests
-                break                   # continue to next prio
-            else:
-                return f"NO SUCCESS on {prio=}"
-
-        for prio in test[enums_data.TAG_ON_FAILURE]:
-            # all tests under same suite (even if from different suite runs, not only from latest)
-            for test_name, test_list in all_tests.items():
-                # may have other tests with other priority under the same testName
-                for current_test in test_list:
-                    if current_test.get_prio() == prio:
-                        for ended_test in test_list[::-1]:
-                            if ended_test.is_failed():
-                                break   # goto next break (continue to next prio)
-                        else:
-                            continue    # continue to next current_test on test_list
-                        break           # goto next break (continue to next prio)
-                else:
-                    continue            # continue to next test_list on all_tests
-                break                   # continue to next prio
-            else:
-                return f"NO FAILURE on {prio=}"
-
-    return ""
-
-
 class Executer:
 
     def __init__(self, execution_log, full_path_tests_scripts_foldername):
@@ -131,10 +87,13 @@ class Executer:
             tc_state, tc_ros = current_test.get_test_step_counters().get_state_by_severity()
             rm.testEndAs(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
 
-    def _calculate_state_for_all_tests_under_this_method(self, rm: ReportManager, package, suite, test, had_exception: Exception, percent_completed: float):
-        # kill not properly ended tests
+    def _auto_close_all_open_tests(self, rm: ReportManager, test, had_exception: Exception = None):
         for current_test in list(rm.get_test_running_list(test["method_id"])):
             self._auto_close_single_test(rm, current_test, had_exception)
+
+    def _calculate_state_for_all_tests_under_this_method(self, rm: ReportManager, package, suite, test, had_exception: Exception, percent_completed: float):
+        # End not properly ended tests - this should never happen here
+        self._auto_close_all_open_tests(rm=rm, test=test, had_exception=had_exception)
 
         # sum all tests counter for this method, for all ncycle
         results = StateCounter()
@@ -161,22 +120,24 @@ class Executer:
 
         self._print_progress_when_method_ends(method_state, percent_completed, duration, total_failed, total, package, suite, test, method_ros or "!")
 
-    # !!!Run test!!!
     def _call_test_method(self, package, suite, test, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed):
-        # clear current test to see if the method call creates any new tests
-        rm.clear_current_test()
-
         had_exception = None
 
         if dryrun_mode:
             # if "--dryrun" was passed then will skip all tests execution
             rm.testSkipped(rm.startTest(test, usecase="dryrun"), reason_of_state="DRYRUN")
         else:
-            try:
-                for _ in range(1 if onlyonce else test["ncycles"]):
-                    nok = _get_nok_on_success_or_on_failure(rm, test)
+            # get @ON_FAILURE or @ON_SUCCESS dependency
+            nok = _get_nok_on_success_or_on_failure(rm, test)
+
+            for _ in range(1 if onlyonce else test["ncycles"]):
+                # clear current test to see if the method call creates any new tests
+                rm.clear_current_test()
+
+                try:
                     if nok:
                         rm.testSkipped(rm.startTest(test, usecase="AUTO-CREATED"), reason_of_state=nok)
+                        break
                     else:
                         td = cm.dict_without_keys(test, keys_to_remove="test_obj")
                         # -->> call the test method <<--
@@ -185,19 +146,23 @@ class Executer:
                         # no test started by the method call, create one and close it
                         if rm.get_current_test() is None:
                             rm.testEndAs(rm.startTest(test, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
-            except Exception as ex:
-                # no test started by the method call
-                if rm.get_current_test() is None:
-                    self._auto_close_single_test(rm, rm.startTest(test, usecase="AUTO-CREATED"), ex)
 
-                # if "--debug_code" was passed, then will stop all execution
-                if debug_code:
-                    self.execution_log("CRITICAL", "- {}/{} - {}.{}({}) needs review because: {}\n{}".format(
-                        package["package_name"], suite["filename"],
-                        suite["suite_name"], test["method_name"], test["method_id"],
-                        str(ex), _get_stacktrace_string_for_tests(ex)))
-                    raise ex
-                had_exception = ex
+                        self._auto_close_all_open_tests(rm=rm, test=test)
+                except Exception as ex:
+                    # no test started by the method call, create one
+                    if rm.get_current_test() is None:
+                        _ = rm.startTest(test, usecase="AUTO-CREATED")
+
+                    self._auto_close_all_open_tests(rm=rm, test=test, had_exception=ex)
+
+                    # if "--debug_code" was passed, then will stop all execution
+                    if debug_code:
+                        self.execution_log("CRITICAL", "- {}/{} - {}.{}({}) needs review because: {}\n{}".format(
+                            package["package_name"], suite["filename"],
+                            suite["suite_name"], test["method_name"], test["method_id"],
+                            str(ex), _get_stacktrace_string_for_tests(ex)))
+                        raise ex
+                    had_exception = ex
 
         self._calculate_state_for_all_tests_under_this_method(rm, package, suite, test, had_exception, percent_completed)
 
@@ -208,6 +173,50 @@ class Executer:
 
     def _inc_failed(self, qty=1):
         self._total_failed_skipped += qty
+
+
+def _get_nok_on_success_or_on_failure(report_manager: ReportManager, test: Dict) -> str:
+    if test[enums_data.TAG_ON_SUCCESS] or test[enums_data.TAG_ON_FAILURE]:
+        # dict(k = @NAME, v = [current_test#1_(from_suite#1), c_t#2_s#1, c_t#3_s#2, ...])
+        all_tests = report_manager.get_test_list()
+
+        for prio in test[enums_data.TAG_ON_SUCCESS]:
+            # all tests under same suite (even if from different suite runs, not only from latest)
+            for test_name, test_list in all_tests.items():
+                # may have other tests with other priority under the same testName
+                for current_test in test_list:
+                    if current_test.get_prio() == prio:
+                        for ended_test in test_list[::-1]:
+                            if ended_test.is_passed():
+                                break   # goto next break (continue to next prio)
+                        else:
+                            continue    # continue to next current_test on test_list
+                        break           # goto next break (continue to next prio)
+                else:
+                    continue            # continue to next test_list on all_tests
+                break                   # continue to next prio
+            else:
+                return f"NO SUCCESS on {prio=}"
+
+        for prio in test[enums_data.TAG_ON_FAILURE]:
+            # all tests under same suite (even if from different suite runs, not only from latest)
+            for test_name, test_list in all_tests.items():
+                # may have other tests with other priority under the same testName
+                for current_test in test_list:
+                    if current_test.get_prio() == prio:
+                        for ended_test in test_list[::-1]:
+                            if ended_test.is_failed():
+                                break   # goto next break (continue to next prio)
+                        else:
+                            continue    # continue to next current_test on test_list
+                        break           # goto next break (continue to next prio)
+                else:
+                    continue            # continue to next test_list on all_tests
+                break                   # continue to next prio
+            else:
+                return f"NO FAILURE on {prio=}"
+
+    return ""
 
 
 def _get_total_runs_of_selected_methods(selected_tests: List) -> int:
@@ -227,7 +236,7 @@ def _get_stacktrace_string_for_tests(ex: Exception) -> str:
     return tb
 
 
-def run(execution_log, sa: StartArguments, selected_tests: List, report_manager: ReportManager) -> int:
+def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List, report_manager: ReportManager) -> int:
     runner = Executer(execution_log, sa.full_path_tests_scripts_foldername)
 
     runner.execute_tests(report_manager, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce)
