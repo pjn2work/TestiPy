@@ -129,7 +129,7 @@ class ReporterEcho(ReportBase):
         full_name = mb.get_full_name(current_test, True)
         duration = current_test.get_duration()
         usecase = current_test.get_usecase()
-        end_state = textdecor.color_status(ending_state)
+        end_state = textdecor.color_state(ending_state)
 
         self.__log_test_steps(current_test)
 

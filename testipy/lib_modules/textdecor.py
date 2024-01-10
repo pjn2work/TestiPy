@@ -33,7 +33,7 @@ def get_emoji(float_val):
 
 # Colors --------------------------------------------------------------
 
-def color_status(state: str) -> str:
+def color_state(state: str) -> str:
     if __CANNOT_USE:
         return state
 

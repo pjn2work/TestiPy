@@ -105,7 +105,7 @@ class StateCounter:
         """
         if state:
             if filter_by_state := self.get_timed_laps(state):
-                return filter_by_state[-1].reason_of_state
+                return str(filter_by_state[-1].reason_of_state)
             else:
                 return ""
         return self._last_reason_of_state
@@ -160,7 +160,7 @@ class StateCounter:
             max_occurrences = max([qty for ros, qty in ros_dict.items()])
             for ros, qty in ros_dict.items():
                 if qty == max_occurrences and ros:
-                    return ros
+                    return str(ros)
         return ""
 
     def get_state_by_severity(self) -> Tuple[str, str]:
