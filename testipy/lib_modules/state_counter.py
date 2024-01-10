@@ -159,14 +159,14 @@ class StateCounter:
         if len(ros_dict) > 0:
             max_occurrences = max([qty for ros, qty in ros_dict.items()])
             for ros, qty in ros_dict.items():
-                if qty == max_occurrences:
+                if qty == max_occurrences and ros:
                     return ros
         return ""
 
     def get_state_by_severity(self) -> Tuple[str, str]:
         for state in SEVERITY_STATES_ORDER:
             if self._counter[state] > 0:
-                return state, self.get_last_reason_of_state(state)
+                return state, self.get_last_reason_of_state(state) or self.get_major_reason_of_state(state)
         return "", ""
 
     def __inc_reason_of_state(self, state: str, qty: int, reason_of_state: str):

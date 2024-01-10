@@ -101,14 +101,14 @@ class Executer:
             rm.testEndAs(current_test, default_config.if_no_test_started_mark_as, f"No test started by {test['method_name']}", had_exception)
 
         # get Reason of Failure
-        rof = results.get_last_reason_of_state(enums_data.STATE_FAILED)
-        if not rof:
-            rof = results.get_last_reason_of_state(enums_data.STATE_FAILED_KNOWN_BUG)
-        if not rof:
-            rof = results.get_last_reason_of_state(enums_data.STATE_SKIPPED)
-        if not rof:
-            rof = results.get_last_reason_of_state(enums_data.STATE_PASSED)
-        rof = str(rof)[:70] if rof else "!"
+        method_rof = results.get_last_reason_of_state(enums_data.STATE_FAILED)
+        if not method_rof:
+            method_rof = results.get_last_reason_of_state(enums_data.STATE_FAILED_KNOWN_BUG)
+        if not method_rof:
+            method_rof = results.get_last_reason_of_state(enums_data.STATE_SKIPPED)
+        if not method_rof:
+            method_rof = results.get_last_reason_of_state(enums_data.STATE_PASSED)
+        method_rof = str(method_rof)[:70] if method_rof else "!"
 
         # increment global failed (skipped, bug)
         total_failed = sum([results[state] for state in default_config.count_as_failed_states])
@@ -121,12 +121,12 @@ class Executer:
         total = max(results.get_total(), total_failed)
         duration = f"{results.get_sum_time_laps():.2f}".rjust(6)
 
-        test_result = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
+        method_status = enums_data.STATE_FAILED if total_failed > 0 else enums_data.STATE_PASSED
         # TODO to be tested
-        test_result, rof = results.get_state_by_severity()
-        rof = str(rof)[:70] if rof else "!"
+        method_status, method_rof = results.get_state_by_severity()
+        method_rof = str(method_rof)[:70] if method_rof else "!"
 
-        self.execution_log("INFO", "{:<26} {:3.0f}% [{}s] ({}/{}) {}/{} - {}({}) | {}".format(color_status(test_result), percent_completed, duration, total_failed, total, package["package_name"], suite["filename"], test["method_name"], test["method_id"], rof))
+        self.execution_log("INFO", "{:<26} {:3.0f}% [{}s] ({}/{}) {}/{} - {}({}) | {}".format(color_status(method_status), percent_completed, duration, total_failed, total, package["package_name"], suite["filename"], test["method_name"], test["method_id"], method_rof))
 
     # !!!Run test!!!
     def _run_test(self, package, suite, test, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed):
