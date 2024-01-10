@@ -56,6 +56,15 @@ class Toolbox(ExecutionToolbox):
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "DELETE", ex)
             raise
 
+    def buy_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, **kwargs):
+        url = f"https://petstore3.swagger.io/api/v3/pet/buy/" + str(usecase["param"])
+        try:
+            response = _get_as_dict(url, **usecase["control"], expected_response=usecase.get("_expected_response_"))
+            rm.testInfo(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
+        except Exception as ex:
+            _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "GET", ex)
+            raise
+
 
 @handle_http_response(expected_type=dict)
 def _get_as_dict(url: str = "", timeout: int = 5, expected_status_code: int = 200, ok: int = 200, expected_response=None) -> Dict:

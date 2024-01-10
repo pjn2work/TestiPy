@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Union, List, Tuple, Dict
 from collections import namedtuple
 
-from testipy.configs.enums_data import DEFAULT_STATES
+from testipy.configs.enums_data import SEVERITY_STATES_ORDER
 
 
 LAP = namedtuple("LAP", "state qty total_seconds reason_of_state description exc_value timed_all_end")
@@ -12,7 +12,7 @@ LAP = namedtuple("LAP", "state qty total_seconds reason_of_state description exc
 
 class StateCounter:
 
-    def __init__(self, states: List[str] = DEFAULT_STATES):
+    def __init__(self, states: List[str] = SEVERITY_STATES_ORDER):
         # state counters
         self._counter: Dict[str, int] = dict()
         for state in states:
@@ -159,9 +159,15 @@ class StateCounter:
         if len(ros_dict) > 0:
             max_occurrences = max([qty for ros, qty in ros_dict.items()])
             for ros, qty in ros_dict.items():
-                if qty == max_occurrences:
+                if qty == max_occurrences and ros:
                     return ros
         return ""
+
+    def get_state_by_severity(self) -> Tuple[str, str]:
+        for state in SEVERITY_STATES_ORDER:
+            if self._counter[state] > 0:
+                return state, self.get_last_reason_of_state(state) or self.get_major_reason_of_state(state)
+        return "", ""
 
     def __inc_reason_of_state(self, state: str, qty: int, reason_of_state: str):
         if state not in self._reasons_of_states:
