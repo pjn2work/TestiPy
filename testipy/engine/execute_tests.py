@@ -25,7 +25,7 @@ class Executer:
     def get_total_failed_skipped(self):
         return self._total_failed_skipped
 
-    def execute_tests(self, report_manager, selected_tests, dryrun_mode=True, debug_code=False, onlyonce=False):
+    def execute_tests(self, rm: ReportManager, selected_tests: List, dryrun_mode=True, debug_code=False, onlyonce=False):
         total_methods_to_call = _get_total_runs_of_selected_methods(selected_tests)
         method_seq = 0
 
@@ -33,12 +33,12 @@ class Executer:
             for _ in range(1 if onlyonce else package.get("ncycles", 1)):
 
                 self._change_cwd_to_package(package["package_name"])
-                report_manager.startPackage(package["package_name"])
+                rm.startPackage(package["package_name"])
 
                 for suite in package["suite_list"]:
                     for _ in range(1 if onlyonce else suite.get("ncycles", 1)):
 
-                        report_manager.startSuite(suite[enums_data.TAG_NAME], cm.dict_without_keys(suite, "suite_obj"))
+                        rm.startSuite(suite[enums_data.TAG_NAME], cm.dict_without_keys(suite, "suite_obj"))
 
                         # initialize suite __init__()
                         try:
@@ -50,7 +50,7 @@ class Executer:
                                 percent_completed = method_seq * 100 / total_methods_to_call
                                 rof = f"Init suite failed: {ex}"
 
-                                report_manager.testSkipped(report_manager.startTest(test, usecase="AUTO-CREATED"), reason_of_state=rof, exc_value=ex)
+                                rm.testSkipped(rm.startTest(test, usecase="AUTO-CREATED"), reason_of_state=rof, exc_value=ex)
 
                                 self._print_progress_when_method_ends(state=enums_data.STATE_SKIPPED,
                                     percent_completed=percent_completed, duration=0.0, total_failed=0, total=1,
@@ -60,12 +60,12 @@ class Executer:
                                 method_seq += 1
                                 percent_completed = method_seq * 100 / total_methods_to_call
 
-                                self._call_test_method(package, suite, dict(test), report_manager, dryrun_mode, debug_code, onlyonce, percent_completed)
+                                self._call_test_method(package, suite, dict(test), rm, dryrun_mode, debug_code, onlyonce, percent_completed)
                             del suite["app"]
 
-                        report_manager.endSuite()
+                        rm.endSuite()
 
-                report_manager.endPackage()
+                rm.endPackage()
 
     def _print_progress_when_method_ends(self, state: str, percent_completed: float, duration: float, total_failed: int, total: int, package: Dict, suite: Dict, test: Dict, ros: str):
         self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
@@ -175,10 +175,10 @@ class Executer:
         self._total_failed_skipped += qty
 
 
-def _get_nok_on_success_or_on_failure(report_manager: ReportManager, test: Dict) -> str:
+def _get_nok_on_success_or_on_failure(rm: ReportManager, test: Dict) -> str:
     if test[enums_data.TAG_ON_SUCCESS] or test[enums_data.TAG_ON_FAILURE]:
         # dict(k = @NAME, v = [current_test#1_(from_suite#1), c_t#2_s#1, c_t#3_s#2, ...])
-        all_tests = report_manager.get_test_list()
+        all_tests = rm.get_test_list()
 
         for prio in test[enums_data.TAG_ON_SUCCESS]:
             # all tests under same suite (even if from different suite runs, not only from latest)
@@ -236,9 +236,9 @@ def _get_stacktrace_string_for_tests(ex: Exception) -> str:
     return tb
 
 
-def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List, report_manager: ReportManager) -> int:
+def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List, rm: ReportManager) -> int:
     runner = Executer(execution_log, sa.full_path_tests_scripts_foldername)
 
-    runner.execute_tests(report_manager, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce)
+    runner.execute_tests(rm, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce)
 
     return runner.get_total_failed_skipped()
