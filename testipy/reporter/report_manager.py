@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Any
 from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration
 from testipy.lib_modules import webhook_http_listener as HL
-from testipy.lib_modules.textdecor import color_status
+from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
@@ -87,21 +87,21 @@ class ReportManager(ReportBase):
             return self._test_running_list[meid]
         return []
 
-    def add_test_running(self, current_test) -> ReportManager:
+    def _add_test_running(self, current_test) -> ReportManager:
         meid = current_test.get_method_id()
         if meid not in self._test_running_list:
             self._test_running_list[meid] = list()
         self._test_running_list[meid].append(current_test)
         return self
 
-    def remove_test_running(self, current_test) -> ReportManager:
+    def _remove_test_running(self, current_test) -> ReportManager:
         meid = current_test.get_method_id()
         if meid in self._test_running_list and current_test in self._test_running_list[meid]:
             self._test_running_list[meid].remove(current_test)
         return self
 
-    def get_test_list_by_method_id(self, meid: int):
-        result_tests_list = list()
+    def get_test_list_by_method_id(self, meid: int) -> List[TestDetails]:
+        result_tests_list = []
         for test_name, test_list in super().get_test_list().items():
             for current_test in test_list:
                 if current_test.get_method_id() == meid:
@@ -290,7 +290,7 @@ class ReportManager(ReportBase):
         except:
             pass
 
-        self._execution_log("INFO", f"{color_status(end_state)} Tests took {format_duration(super().get_reporter_duration())} [{totals}]")
+        self._execution_log("INFO", f"{color_state(end_state)} Tests took {format_duration(super().get_reporter_duration())} [{totals}]")
         return self
 
     def startPackage(self, name) -> ReportManager:
@@ -319,7 +319,7 @@ class ReportManager(ReportBase):
 
     def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         current_test = super().startTest(attr, test_name, usecase, description)
-        self.add_test_running(current_test)
+        self._add_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.startTest(current_test.get_attributes(), current_test.get_name(), usecase, description)
@@ -365,7 +365,7 @@ class ReportManager(ReportBase):
 
     def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testSkipped(current_test, reason_of_state, exc_value)
-        self.remove_test_running(current_test)
+        self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testSkipped(current_test, reason_of_state, exc_value)
@@ -378,7 +378,7 @@ class ReportManager(ReportBase):
 
     def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testPassed(current_test, reason_of_state, exc_value)
-        self.remove_test_running(current_test)
+        self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testPassed(current_test, reason_of_state, exc_value)
@@ -391,7 +391,7 @@ class ReportManager(ReportBase):
 
     def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testFailed(current_test, reason_of_state, exc_value)
-        self.remove_test_running(current_test)
+        self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testFailed(current_test, reason_of_state, exc_value)
@@ -404,7 +404,7 @@ class ReportManager(ReportBase):
 
     def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().testFailedKnownBug(current_test, reason_of_state, exc_value)
-        self.remove_test_running(current_test)
+        self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testFailedKnownBug(current_test, reason_of_state, exc_value)
