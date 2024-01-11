@@ -3,7 +3,7 @@ from typing import Dict
 from testipy.reporter import ReportManager
 from testipy.helpers.data_driven_testing import DDTMethods
 
-from testipy.tests.demo.ddt.pet_store import Toolbox
+from pet_store import Toolbox
 
 
 class SuitePetStore:

@@ -7,7 +7,9 @@ import cProfile, pstats
 from tabulate import tabulate
 
 # allow root folder to be available for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TESTIPY_ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if TESTIPY_ROOT_FOLDER not in sys.path:
+    sys.path.insert(0, TESTIPY_ROOT_FOLDER)
 
 from testipy.configs import default_config
 from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
@@ -50,7 +52,7 @@ class Runner:
 
         # Change working directory to tests directory and added to sys.path
         os.chdir(self.sa.full_path_tests_scripts_foldername)
-        sys.path.insert(1, self.sa.full_path_tests_scripts_foldername)
+        sys.path.insert(0, self.sa.full_path_tests_scripts_foldername)
 
         # Select tests to run based on args filters
         self.selected_tests = read_files_to_get_selected_tests(
