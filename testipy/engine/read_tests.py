@@ -2,6 +2,7 @@
 
 import inspect
 import os
+import sys
 
 from typing import Union, List, Tuple, Dict, Any
 
@@ -327,7 +328,7 @@ def get_tests(full_path_tests_scripts_foldername: str,
         if vp:
             package_dict = dict(package_name=package_name, suite_list=[])
             # add current package to PATH
-            #sys.path.insert(1, full_path_foldername)
+            sys.path.insert(0, full_path_foldername)
 
         # search in all files and sub-folders
         for filename in sorted(os.listdir(full_path_foldername)):
@@ -344,9 +345,13 @@ def get_tests(full_path_tests_scripts_foldername: str,
                     package_dict["suite_list"] += suite_list
 
         # add all suites under this package (store them ordered)
-        if vp and package_dict["suite_list"]:
-            package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
-            result_list.append(package_dict)
+        if vp:
+            # remove current package from PATH
+            sys.path.remove(full_path_foldername)
+
+            if package_dict["suite_list"]:
+                package_dict["suite_list"] = sorted(package_dict["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
+                result_list.append(package_dict)
 
         return result_list
 

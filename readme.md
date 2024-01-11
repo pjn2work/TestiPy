@@ -25,14 +25,13 @@
         -r          add Reporter (ex: -r echo -r log -r web -r slack -r excel -r portalio -r tpio -r junitxml)
 
     #### Reporters:
-    * **Echo:** shows test execution on stdout, and errors in stderr
-    * **ReportPortalIO:** Web REST DB and reporter, with 3 different projects:
-    * **Log:** shows test execution on .log file, with the same name as the project_name, errors are shown in stderr
-    * **Excel:** creates an Excel file with test execution summary and test execution details
-    * **Slack:** tests results are sent to slack channel
-    * **Web:** tests results can be seen in realtime on a browser
-    * **TestProjectIO:** mostly dedicated for webpages tests (it replaces selenium)
-    * **JUnitXML:** test results will be saved on report.xml file
+    * **echo:** shows test execution on stdout, and errors in stderr
+    * **excel:** creates an Excel file with test execution summary and test execution details
+    * **log:** shows test execution on .log file, with the same name as the project_name, errors are shown in stderr
+    * **portalio:** ReportPortalIO Web REST DB and reporter:
+    * **slack:** tests results are sent to Slack channel
+    * **web:** tests results can be seen in realtime on a browser
+    * **xml:** test results will be saved on report.xml file
 
 
 - ## Run:
@@ -45,10 +44,11 @@
         -repeat     Run the exact same pipeline that amount of times
     
     #### flags
-        --dryrun    All tests will run but without really being executed (all of them will end with SKIPPED)
-        --debugcode Disables the try/except on tests so errors are shown
-        --1         Override test definitions of how many times tests will run (ncycle)
-        --prof      Create file .prof with profiling data
+        --dryrun         All tests will run but without really being executed (all of them will end with SKIPPED)
+        --debugcode      Disables the try/except on tests so errors are shown
+        --debug-testipy  will show the stacktrace for testipy classes
+        --1              Override test definitions of how many times tests will run (ncycle)
+        --prof           Create file .prof with profiling data
     
 
 - ## Mode of Operation:
