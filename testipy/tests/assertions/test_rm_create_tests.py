@@ -13,44 +13,48 @@ class SuiteRM_CreateTests:
     @PRIO 9
     """
 
-    def test_create_test_without_attr(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_create_test_without_attr(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """
-        expected_error = "When starting a new test, you must pass your TestData (dict), received as the first parameter on your test method."
+        expected_error = "When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method."
         try:
             current_test = rm.startTest(None)
         except ValueError as ve:
-            current_test = rm.startTest(td)
+            current_test = rm.startTest(ma)
             rm.testStep(current_test=current_test, state=enums_data.STATE_PASSED, reason_of_state="screenshot", take_screenshot=True)
             assert str(ve) == expected_error, f"The error should be '{expected_error}', and not '{ve}'"
             rm.testPassed(current_test, "Failed with expected ValueError")
         except Exception as ex:
-            current_test = rm.startTest(td)
+            current_test = rm.startTest(ma)
             rm.testFailed(current_test, f"Should have raised a ValueError, not a {type(ex)} - {ex}")
         else:
             rm.testFailed(current_test, f"Should have raised a ValueError!")
 
-    def test_create_test_without_name(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_create_test_without_name(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """
-        current_test = rm.startTest(td)
+        current_test = rm.startTest(ma)
 
-        expected_test_name = td[enums_data.TAG_NAME]
+        expected_test_name = ma[enums_data.TAG_NAME]
         current_test_name = current_test.get_name()
+
+        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 
         assert expected_test_name == current_test_name, f"Expected {expected_test_name=}, not {current_test_name}"
 
         rm.testPassed(current_test, "Test created with default name")
 
-    def test_create_test_with_override_name(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_create_test_with_override_name(self, ma: Dict, rm: ReportManager, ncycles=2, param=dict()):
         """
         @LEVEL 1
         """
         expected_test_name = param.get("name", "override_test_name")
-        current_test = rm.startTest(td, expected_test_name)
-        current_test_name = current_test.get_name()
+        current_test = rm.startTest(ma, expected_test_name)
+        current_test_name = current_test.get_test_name()
+
+        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 
         rm.testInfo(current_test, "Received parameters = " + str(param), level="INFO")
 
@@ -58,13 +62,15 @@ class SuiteRM_CreateTests:
 
         rm.testPassed(current_test, "Test created with override name")
 
-    def test_create_test_with_usecase(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_create_test_with_usecase(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """
         expected_usecase = "secondary purpose"
-        current_test = rm.startTest(td, usecase=expected_usecase)
+        current_test = rm.startTest(ma, usecase=expected_usecase)
         current_usecase = current_test.get_usecase()
+
+        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 
         assert expected_usecase == current_usecase, f"Expected {expected_usecase=}, not {current_usecase}"
 
@@ -72,32 +78,36 @@ class SuiteRM_CreateTests:
 
     # This test has a comment
     # with two lines
-    def test_has_default_comment(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_has_default_comment(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """
-        current_test = rm.startTest(td)
+        current_test = rm.startTest(ma)
         current_comment = current_test.get_comment()
         expected_comment = "This test has a comment\nwith two lines"
+
+        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 
         assert expected_comment == current_comment, f"Expected {expected_comment=}, not {current_comment}"
 
         rm.testPassed(current_test, "Test created with default comment")
 
     # This is the test comment/description
-    def test_create_test_with_override_comment(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_create_test_with_override_comment(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """
         expected_comment = "This will override the test comment"
-        current_test = rm.startTest(td, description=expected_comment)
+        current_test = rm.startTest(ma, description=expected_comment)
         current_comment = current_test.get_comment()
+
+        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 
         assert expected_comment == current_comment, f"Expected {expected_comment=}, not {current_comment}"
 
         rm.testPassed(current_test, "Test created with override comment")
 
-    def test_doc_string(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_doc_string(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @NAME doc_string_test
         @PRIO 10
@@ -106,7 +116,7 @@ class SuiteRM_CreateTests:
         @TAG AA1 BB2 CC
         @TN .5
         """
-        current_test = rm.startTest(td)
+        current_test = rm.startTest(ma)
         current_attributes = current_test.get_attributes()
         expected_attributes = {
             '@NAME': 'doc_string_test',
@@ -123,7 +133,7 @@ class SuiteRM_CreateTests:
 
         rm.testPassed(current_test, "Test has expected doc string")
 
-    def test_will_be_auto_created(self, td: Dict, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_be_auto_created(self, ma: Dict, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         """

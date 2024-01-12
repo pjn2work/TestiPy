@@ -157,7 +157,7 @@ class ReporterWeb(ReportBase):
 
         return str_res
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         try:
             webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
         except:
@@ -206,7 +206,7 @@ class ReporterWeb(ReportBase):
     def endSuite(self):
         pass
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         mb = self.get_report_manager_base()  # get manager base
         current_test = mb.get_current_test()
         test_details = {"name": current_test.get_name(),

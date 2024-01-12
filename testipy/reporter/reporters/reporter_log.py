@@ -73,7 +73,7 @@ class ReporterLog(ReportBase):
         except Exception as e:
             self.log(f"Could not create file {dest_filename}", "ERROR")
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         app, version, _ = get_app_version()
         self.log(f"{app} {version}", "INFO")
         self.log("Selected Tests:\n{}".format(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="fancy_grid")), "INFO")
@@ -109,7 +109,7 @@ class ReporterLog(ReportBase):
         self.log("Ending Suite {} - {:.2f}%/{} took {}\n{}".format(mb.get_suite_name(True), sc.get_state_percentage(
             enums_data.STATE_PASSED), sc.get_total(), format_duration(mb.get_suite_duration()), tab_resume), "INFO")
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         mb = self.get_report_manager_base()
 
         test_full_name = mb.get_full_name(mb.get_current_test(), True)

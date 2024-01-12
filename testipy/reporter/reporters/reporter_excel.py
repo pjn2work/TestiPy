@@ -66,9 +66,9 @@ class ReporterExcel(ReportBase):
     def copy_file(self, current_test, orig_filename, dest_filename, data):
         pass
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         mb = self.get_report_manager_base()
-        df = mb.get_selected_tests()
+        df = mb.get_selected_tests_as_df()
         df.to_excel(self.writer, index=False, header=True, sheet_name='#SelectedTests')
 
     def __teardown__(self, end_state):
@@ -86,7 +86,7 @@ class ReporterExcel(ReportBase):
     def endSuite(self):
         pass
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
     def testInfo(self, current_test, info, level, attachment=None):

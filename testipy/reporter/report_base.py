@@ -63,7 +63,7 @@ class ReportBase(ABC):
 
     def __init__(self, reporter_name):
         self._all_test_results = dict()
-        self._all_test_results["details"] = ReportDetails(None, reporter_name)
+        self._all_test_results["details"] = ReportDetails(reporter_name)
         self._all_test_results["package_list"] = dict()
 
         self._selected_tests: pd.DataFrame = None
@@ -92,16 +92,16 @@ class ReportBase(ABC):
         return self._rm_base
 
     # <editor-fold desc="--- Gets ---">
-    def get_selected_tests(self) -> pd.DataFrame:
+    def get_selected_tests_as_df(self) -> pd.DataFrame:
         return self._selected_tests
 
-    def get_df(self):
+    def get_df(self) -> pd.DataFrame:
         return self._df.copy()
 
-    def get_all_test_results(self):
+    def get_all_test_results(self) -> Dict:
         return self._all_test_results
 
-    def get_reporter_name(self):
+    def get_reporter_name(self) -> str:
         return self._all_test_results["details"].get_name(False)
 
     def get_package_name(self, with_cycle_number=False):
@@ -148,7 +148,7 @@ class ReportBase(ABC):
     def get_suite_details(self):
         return self._current_suite["details"]
 
-    def get_test_list(self) -> Dict:
+    def get_test_methods_list_for_current_suite(self) -> Dict:
         return self._current_suite["test_list"]
 
     def get_suite_list(self) -> Dict:
@@ -183,7 +183,7 @@ class ReportBase(ABC):
         return attachment
 
     @abstractmethod
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
         return self
 
@@ -200,7 +200,7 @@ class ReportBase(ABC):
             self._current_package["details"].inc_cycle()
         else:
             self._current_package = dict()
-            self._current_package["details"] = ReportDetails(None, package_name)
+            self._current_package["details"] = ReportDetails(package_name)
             self._current_package["suite_list"] = dict()
 
             self._all_test_results["package_list"][package_name] = self._current_package
@@ -218,7 +218,7 @@ class ReportBase(ABC):
             self._current_suite["details"].inc_cycle()
         else:
             self._current_suite = dict()
-            self._current_suite["details"] = ReportDetails(attr, suite_name)
+            self._current_suite["details"] = ReportDetails(suite_name, attr)
             self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
 
             self._current_package["suite_list"][suite_name] = self._current_suite
@@ -230,20 +230,21 @@ class ReportBase(ABC):
         return self
 
     def __create_new_test(self, attr, test_name, usecase, description):
-        if not (isinstance(attr, Dict) and attr):
-            raise ValueError("When starting a new test, you must pass your TestData (dict), received as the first parameter on your test method.")
+        if attr and isinstance(attr, Dict):
+            self._test_id_counter += 1
 
-        self._test_id_counter += 1
+            attr = dict(attr)
+            attr["test_id"] = self._test_id_counter
+            attr["test_comment"] = str(description) if description else attr["test_comment"]
+            attr["test_usecase"] = usecase
 
-        attr["test_id"] = self._test_id_counter
-        attr["test_comment"] = str(description) if description else attr["test_comment"]
-        attr["test_usecase"] = usecase
+            return TestDetails(test_name, attr)
 
-        return TestDetails(attr, test_name)
+        raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
     @abstractmethod
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        self._current_test = current_test = self.__create_new_test(attr, test_name, usecase, description)
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+        self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
         test_name = current_test.get_name()
 
         if test_name in self._current_suite["test_list"]:
@@ -341,7 +342,7 @@ class ReportBase(ABC):
 
 class ReportDetails:
 
-    def __init__(self, attr: Dict[str, Any], name: str):
+    def __init__(self, name: str, attr: Dict[str, Any] = None):
         self.attr = attr or {enums_data.TAG_NAME: name}
         self.attr["cycle_number"] = 1
         self.name = name or attr[enums_data.TAG_NAME]
@@ -401,8 +402,9 @@ class ReportDetails:
 
 class TestDetails(ReportDetails):
 
-    def __init__(self, attr: Dict[str, Any], test_name: str):
-        super().__init__(attr, test_name)
+    def __init__(self, test_name: str, attr: Dict[str, Any]):
+        super().__init__(test_name, attr)
+        self.attr["test_name"] = self.name
         self._info = list()
         self._test_step = StateCounter()
 
@@ -434,7 +436,10 @@ class TestDetails(ReportDetails):
         return self.attr["param"]
 
     def get_test_name(self, with_cycle_number=False) -> str:
-        return super().get_name(with_cycle_number)
+        return self.attr["test_name"]
+
+    def get_usecase(self) -> str:
+        return self.attr["test_usecase"]
 
     def add_info(self, ts, current_time, level, info, attachment):
         self._info.append((ts, current_time, str(level).upper(), info, attachment))
@@ -442,13 +447,6 @@ class TestDetails(ReportDetails):
 
     def get_info(self) -> List:
         return list(self._info)
-
-    def set_usecase(self, usecase):
-        self.attr["test_usecase"] = usecase
-        return self
-
-    def get_usecase(self) -> str:
-        return self.attr["test_usecase"]
 
     def get_number_test_steps(self) -> int:
         return self._test_step.get_total()
@@ -487,7 +485,7 @@ class TestDetails(ReportDetails):
         return self.get_state() == enums_data.STATE_SKIPPED
 
     def __str__(self):
-        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name(True)}"
+        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name()}"
         if usecase := self.get_usecase():
             res += f" | {usecase}"
         if state := self.get_state():
@@ -495,4 +493,4 @@ class TestDetails(ReportDetails):
         return res
 
     def __repr__(self):
-        return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_test_name(True)}, status={self.get_state()})"
+        return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_name(True)}, status={self.get_state()})"

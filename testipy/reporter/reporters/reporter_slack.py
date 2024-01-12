@@ -54,7 +54,7 @@ class ReporterSlack(ReportBase):
     def copy_file(self, current_test, orig_filename, dest_filename, data):
         pass
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         __app__, __version__, _ = get_app_version()
         response = self._send_message(threadts=False, text=f":arrow_forward: {__app__} {__version__}b{self.build} Starting tests for {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})")
         self.TS = response.get("ts") if response else None
@@ -85,7 +85,7 @@ class ReporterSlack(ReportBase):
         mb = self.get_report_manager_base()
         self._send_message(text=":scroll: Ending suite {} ".format(mb.get_suite_details()))
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
     def testInfo(self, current_test, info, level, attachment=None):
