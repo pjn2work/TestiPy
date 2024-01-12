@@ -73,7 +73,7 @@ class ReporterPortalIO(ReportBase):
         # since was stored on reporter_base, it will be done on end_test()
         pass
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         pass
 
     def __teardown__(self, end_state):

@@ -70,7 +70,7 @@ class ReportBase(ABC):
 
         self._current_package: Dict = None
         self._current_suite: Dict = None
-        self._current_test: Dict = None
+        self._current_method: Dict = None
 
         self.end_state: str = None
 
@@ -92,16 +92,16 @@ class ReportBase(ABC):
         return self._rm_base
 
     # <editor-fold desc="--- Gets ---">
-    def get_selected_tests(self) -> pd.DataFrame:
+    def get_selected_tests_as_df(self) -> pd.DataFrame:
         return self._selected_tests
 
-    def get_df(self):
+    def get_df(self) -> pd.DataFrame:
         return self._df.copy()
 
-    def get_all_test_results(self):
+    def get_all_test_results(self) -> Dict:
         return self._all_test_results
 
-    def get_reporter_name(self):
+    def get_reporter_name(self) -> str:
         return self._all_test_results["details"].get_name(False)
 
     def get_package_name(self, with_cycle_number=False):
@@ -148,7 +148,7 @@ class ReportBase(ABC):
     def get_suite_details(self):
         return self._current_suite["details"]
 
-    def get_test_list(self) -> Dict:
+    def get_test_methods_list_for_current_suite(self) -> Dict:
         return self._current_suite["test_list"]
 
     def get_suite_list(self) -> Dict:
@@ -158,10 +158,10 @@ class ReportBase(ABC):
         return self._all_test_results["package_list"]
 
     def get_current_test(self):
-        return self._current_test
+        return self._current_method
 
     def clear_current_test(self):
-        self._current_test = None
+        self._current_method = None
 
     @staticmethod
     def create_attachment(filename, data) -> Dict:
@@ -183,7 +183,7 @@ class ReportBase(ABC):
         return attachment
 
     @abstractmethod
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
         return self
 
@@ -243,7 +243,7 @@ class ReportBase(ABC):
 
     @abstractmethod
     def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        self._current_test = current_test = self.__create_new_test(attr, test_name, usecase, description)
+        self._current_method = current_test = self.__create_new_test(attr, test_name, usecase, description)
         test_name = current_test.get_name()
 
         if test_name in self._current_suite["test_list"]:

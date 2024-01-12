@@ -27,7 +27,7 @@ class ReporterEcho(ReportBase):
     def copy_file(self, current_test, orig_filename, dest_filename, data):
         pass
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         print("\n"*2)
         print("#"*_line_size)
         print(" Selected tests to run ".center(_line_size, "#"))

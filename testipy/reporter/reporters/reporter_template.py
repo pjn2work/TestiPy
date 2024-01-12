@@ -17,7 +17,7 @@ class ReporterTemplate(ReportBase):
     def copy_file(self, current_test, orig_filename, dest_filename, data):
         pass
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         mb = self.get_report_manager_base()  # get manager base
 
     def __teardown__(self, end_state):

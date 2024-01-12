@@ -17,13 +17,12 @@ from testipy.reporter.report_base import ReportBase, TestDetails
 
 class ReportManager(ReportBase):
 
-    def __init__(self, execution_log, selected_tests, ap: ArgsParser, sa: StartArguments):
+    def __init__(self, execution_log, ap: ArgsParser, sa: StartArguments):
         super().__init__("ReportManager")
 
         self._reporters_list = dict()
         self._test_running_list = dict()
         self._execution_log = execution_log
-        self._selected_tests = selected_tests
         self._ap = ap
         self._sa = sa
 
@@ -34,9 +33,6 @@ class ReportManager(ReportBase):
         new_reporter_class.set_report_manager_base(self)  # Add myself as the ReportManager on this new_reporter_class
         self._reporters_list[name] = new_reporter_class
         return self
-
-    def get_selected_tests(self) -> List:
-        return self._selected_tests
 
     def get_ap(self) -> ArgsParser:
         return self._ap
@@ -102,7 +98,7 @@ class ReportManager(ReportBase):
 
     def get_test_list_by_method_id(self, meid: int) -> List[TestDetails]:
         result_tests_list = []
-        for test_name, test_list in super().get_test_list().items():
+        for method_name, test_list in super().get_test_methods_list_for_current_suite().items():
             for current_test in test_list:
                 if current_test.get_method_id() == meid:
                     result_tests_list.append(current_test)
@@ -230,38 +226,11 @@ class ReportManager(ReportBase):
     def is_debugcode(self):
         return self._sa.debugcode
 
-    @staticmethod
-    def __format_test_structure(selected_tests: List) -> Dict:
-        formatted_test_list = []
-        for package in selected_tests:
-            package_name = package["package_name"]
-
-            for suite in sorted(package["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=True):
-                suite_name = suite[enums_data.TAG_NAME]
-                suite_prio = suite[enums_data.TAG_PRIO]
-
-                # for test in sorted(suite["test_list"], key=lambda x: x[TAG_PRIO], reverse=True):
-                for test in suite["test_list"]:
-                    method_id = test["method_id"]
-                    test_name = test[enums_data.TAG_NAME]
-                    test_prio = test[enums_data.TAG_PRIO]
-                    test_level = test[enums_data.TAG_LEVEL]
-                    test_tags = " ".join(test[enums_data.TAG_TAG])
-                    test_features = test[enums_data.TAG_FEATURES]
-                    test_number = test[enums_data.TAG_TESTNUMBER]
-                    test_comment = test["test_comment"]  # if test["test_comment"] else ""
-
-                    formatted_test_list.append([method_id, package_name, suite_prio, suite_name, test_prio, test_name, test_level, test_tags, test_features, test_number, test_comment])
-
-        return dict(headers=["meid", "Package", "Sp", "Suite", "Tp", "Test", "Level", "TAGs", "Features", "Number", "Description"],
-                    data=formatted_test_list)
-
-    def __startup__(self, selected_tests) -> ReportManager:
-        fts_selected_tests = self.__format_test_structure(selected_tests)
-        super().__startup__(fts_selected_tests)
+    def __startup__(self, selected_tests: Dict) -> ReportManager:
+        super().__startup__(selected_tests)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.__startup__(fts_selected_tests)
+                reporter.__startup__(selected_tests)
             except Exception as e:
                 if self.is_debugcode():
                     raise
@@ -489,9 +458,9 @@ class ReportManager(ReportBase):
     # </editor-fold>
 
 
-def build_report_manager_with_reporters(execution_log, selected_tests, ap: ArgsParser, sa: StartArguments):
+def build_report_manager_with_reporters(execution_log, ap: ArgsParser, sa: StartArguments):
     # create report manager
-    rm = ReportManager(execution_log, selected_tests, ap, sa)
+    rm = ReportManager(execution_log, ap, sa)
 
     def _add_reporter(rep_name, rep_class):
         try:

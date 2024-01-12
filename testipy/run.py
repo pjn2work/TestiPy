@@ -4,6 +4,7 @@ import os
 import sys
 import cProfile, pstats
 
+from typing import Dict
 from tabulate import tabulate
 
 # allow root folder to be available for imports
@@ -11,7 +12,7 @@ TESTIPY_ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 if TESTIPY_ROOT_FOLDER not in sys.path:
     sys.path.insert(0, TESTIPY_ROOT_FOLDER)
 
-from testipy.configs import default_config
+from testipy.configs import default_config, enums_data
 from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
 from testipy.reporter.report_manager import build_report_manager_with_reporters
 from testipy.helpers import get_traceback_list, format_duration, prettify
@@ -65,7 +66,7 @@ class Runner:
             raise FileNotFoundError(f"Found no tests under {sa.full_path_tests_scripts_foldername}")
 
         # Reporter Manager, with all reporters
-        self.report_manager = build_report_manager_with_reporters(execution_log, self.selected_tests, ap, sa)
+        self.report_manager = build_report_manager_with_reporters(execution_log, ap, sa)
 
     # Execute Tests
     def run(self) -> int:
@@ -85,20 +86,45 @@ class Runner:
         return total_fails
 
     def __enter__(self):
-        self.report_manager.__startup__(self.selected_tests)
+        self.report_manager.__startup__(self._format_test_structure_for_reporters())
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.report_manager.__teardown__(None)
 
         if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
-            print(prettify(get_traceback_list(exc_val)))
+            self.execution_log("ERROR", prettify(get_traceback_list(exc_val)))
 
         return self
 
     @property
     def duration(self) -> str:
         return format_duration(self.report_manager.get_reporter_duration())
+
+    def _format_test_structure_for_reporters(self) -> Dict:
+        formatted_test_list = []
+
+        for package_attr in self.selected_tests:
+            package_name = package_attr["package_name"]
+
+            for suite_attr in package_attr["suite_list"]:
+                suite_name = suite_attr[enums_data.TAG_NAME]
+                suite_prio = suite_attr[enums_data.TAG_PRIO]
+
+                for test_method in suite_attr["test_list"]:
+                    method_id = test_method["method_id"]
+                    test_name = test_method[enums_data.TAG_NAME]
+                    test_prio = test_method[enums_data.TAG_PRIO]
+                    test_level = test_method[enums_data.TAG_LEVEL]
+                    test_tags = " ".join(test_method[enums_data.TAG_TAG])
+                    test_features = test_method[enums_data.TAG_FEATURES]
+                    test_number = test_method[enums_data.TAG_TESTNUMBER]
+                    test_comment = test_method["test_comment"]
+
+                    formatted_test_list.append([method_id, package_name, suite_prio, suite_name, test_prio, test_name, test_level, test_tags, test_features, test_number, test_comment])
+
+        return dict(headers=["meid", "Package", "Sp", "Suite", "Tp", "Test", "Level", "TAGs", "Features", "Number", "Description"],
+                    data=formatted_test_list)
 
 
 def save_stats(folder: str, prof):

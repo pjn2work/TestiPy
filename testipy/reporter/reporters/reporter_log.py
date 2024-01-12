@@ -73,7 +73,7 @@ class ReporterLog(ReportBase):
         except Exception as e:
             self.log(f"Could not create file {dest_filename}", "ERROR")
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         app, version, _ = get_app_version()
         self.log(f"{app} {version}", "INFO")
         self.log("Selected Tests:\n{}".format(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="fancy_grid")), "INFO")

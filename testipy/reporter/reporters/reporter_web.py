@@ -157,7 +157,7 @@ class ReporterWeb(ReportBase):
 
         return str_res
 
-    def __startup__(self, selected_tests):
+    def __startup__(self, selected_tests: Dict):
         try:
             webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
         except:
