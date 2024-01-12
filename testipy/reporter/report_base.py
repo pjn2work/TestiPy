@@ -404,6 +404,7 @@ class TestDetails(ReportDetails):
 
     def __init__(self, test_name: str, attr: Dict[str, Any]):
         super().__init__(test_name, attr)
+        self.attr["test_name"] = self.name
         self._info = list()
         self._test_step = StateCounter()
 
@@ -435,7 +436,10 @@ class TestDetails(ReportDetails):
         return self.attr["param"]
 
     def get_test_name(self, with_cycle_number=False) -> str:
-        return super().get_name(with_cycle_number)
+        return self.attr["test_name"]
+
+    def get_usecase(self) -> str:
+        return self.attr["test_usecase"]
 
     def add_info(self, ts, current_time, level, info, attachment):
         self._info.append((ts, current_time, str(level).upper(), info, attachment))
@@ -443,13 +447,6 @@ class TestDetails(ReportDetails):
 
     def get_info(self) -> List:
         return list(self._info)
-
-    def set_usecase(self, usecase):
-        self.attr["test_usecase"] = usecase
-        return self
-
-    def get_usecase(self) -> str:
-        return self.attr["test_usecase"]
 
     def get_number_test_steps(self) -> int:
         return self._test_step.get_total()
@@ -488,7 +485,7 @@ class TestDetails(ReportDetails):
         return self.get_state() == enums_data.STATE_SKIPPED
 
     def __str__(self):
-        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name(True)}"
+        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_name(True)}"
         if usecase := self.get_usecase():
             res += f" | {usecase}"
         if state := self.get_state():
@@ -496,4 +493,4 @@ class TestDetails(ReportDetails):
         return res
 
     def __repr__(self):
-        return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_test_name(True)}, status={self.get_state()})"
+        return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_name(True)}, status={self.get_state()})"

@@ -1,7 +1,7 @@
 from typing import Dict
 from tabulate import tabulate
 
-from testipy.configs import enums_data
+from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
@@ -127,13 +127,15 @@ class ReporterEcho(ReportBase):
         mb = self.get_report_manager_base()
 
         full_name = mb.get_full_name(current_test, True)
+        if usecase := current_test.get_usecase():
+            full_name += default_config.separator_package_suite_test + usecase[:20]
+
         duration = current_test.get_duration()
-        usecase = current_test.get_usecase()
         end_state = textdecor.color_state(ending_state)
 
         self.__log_test_steps(current_test)
 
-        print(f"> Ending test {full_name} - {end_state} - took {format_duration(duration)} - {usecase} - reason: {end_reason} <".center(_line_size + len(end_state) - len(ending_state), "-"))
+        print(f"> Ending test {full_name} - {end_state} - took {format_duration(duration)} - reason: {end_reason} <".center(_line_size + len(end_state) - len(ending_state), "-"))
         print("-"*_line_size)
 
     def __log_test_steps(self, current_test):

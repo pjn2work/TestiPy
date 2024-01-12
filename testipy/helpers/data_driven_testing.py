@@ -315,13 +315,13 @@ class DDTMethods(DataReader):
     """
 
     # under that tag, run all scenarios as a test, and the usesCases are testSteps
-    def run_all_scenarios_as_tests_usecases_as_teststeps_under_tag_name(self, td: Dict, rm: ReportManager,
+    def run_all_scenarios_as_tests_usecases_as_teststeps_under_tag_name(self, ma: Dict, rm: ReportManager,
                                                                         tag_name: str):
         for scenario_name in self.get_scenarios_or_usecases(tag_name=tag_name):
-            self.run_single_scenario_as_test_usecases_as_teststeps(td, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+            self.run_single_scenario_as_test_usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
 
     # create a single test for that scenario, so the usesCases will be testSteps
-    def run_single_scenario_as_test_usecases_as_teststeps(self, td: Dict, rm: ReportManager,
+    def run_single_scenario_as_test_usecases_as_teststeps(self, ma: Dict, rm: ReportManager,
                                                           tag_name: str,
                                                           scenario_name: str,
                                                           bug: Union[str, Dict, List] = "",
@@ -329,7 +329,7 @@ class DDTMethods(DataReader):
                                                           add_test_usecase: bool = True):
 
         usecase_name = scenario_name if add_test_usecase else ""
-        current_test = rm.startTest(td, usecase=usecase_name, description=description)
+        current_test = rm.startTest(ma, usecase=usecase_name, description=description)
         
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
@@ -341,11 +341,11 @@ class DDTMethods(DataReader):
             endTest(rm, current_test, bug=bug)
 
     # create a test for each useCase under a scenario
-    def run_all_usecases_as_tests(self, td: Dict, rm: ReportManager,
+    def run_all_usecases_as_tests(self, ma: Dict, rm: ReportManager,
                                   tag: str,
                                   scenario_name: str):        
         for usecase_name, usecase in self.get_scenarios_or_usecases(tag_name=tag, scenario_name=scenario_name).items():
-            current_test = rm.startTest(td, usecase=usecase_name, description=usecase.get("description"))
+            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("description"))
 
             end_reason = ""
             if rm.has_ap_flag("--norun"):

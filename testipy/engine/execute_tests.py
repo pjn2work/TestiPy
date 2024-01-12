@@ -139,9 +139,9 @@ class Executer:
                         rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
                         break
                     else:
-                        td = cm.dict_without_keys(method_attr, keys_to_remove="test_obj")
+                        ma = cm.dict_without_keys(method_attr, keys_to_remove="test_obj")
                         # -->> call the test method <<--
-                        _ = getattr(suite_attr["app"], method_attr["method_name"])(td, rm, ncycles=method_attr["ncycles"], param=method_attr["param"])
+                        _ = getattr(suite_attr["app"], method_attr["method_name"])(ma, rm, ncycles=method_attr["ncycles"], param=method_attr["param"])
 
                         # no test started by the method call, create one and close it
                         if rm.get_current_test() is None:
