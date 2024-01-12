@@ -286,8 +286,8 @@ class ReportManager(ReportBase):
 
         return self
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
-        current_test = super().startTest(attr, test_name, usecase, description)
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+        current_test = super().startTest(method_attr, test_name, usecase, description)
         self._add_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:

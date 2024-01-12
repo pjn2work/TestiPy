@@ -35,7 +35,7 @@ class ReporterTemplate(ReportBase):
     def endSuite(self):
         mb = self.get_report_manager_base()  # get manager base
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         mb = self.get_report_manager_base()  # get manager base
 
     def testInfo(self, current_test, info, level, attachment=None):

@@ -85,7 +85,7 @@ class ReporterSlack(ReportBase):
         mb = self.get_report_manager_base()
         self._send_message(text=":scroll: Ending suite {} ".format(mb.get_suite_details()))
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
     def testInfo(self, current_test, info, level, attachment=None):

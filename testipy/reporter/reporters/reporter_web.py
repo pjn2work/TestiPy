@@ -206,7 +206,7 @@ class ReporterWeb(ReportBase):
     def endSuite(self):
         pass
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         mb = self.get_report_manager_base()  # get manager base
         current_test = mb.get_current_test()
         test_details = {"name": current_test.get_name(),

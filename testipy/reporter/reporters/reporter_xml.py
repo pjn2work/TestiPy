@@ -63,7 +63,7 @@ class ReporterJUnitXML(ReportBase):
     def endSuite(self):
         pass
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
     def testInfo(self, current_test, info, level, attachment=None):

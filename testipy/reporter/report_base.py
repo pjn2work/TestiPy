@@ -63,14 +63,14 @@ class ReportBase(ABC):
 
     def __init__(self, reporter_name):
         self._all_test_results = dict()
-        self._all_test_results["details"] = ReportDetails(None, reporter_name)
+        self._all_test_results["details"] = ReportDetails(reporter_name)
         self._all_test_results["package_list"] = dict()
 
         self._selected_tests: pd.DataFrame = None
 
         self._current_package: Dict = None
         self._current_suite: Dict = None
-        self._current_method: Dict = None
+        self._current_test: Dict = None
 
         self.end_state: str = None
 
@@ -158,10 +158,10 @@ class ReportBase(ABC):
         return self._all_test_results["package_list"]
 
     def get_current_test(self):
-        return self._current_method
+        return self._current_test
 
     def clear_current_test(self):
-        self._current_method = None
+        self._current_test = None
 
     @staticmethod
     def create_attachment(filename, data) -> Dict:
@@ -200,7 +200,7 @@ class ReportBase(ABC):
             self._current_package["details"].inc_cycle()
         else:
             self._current_package = dict()
-            self._current_package["details"] = ReportDetails(None, package_name)
+            self._current_package["details"] = ReportDetails(package_name)
             self._current_package["suite_list"] = dict()
 
             self._all_test_results["package_list"][package_name] = self._current_package
@@ -218,7 +218,7 @@ class ReportBase(ABC):
             self._current_suite["details"].inc_cycle()
         else:
             self._current_suite = dict()
-            self._current_suite["details"] = ReportDetails(attr, suite_name)
+            self._current_suite["details"] = ReportDetails(suite_name, attr)
             self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
 
             self._current_package["suite_list"][suite_name] = self._current_suite
@@ -230,20 +230,21 @@ class ReportBase(ABC):
         return self
 
     def __create_new_test(self, attr, test_name, usecase, description):
-        if not (isinstance(attr, Dict) and attr):
-            raise ValueError("When starting a new test, you must pass your TestData (dict), received as the first parameter on your test method.")
+        if attr and isinstance(attr, Dict):
+            self._test_id_counter += 1
 
-        self._test_id_counter += 1
+            attr = dict(attr)
+            attr["test_id"] = self._test_id_counter
+            attr["test_comment"] = str(description) if description else attr["test_comment"]
+            attr["test_usecase"] = usecase
 
-        attr["test_id"] = self._test_id_counter
-        attr["test_comment"] = str(description) if description else attr["test_comment"]
-        attr["test_usecase"] = usecase
+            return TestDetails(test_name, attr)
 
-        return TestDetails(attr, test_name)
+        raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
     @abstractmethod
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        self._current_method = current_test = self.__create_new_test(attr, test_name, usecase, description)
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+        self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
         test_name = current_test.get_name()
 
         if test_name in self._current_suite["test_list"]:
@@ -341,7 +342,7 @@ class ReportBase(ABC):
 
 class ReportDetails:
 
-    def __init__(self, attr: Dict[str, Any], name: str):
+    def __init__(self, name: str, attr: Dict[str, Any] = None):
         self.attr = attr or {enums_data.TAG_NAME: name}
         self.attr["cycle_number"] = 1
         self.name = name or attr[enums_data.TAG_NAME]
@@ -401,8 +402,8 @@ class ReportDetails:
 
 class TestDetails(ReportDetails):
 
-    def __init__(self, attr: Dict[str, Any], test_name: str):
-        super().__init__(attr, test_name)
+    def __init__(self, test_name: str, attr: Dict[str, Any]):
+        super().__init__(test_name, attr)
         self._info = list()
         self._test_step = StateCounter()
 

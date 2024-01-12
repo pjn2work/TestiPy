@@ -17,7 +17,7 @@ class SuiteRM_CreateTests:
         """
         @LEVEL 1
         """
-        expected_error = "When starting a new test, you must pass your TestData (dict), received as the first parameter on your test method."
+        expected_error = "When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method."
         try:
             current_test = rm.startTest(None)
         except ValueError as ve:

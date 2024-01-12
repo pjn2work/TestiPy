@@ -103,7 +103,7 @@ class ReporterPortalIO(ReportBase):
         self.__close_parent_tests()
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._suite_id)
 
-    def startTest(self, attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         current_test = self._rm.get_current_test()
 
         if usecase and test_name not in self._all_parent_tests_by_name:
