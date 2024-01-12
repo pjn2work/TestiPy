@@ -485,7 +485,7 @@ class TestDetails(ReportDetails):
         return self.get_state() == enums_data.STATE_SKIPPED
 
     def __str__(self):
-        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_name(True)}"
+        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name()}"
         if usecase := self.get_usecase():
             res += f" | {usecase}"
         if state := self.get_state():
