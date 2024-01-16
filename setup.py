@@ -24,6 +24,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
     install_requires=install_requires,
+    entry_points={"console_scripts": ["testipy = testipy.__main__:run_testipy"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
