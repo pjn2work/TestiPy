@@ -25,14 +25,14 @@ SINGLE:
         control:
           expected_status_code: 200
         param: *ER1
-        _expected_response_: *ER1
+        expected_response: *ER1
 
       get_pet:
         _exec_method_: get_pet
         control:
           expected_status_code: 200
         param: 1
-        _expected_response_: *ER1
+        expected_response: *ER1
 
 
     invalid:
@@ -75,27 +75,27 @@ STORY1:
         control:
           expected_status_code: 200
         param: *ER1
-        _expected_response_: *ER1
+        expected_response: *ER1
 
       step_put_pet:
-        _based_on_: ["crud_pet/step_post_pet", ["param", "_expected_response_"]]
+        _based_on_: ["crud_pet/step_post_pet", ["param", "expected_response"]]
         _exec_method_: put_pet
         control:
           expected_status_code: 200
         param:
           category:
             name: SmallDogs
-        _expected_response_:
+        expected_response:
           category:
             name: SmallDogs
 
       step_get_pet:
-        _based_on_: ["crud_pet/step_post_pet", ["_expected_response_"]]
+        _based_on_: ["crud_pet/step_post_pet", ["expected_response"]]
         _exec_method_: get_pet
         control:
           expected_status_code: 200
         param: 1
-        _expected_response_:
+        expected_response:
           category:
             name: SmallDogs
 
@@ -104,11 +104,11 @@ STORY1:
         control:
           expected_status_code: 200
         param: 1
-        _expected_response_: "Pet deleted"
+        expected_response: "Pet deleted"
 
       step_get_deleted_pet:
         _exec_method_: get_pet
         control:
           expected_status_code: 404
         param: 1
-        _expected_response_: "Pet not found"
+        expected_response: "Pet not found"

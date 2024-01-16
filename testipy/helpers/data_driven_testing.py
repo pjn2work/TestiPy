@@ -51,12 +51,9 @@ class DataReader:
     # Keywords = [_env_: Dict, _no_env_: Dict, _scenarios_: Dict, _usecases_: Dict, _based_on_: str]
     def _compile_tag_data(self, base: Dict) -> Dict:
         """
-        my_TAG_NAME:
+        TAG_NAME_1:
 
-          no_env:
-            _scenarios_:
-
-              my_scenario_1:
+            _usecases_:
 
                 my_usecase_1:
                   _exec_method_: create_user
@@ -75,24 +72,14 @@ class DataReader:
                       age: Ten
                   control:
                     expected_status_code: 400
-                  _expected_response_:
+                  expected_response:
                     error: Invalid age
                     code: 100
 
-              my_scenario_2:
+        TAG_NAME_2:
 
-                my_usecase_3:
-                  _exec_method_: create_user
-                  save_name: my_var_1
-                  params:
-                    data:
-                      name: John
-                      age: 41
-
-
-            env:
-                qa:
-                  scenarios:
+            _no_env_:
+                _scenarios_:
 
                     my_scenario_1:
 
@@ -101,11 +88,50 @@ class DataReader:
                           save_name: my_var_1
                           params:
                             data:
-                              name: Will Override Name in _no_env_ Same Scenario
+                              name: John
                               age: 41
-                          _known_bug_:
-                            bug_issue: JIRA-1234
-                            bug_message: User already exists
+
+                        my_usecase_2:
+                          _exec_method_: create_user
+                          save_name: my_var_2
+                          params:
+                            data:
+                              name: Peter
+                              age: Ten
+                          control:
+                            expected_status_code: 400
+                          expected_response:
+                            error: Invalid age
+                            code: 100
+
+
+                    my_scenario_2:
+
+                        my_usecase_3:
+                          _exec_method_: create_user
+                          save_name: my_var_1
+                          params:
+                            data:
+                              name: John
+                              age: 41
+
+
+            _env_:
+                qa:
+                    _scenarios_:
+
+                        my_scenario_1:
+
+                            my_usecase_1:
+                              _exec_method_: create_user
+                              save_name: my_var_1
+                              params:
+                                data:
+                                  name: Will Override Name in _no_env_ Same Scenario
+                                  age: 41
+                              _known_bug_:
+                                bug_issue: JIRA-1234
+                                bug_message: User already exists
 
 
         """
