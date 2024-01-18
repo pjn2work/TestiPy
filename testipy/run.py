@@ -135,7 +135,7 @@ def save_stats(folder: str, prof):
     stats.dump_stats(filename=filename)
 
 
-def run_testipy(args=None):
+def run_testipy(args=None) -> int:
     show_intro()
 
     fails = 1
@@ -156,8 +156,8 @@ def run_testipy(args=None):
     except Exception as ex:
         print(ex, file=sys.stderr)
 
-    sys.exit(fails)
+    return fails
 
 
 if __name__ == "__main__":
-    run_testipy()
+    sys.exit(run_testipy())

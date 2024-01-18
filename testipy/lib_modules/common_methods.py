@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import threading
+import functools
 
 from datetime import datetime
 from time import time
@@ -73,3 +75,15 @@ def dict_without_keys(_dict: Dict, keys_to_remove) -> Dict:
     if not isinstance(keys_to_remove, (list, tuple, set)):
         keys_to_remove = [keys_to_remove]
     return {k: v for k, v in _dict.items() if k not in keys_to_remove}
+
+
+def synchronized(wrapped):
+    lock = threading.Lock()
+
+    @functools.wraps(wrapped)
+    def _wrap(*args, **kwargs):
+        #print(f"Locking {wrapped.__name__} with Lock {id(lock)}")
+        with lock:
+            return wrapped(*args, **kwargs)
+
+    return _wrap

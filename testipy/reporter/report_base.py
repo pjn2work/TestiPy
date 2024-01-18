@@ -9,7 +9,7 @@ from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration
-from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now
+from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now, synchronized
 from testipy.lib_modules.state_counter import StateCounter
 
 
@@ -176,12 +176,14 @@ class ReportBase(ABC):
     # </editor-fold>
 
     @abstractmethod
+    @synchronized
     def save_file(self, current_test, data, filename) -> Dict:
         attachment = self.create_attachment(filename, data)
         self.testInfo(current_test, f"Saved file '{filename}'", "DEBUG", attachment=attachment)
         return attachment
 
     @abstractmethod
+    @synchronized
     def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
         attachment = self.create_attachment(dest_filename, data)
         self.testInfo(current_test, f"Copied file '{orig_filename}' to '{dest_filename}'", "DEBUG", attachment=attachment)
@@ -249,6 +251,7 @@ class ReportBase(ABC):
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
     @abstractmethod
+    @synchronized
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
         test_name = current_test.get_name()
@@ -271,18 +274,22 @@ class ReportBase(ABC):
         current_test.testStep(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
     @abstractmethod
+    @synchronized
     def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
         return self.__endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
 
     @abstractmethod
+    @synchronized
     def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
         return self.__endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
 
     @abstractmethod
+    @synchronized
     def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
         return self.__endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
 
     @abstractmethod
+    @synchronized
     def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
         return self.__endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
 

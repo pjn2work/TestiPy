@@ -25,20 +25,18 @@ class SuiteDemo_01:
         @TAG DEMO no_run
         @LEVEL 1
         """
+        current_test = rm.startTest(ma)
 
-        for current_ncycle in range(1, ncycles + 1):
-            current_test = rm.startTest(ma)
+        for current_ntime in range(1, ntimes + 1):
+            sleep(0.01)
+            current_test.testStep(enums_data.STATE_SKIPPED, "Skip all")
 
-            for current_ntime in range(1, ntimes + 1):
-                sleep(0.1)
-                current_test.testStep(enums_data.STATE_SKIPPED, "Skip all")
+        attachment={"name": "results.txt",
+                    "data": str(current_test.get_test_step_counters()),
+                    "mime": "text/plain"}
+        rm.testInfo(current_test, current_test.get_test_step_counters(), "DEBUG", attachment)
 
-            attachment={"name": "results.txt",
-                        "data": str(current_test.get_test_step_counters()),
-                        "mime": "text/plain"}
-            rm.testInfo(current_test, current_test.get_test_step_counters(), "DEBUG", attachment)
-
-            rm.testSkipped(current_test, "Ran {} times".format(current_ntime))
+        rm.testSkipped(current_test, "Ran {} times".format(current_ntime))
 
     # despite the two FOR, it will run only once, error handled outside on engine.execute_tests
     def test_02_division_by_zero(self, ma, rm, ncycles=3, ntimes=5, param=dict(stop_at=1)):
@@ -87,11 +85,10 @@ class SuiteDemo_02:
         @LEVEL 4
         @PRIO 10
         """
-        for current_ncycle in range(1, ncycles + 1):
-            current_test = rm.startTest(ma)
-            rm.testInfo(current_test, "test dict: " + str(ma), "DEBUG")
-            rm.testInfo(current_test, "test param: " + str(param), "DEBUG")
-            rm.testPassed(current_test, "OK" +str(current_ncycle))
+        current_test = rm.startTest(ma)
+        rm.testInfo(current_test, "test dict: " + str(ma), "DEBUG")
+        rm.testInfo(current_test, "test param: " + str(param), "DEBUG")
+        rm.testPassed(current_test, "OK")
 
     # fail the test outside by raise exception from assert
     def test_05_simple_fail(self, ma, rm, ncycles=2, param=dict()):
