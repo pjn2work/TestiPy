@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import pandas as pd
 
-from typing import Dict, List, Any
+from typing import Dict, List, Set, Any
 from abc import abstractmethod, ABC
 from mimetypes import guess_type
 from tabulate import tabulate
@@ -151,6 +153,9 @@ class ReportBase(ABC):
     def get_test_methods_list_for_current_suite(self) -> Dict:
         return self._current_suite["test_list"]
 
+    def get_test_state_by_prio(self, prio: int) -> Set:
+        return self._current_suite["test_state_by_prio"].get(prio, {})
+
     def get_suite_list(self) -> Dict:
         return self._current_package["suite_list"]
 
@@ -220,6 +225,7 @@ class ReportBase(ABC):
             self._current_suite = dict()
             self._current_suite["details"] = ReportDetails(suite_name, attr)
             self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
+            self._current_suite["test_state_by_prio"] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
 
             self._current_package["suite_list"][suite_name] = self._current_suite
         return self
@@ -235,8 +241,8 @@ class ReportBase(ABC):
 
             attr = dict(attr)
             attr["test_id"] = self._test_id_counter
-            attr["test_comment"] = str(description) if description else attr["test_comment"]
-            attr["test_usecase"] = usecase
+            attr["test_comment"] = str(description) if description else attr.get("test_comment", "")
+            attr["test_usecase"] = str(usecase)
 
             return TestDetails(test_name, attr)
 
@@ -292,13 +298,13 @@ class ReportBase(ABC):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def __endTest(self, current_test, state, reason_of_state, exc_value: BaseException = None):
+    def __endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
         current_test.end_timer()
         current_test.counters.inc_state(state, reason_of_state=reason_of_state, description="end test", qty=1, exc_value=exc_value)
 
         # update package and suite
-        self.__update_package_suite_test_counters(state, reason_of_state)
+        self.__update_package_suite_test_counters(current_test.get_prio(), state, reason_of_state)
 
         # gather info for DataFrame
         package_name = self.get_package_name(False)
@@ -334,7 +340,11 @@ class ReportBase(ABC):
 
         return self
 
-    def __update_package_suite_test_counters(self, state, reason_of_state):
+    def __update_package_suite_test_counters(self, prio: int, state: str, reason_of_state: str):
+        if prio not in self._current_suite["test_state_by_prio"]:
+            self._current_suite["test_state_by_prio"][prio] = set()
+        self._current_suite["test_state_by_prio"][prio].add(state)
+
         self._current_suite["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update suite counters", qty=1)
         self._current_package["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update package counters", qty=1)
         self._all_test_results["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update global counters", qty=1)
@@ -345,7 +355,7 @@ class ReportDetails:
     def __init__(self, name: str, attr: Dict[str, Any] = None):
         self.attr = attr or {enums_data.TAG_NAME: name}
         self.attr["cycle_number"] = 1
-        self.name = name or attr[enums_data.TAG_NAME]
+        self.name = str(name) or attr[enums_data.TAG_NAME]
         self.counters = StateCounter()
         self.start_time = get_datetime_now()
         self.end_time = None
@@ -415,25 +425,27 @@ class TestDetails(ReportDetails):
         return self.attr["test_id"]
 
     def get_tags(self) -> List:
+        if enums_data.TAG_TAG not in self.attr:
+            return []
         return list(self.attr[enums_data.TAG_TAG])
 
     def get_level(self) -> int:
-        return self.attr[enums_data.TAG_LEVEL]
+        return self.attr.get(enums_data.TAG_LEVEL, 0)
 
     def get_prio(self) -> int:
-        return self.attr[enums_data.TAG_PRIO]
+        return self.attr.get(enums_data.TAG_PRIO, 999)
 
     def get_features(self) -> str:
-        return self.attr[enums_data.TAG_FEATURES]
+        return self.attr.get(enums_data.TAG_FEATURES, "")
 
     def get_comment(self) -> str:
-        return self.attr.get("test_comment", "") or ""
+        return self.attr.get("test_comment", "")
 
     def get_test_number(self) -> str:
-        return self.attr[enums_data.TAG_TESTNUMBER]
+        return self.attr.get(enums_data.TAG_TESTNUMBER, "")
 
-    def get_test_param_parameter(self) -> Dict:
-        return self.attr["param"]
+    def get_test_param_parameter(self):
+        return self.attr.get("param")
 
     def get_test_name(self, with_cycle_number=False) -> str:
         return self.attr["test_name"]

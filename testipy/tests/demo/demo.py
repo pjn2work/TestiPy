@@ -1,6 +1,8 @@
 from time import sleep
 
 from testipy.configs import enums_data
+from testipy.helpers.handle_assertions import ExpectedError
+from testipy.reporter import ReportManager
 
 
 class SuiteDemo_01:
@@ -99,9 +101,8 @@ class SuiteDemo_02:
         @LEVEL 5
         @PRIO 30
         """
-        for current_ncycle in range(1, ncycles + 1):
-            rm.startTest(ma)
-            assert 1 == 0, "Why (1 != 0) ?"
+        rm.startTest(ma)
+        assert 1 == 0, "Why (1 != 0) ?"
 
 
 class SuiteDemo_03:
@@ -109,11 +110,68 @@ class SuiteDemo_03:
     @LEVEL 1
     """
 
-    def run_test_without_prefix(self, ma, rm, ncycles=4, param=dict()):
+    def wont_run_test_without_prefix(self, ma, rm, ncycles=4, param=dict()):
         """
         @LEVEL 1
         """
         rm.testFailed(rm.startTest(ma))
+
+    def test_pass_test_with_exception(self, ma, rm, ncycles=1, param=None):
+        """
+        @LEVEL 1
+        """
+        raise ExpectedError("1 can't be equal to 0")
+
+class SuiteDemo_04:
+    """
+    @LEVEL 1
+    @TAG DEPENDENCIES
+    """
+
+    def test_will_pass1(self, ma: dict, rm: ReportManager, ncycles=1, param=dict()):
+        """
+        @LEVEL 1
+        @PRIO 2
+        """
+        rm.testPassed(rm.startTest(ma))
+
+    def test_will_pass2(self, ma: dict, rm: ReportManager, ncycles=1, param=dict()):
+        """
+        @LEVEL 1
+        @PRIO 3
+        """
+        rm.testPassed(rm.startTest(ma))
+
+    def test_will_fail(self, ma: dict, rm: ReportManager, ncycles=1, param=dict()):
+        """
+        @LEVEL 1
+        @PRIO 3
+        """
+        rm.testFailedKnownBug(rm.startTest(ma))
+
+    def test_must_run_on_success(self, ma, rm, ncycles=1, param=None):
+        """
+        @LEVEL 1
+        @PRIO 10
+        @ON_SUCCESS 2 3
+        """
+        rm.testPassed(rm.startTest(ma), "both prio 2 and 3 passed")
+
+    def test_must_run_on_failure(self, ma, rm, ncycles=1, param=None):
+        """
+        @LEVEL 1
+        @PRIO 11
+        @ON_FAILURE 3
+        """
+        rm.testPassed(rm.startTest(ma), "prio 4 failed")
+
+    def test_will_be_skipped_because_no_failure(self, ma, rm, ncycles=1, param=None):
+        """
+        @LEVEL 1
+        @PRIO 12
+        @ON_FAILURE 2
+        """
+        rm.testFailed(rm.startTest(ma), "This test must be skipped!")
 
 
 class SuiteDemoWeb:

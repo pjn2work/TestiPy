@@ -11,6 +11,7 @@ from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.helpers.prettify import format_duration
+from testipy.helpers.handle_assertions import ExpectedError
 from testipy.reporter.report_manager import ReportManager
 
 
@@ -79,10 +80,13 @@ class Executer:
 
     def _auto_close_single_test(self, rm: ReportManager, current_test, had_exception: Exception = None):
         if had_exception:
-            # get full stacktrace
-            tb = _get_stacktrace_string_for_tests(had_exception)
-            rm.testInfo(current_test, f"Full stacktrace:\n{tb}", "ERROR")
-            rm.testFailed(current_test, reason_of_state=str(had_exception), exc_value=had_exception)
+            if isinstance(had_exception, ExpectedError):
+                rm.testPassed(current_test, reason_of_state=f"Designed to fail with: {had_exception}", exc_value=had_exception)
+            else:
+                # get full stacktrace
+                tb = _get_stacktrace_string_for_tests(had_exception)
+                rm.testInfo(current_test, f"Full stacktrace:\n{tb}", "ERROR")
+                rm.testFailed(current_test, reason_of_state=str(had_exception), exc_value=had_exception)
         else:
             tc_state, tc_ros = current_test.get_test_step_counters().get_state_by_severity()
             rm.testEndAs(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
@@ -126,28 +130,24 @@ class Executer:
         if dryrun_mode:
             # if "--dryrun" was passed then will skip all tests execution
             rm.testSkipped(rm.startTest(method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
-        else:
+        elif nok := _get_nok_on_success_or_on_failure(rm, method_attr):
             # get @ON_FAILURE or @ON_SUCCESS dependency
-            nok = _get_nok_on_success_or_on_failure(rm, method_attr)
-
+            rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
+        else:
             for _ in range(1 if onlyonce else method_attr["ncycles"]):
                 # clear current test to see if the method call creates any new tests
                 rm.clear_current_test()
 
                 try:
-                    if nok:
-                        rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
-                        break
-                    else:
-                        ma = cm.dict_without_keys(method_attr, keys_to_remove="test_obj")
-                        # -->> call the test method <<--
-                        _ = getattr(suite_attr["app"], method_attr["method_name"])(ma, rm, ncycles=method_attr["ncycles"], param=method_attr["param"])
+                    ma = cm.dict_without_keys(method_attr, keys_to_remove="test_obj")
+                    # -->> call the test method <<--
+                    _ = getattr(suite_attr["app"], method_attr["method_name"])(ma, rm, ncycles=method_attr["ncycles"], param=method_attr["param"])
 
-                        # no test started by the method call, create one and close it
-                        if rm.get_current_test() is None:
-                            rm.testEndAs(rm.startTest(method_attr, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
+                    # no test started by the method call, create one and close it
+                    if rm.get_current_test() is None:
+                        rm.testEndAs(rm.startTest(method_attr, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
 
-                        self._auto_close_all_open_tests_for_that_method(rm=rm, method_attr=method_attr)
+                    self._auto_close_all_open_tests_for_that_method(rm=rm, method_attr=method_attr)
                 except Exception as ex:
                     # no test started by the method call, create one
                     if rm.get_current_test() is None:
@@ -176,45 +176,16 @@ class Executer:
 
 
 def _get_nok_on_success_or_on_failure(rm: ReportManager, method_attr: Dict) -> str:
-    if method_attr[enums_data.TAG_ON_SUCCESS] or method_attr[enums_data.TAG_ON_FAILURE]:
-        # dict(k = @NAME, v = [current_test#1_(from_suite#1), c_t#2_s#1, c_t#3_s#2, ...])
-        suite_test_methods = rm.get_test_methods_list_for_current_suite()
+    # at least one test, under same suite, with that prio has passed
+    for prio in method_attr[enums_data.TAG_ON_SUCCESS]:
+        if enums_data.STATE_PASSED not in rm.get_test_state_by_prio(prio):
+            return f"NO SUCCESS on {prio=}"
 
-        for prio in method_attr[enums_data.TAG_ON_SUCCESS]:
-            # all tests under same suite (even if from different suite runs, not only from latest)
-            for test_method_name, test_list in suite_test_methods.items():
-                # may have other tests with other priority under the same testName
-                for current_test in test_list:
-                    if current_test.get_prio() == prio:
-                        for ended_test in test_list[::-1]:
-                            if ended_test.is_passed():
-                                break   # goto next break (continue to next prio)
-                        else:
-                            continue    # continue to next current_test on test_list
-                        break           # goto next break (continue to next prio)
-                else:
-                    continue            # continue to next test_list on all_tests
-                break                   # continue to next prio
-            else:
-                return f"NO SUCCESS on {prio=}"
-
-        for prio in method_attr[enums_data.TAG_ON_FAILURE]:
-            # all tests under same suite (even if from different suite runs, not only from latest)
-            for test_method_name, test_list in suite_test_methods.items():
-                # may have other tests with other priority under the same testName
-                for current_test in test_list:
-                    if current_test.get_prio() == prio:
-                        for ended_test in test_list[::-1]:
-                            if ended_test.is_failed():
-                                break   # goto next break (continue to next prio)
-                        else:
-                            continue    # continue to next current_test on test_list
-                        break           # goto next break (continue to next prio)
-                else:
-                    continue            # continue to next test_list on all_tests
-                break                   # continue to next prio
-            else:
-                return f"NO FAILURE on {prio=}"
+    # at least one test, under same suite, with that prio has failed
+    for prio in method_attr[enums_data.TAG_ON_FAILURE]:
+        if (enums_data.STATE_FAILED not in rm.get_test_state_by_prio(prio) and
+                enums_data.STATE_FAILED_KNOWN_BUG not in rm.get_test_state_by_prio(prio)):
+            return f"NO FAILURE on {prio=}"
 
     return ""
 
