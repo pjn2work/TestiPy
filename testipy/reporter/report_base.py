@@ -64,6 +64,7 @@ class ReportBase(ReportInterface):
     _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Steps", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
 
     def __init__(self, reporter_name):
+        super().__init__(reporter_name)
         self._all_test_results = dict()
         self._all_test_results["details"] = ReportDetails(reporter_name)
         self._all_test_results["package_list"] = dict()

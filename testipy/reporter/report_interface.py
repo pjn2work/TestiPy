@@ -3,8 +3,6 @@ from __future__ import annotations
 from typing import Dict
 from abc import abstractmethod, ABC
 
-from testipy.configs import enums_data
-
 
 class ReportInterface(ABC):
 

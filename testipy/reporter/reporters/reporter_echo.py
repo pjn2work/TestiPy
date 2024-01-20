@@ -1,7 +1,7 @@
 from typing import Dict
 from tabulate import tabulate
 
-from testipy.configs import enums_data, default_config
+from testipy.configs import default_config
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
