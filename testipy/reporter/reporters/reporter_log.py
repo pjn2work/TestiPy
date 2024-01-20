@@ -9,12 +9,12 @@ from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list, prettify, format_duration
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 
 default_format ="%(asctime)s %(levelname)s - %(message)s"
 
 
-class ReporterLog(ReportBase):
+class ReporterLog(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
@@ -22,6 +22,7 @@ class ReporterLog(ReportBase):
         self.results_folder_runtime = rm.get_results_folder_runtime()
         self.filename = f"{rm.get_project_name()}.log"
         self.rm = rm
+        self.sa = sa
         self._logger: logging.Logger = None
         self._screenshot_num = 0
 
@@ -30,6 +31,9 @@ class ReporterLog(ReportBase):
 
         # init logger if not inited
         self.get_logger()
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def get_logger(self, level=logging.DEBUG, format=default_format):
         # create logger
@@ -79,49 +83,49 @@ class ReporterLog(ReportBase):
         self.log("Selected Tests:\n{}".format(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="fancy_grid")), "INFO")
 
     def __teardown__(self, end_state):
-        mb = self.get_report_manager_base()
-        sc = mb.get_reporter_counter()
+        rmb = self.get_report_manager_base()
+        sc = rmb.get_reporter_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
-        self.log("{} - {:.2f}%/{} took {} to {}\n{}".format(mb.get_reporter_name(), sc.get_state_percentage(
-            enums_data.STATE_PASSED), sc.get_total(), format_duration(mb.get_reporter_duration()), end_state, tab_resume), "INFO")
+        self.log("{} - {:.2f}%/{} took {} to {}\n{}".format(rmb.get_reporter_name(), sc.get_state_percentage(
+            enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_reporter_duration()), end_state, tab_resume), "INFO")
         self.close_logger()
 
     def startPackage(self, package_name):
-        mb = self.get_report_manager_base()
-        self.log(f"Starting Package {mb.get_package_name(True)}", "INFO")
+        rmb = self.get_report_manager_base()
+        self.log(f"Starting Package {rmb.get_package_name(True)}", "INFO")
 
     def endPackage(self):
-        mb = self.get_report_manager_base()
-        sc = mb.get_package_counter()
+        rmb = self.get_report_manager_base()
+        sc = rmb.get_package_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
-        self.log("Ending Package {} - {:.2f}%/{} took {}\n{}".format(mb.get_package_name(True), sc.get_state_percentage(
-            enums_data.STATE_PASSED), sc.get_total(), format_duration(mb.get_package_duration()), tab_resume), "INFO")
+        self.log("Ending Package {} - {:.2f}%/{} took {}\n{}".format(rmb.get_package_name(True), sc.get_state_percentage(
+            enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_package_duration()), tab_resume), "INFO")
 
     def startSuite(self, suite_name, attr=None):
-        mb = self.get_report_manager_base()
-        self.log(f"Starting Suite {mb.get_suite_name(True)}", "INFO")
+        rmb = self.get_report_manager_base()
+        self.log(f"Starting Suite {rmb.get_suite_name(True)}", "INFO")
         self.__create_folder(self.rm.get_results_folder_filename())
 
     def endSuite(self):
-        mb = self.get_report_manager_base()
-        sc = mb.get_suite_counter()
+        rmb = self.get_report_manager_base()
+        sc = rmb.get_suite_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
-        self.log("Ending Suite {} - {:.2f}%/{} took {}\n{}".format(mb.get_suite_name(True), sc.get_state_percentage(
-            enums_data.STATE_PASSED), sc.get_total(), format_duration(mb.get_suite_duration()), tab_resume), "INFO")
+        self.log("Ending Suite {} - {:.2f}%/{} took {}\n{}".format(rmb.get_suite_name(True), sc.get_state_percentage(
+            enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_suite_duration()), tab_resume), "INFO")
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        mb = self.get_report_manager_base()
+        rmb = self.get_report_manager_base()
 
-        test_full_name = mb.get_full_name(mb.get_current_test(), True)
+        test_full_name = rmb.get_full_name(rmb.get_current_test(), True)
         self.log(f"Starting Test {test_full_name} - {usecase}", "INFO")
 
         #str_attr = "\n".join([f"{k}: {str(v).replace('set()', '')}" for k, v in attr.items() if k != "test_comment"])
-        #self.testInfo(mb.get_current_test(), f"TAGs:\n{str_attr}", "DEBUG")
+        #self.testInfo(rmb.get_current_test(), f"TAGs:\n{str_attr}", "DEBUG")
 
     def testInfo(self, current_test, info, level, attachment=None):
-        mb = self.get_report_manager_base()
+        rmb = self.get_report_manager_base()
 
-        test_full_name = mb.get_full_name(current_test, True)
+        test_full_name = rmb.get_full_name(current_test, True)
         usecase = current_test.get_usecase()
 
         self.log(f"{test_full_name} - {usecase}: {info}", level)
@@ -135,18 +139,6 @@ class ReporterLog(ReportBase):
                 sct.shot(output=output_file, mon=1)
                 self.rm.copy_file(current_test, orig_filename=output_file, delete_source=True)
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
     def showStatus(self, message: str):
         pass
 
@@ -156,10 +148,10 @@ class ReporterLog(ReportBase):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
-        mb = self.get_report_manager_base()
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+        rmb = self.get_report_manager_base()
 
-        test_full_name = mb.get_full_name(current_test, True)
+        test_full_name = rmb.get_full_name(current_test, True)
         usecase = current_test.get_usecase()
         duration = current_test.get_duration()
 
@@ -180,9 +172,9 @@ class ReporterLog(ReportBase):
 
     def __log_exception(self, current_test, exc_value):
         if exc_value:
-            mb = self.get_report_manager_base()
+            rmb = self.get_report_manager_base()
 
-            test_full_name = mb.get_full_name(current_test, True)
+            test_full_name = rmb.get_full_name(current_test, True)
             usecase = current_test.get_usecase()
             info = prettify(get_traceback_list(exc_value))
 

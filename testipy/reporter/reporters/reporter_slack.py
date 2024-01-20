@@ -8,7 +8,7 @@ from testipy.configs import enums_data
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 
 SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
 DEFAULT_CHANNEL = "C06BQ1UP6KG"
@@ -24,7 +24,7 @@ emojis = {
 }
 
 
-class ReporterSlack(ReportBase):
+class ReporterSlack(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
@@ -34,6 +34,9 @@ class ReporterSlack(ReportBase):
         self.TS = None
         self.build = sa.tests_scripts_build.get("build", "")
         self.timer = Timer()
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def _send_message(self, channel=DEFAULT_CHANNEL, threadts=True, reply_broadcast=False, **message):
         thread_ts = self.TS if threadts else None
@@ -61,29 +64,29 @@ class ReporterSlack(ReportBase):
 
     def __teardown__(self, end_state):
         # get manager base
-        mb = self.get_report_manager_base()
+        rmb =self.get_report_manager_base()
 
         flag = emojis.get(end_state, f":{end_state}:")
 
-        self._send_message(reply_broadcast=True, text=f"{flag} {mb.get_reporter_details()}")
+        self._send_message(reply_broadcast=True, text=f"{flag} {rmb.get_reporter_details()}")
         for name, user in NOTIFY_USERS.items():
-            self._send_message(channel=user, threadts=False, text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{mb.get_reporter_details()}")
+            self._send_message(channel=user, threadts=False, text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{rmb.get_reporter_details()}")
 
     def startPackage(self, package_name):
-        mb = self.get_report_manager_base()
-        # self._send_message(text=":open_file_folder: Starting package {} ".format(mb.get_package_details()))
+        rmb =self.get_report_manager_base()
+        # self._send_message(text=":open_file_folder: Starting package {} ".format(rmb.get_package_details()))
 
     def endPackage(self):
-        mb = self.get_report_manager_base()
-        self._send_message(text=":file_folder: Ending package {} ".format(mb.get_package_details()))
+        rmb =self.get_report_manager_base()
+        self._send_message(text=":file_folder: Ending package {} ".format(rmb.get_package_details()))
 
     def startSuite(self, suite_name, attr=None):
-        mb = self.get_report_manager_base()
-        # self._send_message(text=":scroll: Starting suite {} ".format(mb.get_suite_details()))
+        rmb =self.get_report_manager_base()
+        # self._send_message(text=":scroll: Starting suite {} ".format(rmb.get_suite_details()))
 
     def endSuite(self):
-        mb = self.get_report_manager_base()
-        self._send_message(text=":scroll: Ending suite {} ".format(mb.get_suite_details()))
+        rmb =self.get_report_manager_base()
+        self._send_message(text=":scroll: Ending suite {} ".format(rmb.get_suite_details()))
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
@@ -94,18 +97,6 @@ class ReporterSlack(ReportBase):
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
     def showStatus(self, message: str):
         pass
 
@@ -115,7 +106,7 @@ class ReporterSlack(ReportBase):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name()
         duration = current_test.get_duration()
         usecase = current_test.get_usecase()

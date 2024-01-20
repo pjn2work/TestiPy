@@ -143,16 +143,16 @@ def run_testipy(args=None) -> int:
         ap = ArgsParser.from_str(args) if args else ArgsParser.from_sys()
         sa = ParseStartArguments(ap).get_start_arguments()
 
-        with ExecutionLogger(sa.results_folder_runtime) as log:
+        with ExecutionLogger(sa.full_path_results_folder_runtime) as log:
             with Runner(ap, sa, log.execution_log) as runner:
                 if ap.has_flag_or_option("--prof"):
                     with cProfile.Profile() as prof:
                         fails = runner.run()
-                    save_stats(sa.results_folder_runtime, prof)
+                    save_stats(sa.full_path_results_folder_runtime, prof)
                 else:
                     fails = runner.run()
 
-            print(f"exitcode={fails} | Results at {sa.results_folder_runtime}")
+            print(f"exitcode={fails} | Results at {sa.full_path_results_folder_runtime}")
     except Exception as ex:
         print(ex, file=sys.stderr)
 

@@ -7,7 +7,7 @@ from typing import Dict
 from reportportal_client import ReportPortalService
 
 from testipy.lib_modules import common_methods as mc
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 from testipy.configs import enums_data
 from testipy.lib_modules.start_arguments import StartArguments
 
@@ -36,7 +36,7 @@ def my_error_handler(exc_info):
         traceback.print_exception(*exc_info)
 
 
-class ReporterPortalIO(ReportBase):
+class ReporterPortalIO(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
@@ -60,10 +60,13 @@ class ReporterPortalIO(ReportBase):
                                                      start_time=timestamp(),
                                                      description=str(description))
 
-        self._rm = rm
+        self.rm = rm
         self._package_id = None
         self._suite_id = None
         self._all_parent_tests_by_name = dict()
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def save_file(self, current_test, data, filename):
         # since was stored on reporter_base, it will be done on end_test()
@@ -104,7 +107,7 @@ class ReporterPortalIO(ReportBase):
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._suite_id)
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        current_test = self._rm.get_current_test()
+        current_test = self.rm.get_current_test()
 
         if usecase and test_name not in self._all_parent_tests_by_name:
             tags = {"TAG": " ".join(current_test.get_attributes()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attributes()[
@@ -132,18 +135,6 @@ class ReporterPortalIO(ReportBase):
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.__end_test_usecase(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.__end_test_usecase(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.__end_test_usecase(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.__end_test_usecase(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
     def showStatus(self, message: str):
         pass
 
@@ -153,7 +144,7 @@ class ReporterPortalIO(ReportBase):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def __end_test_usecase(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name(False)
 
         # Get parent test or suite

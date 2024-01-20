@@ -12,12 +12,11 @@ from testipy.helpers import load_config
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.common_methods import get_current_short_time, get_current_short_date
 
-
 @dataclass
 class StartArguments:
     results_folder_base: str
     foldername_runtime: str
-    results_folder_runtime: str
+    full_path_results_folder_runtime: str
     full_path_tests_scripts_foldername: str
 
     valid_reporters: Set[str]
@@ -127,7 +126,7 @@ class ParseStartArguments:
         return StartArguments(
             results_folder_base=self._get_results_folder_base(),
             foldername_runtime=self._generate_foldername_runtime(),
-            results_folder_runtime=self._build_results_folder_runtime(),
+            full_path_results_folder_runtime=self._build_results_folder_runtime(),
             full_path_tests_scripts_foldername=self._get_tests_scripts_foldername(),
 
             valid_reporters=self._get_valid_reporters(),

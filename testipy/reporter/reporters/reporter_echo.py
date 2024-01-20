@@ -6,7 +6,7 @@ from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 
 _line_size = 160
 
@@ -16,10 +16,15 @@ def show_totals(state_counter):
     print(f"Total: {state_counter.get_total():7}")
 
 
-class ReporterEcho(ReportBase):
+class ReporterEcho(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
+        self.rm = rm
+        self.sa = sa
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def save_file(self, current_test, data, filename):
         pass
@@ -37,10 +42,10 @@ class ReporterEcho(ReportBase):
 
     def __teardown__(self, end_state):
         # get manager base
-        mb = self.get_report_manager_base()
+        rmb = self.get_report_manager_base()
 
         # get results DataFrame
-        df = mb.get_df()
+        df = rmb.get_df()
 
         # exit if nothing to show
         if df.shape[0] == 0:
@@ -49,14 +54,14 @@ class ReporterEcho(ReportBase):
         # show results
         print("\n"*6)
         print("#"*_line_size)
-        print(" Teardown {} ".format(mb.get_reporter_details()).center(_line_size, "#"))
+        print(" Teardown {} ".format(rmb.get_reporter_details()).center(_line_size, "#"))
         print("#"*_line_size)
-        #show_totals(mb.get_reporter_counter())
+        #show_totals(rmb.get_reporter_counter())
 
         # get resume tables
-        df = mb.get_df()
-        #df = df[df["Package"] == mb.get_package_name(False)]
-        #df = df[df["Suite"] == mb.get_suite_name(False)]
+        df = rmb.get_df()
+        #df = df[df["Package"] == rmb.get_package_name(False)]
+        #df = df[df["Suite"] == rmb.get_suite_name(False)]
 
         # show resume tables
         print("")
@@ -80,8 +85,8 @@ class ReporterEcho(ReportBase):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        mb = self.get_report_manager_base()
-        current_test = mb.get_current_test()
+        rmb = self.get_report_manager_base()
+        current_test = rmb.get_current_test()
 
         test_id = current_test.get_test_id()  # attr["test_id"]
         test_prio = str(current_test.get_prio())
@@ -93,26 +98,14 @@ class ReporterEcho(ReportBase):
         # print("\n".join([f"{k} {str(v).replace('set()', '')}" for k, v in attr.items() if k.startswith("@")]))
 
     def testInfo(self, current_test, info, level, attachment=None):
-        mb = self.get_report_manager_base()
-        full_name = mb.get_full_name(current_test, True)
+        rmb = self.get_report_manager_base()
+        full_name = rmb.get_full_name(current_test, True)
         usecase = current_test.get_usecase()
 
         print(f"{level} {full_name} - {usecase}: {prettify(info)}")
 
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
-
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
 
     def showStatus(self, message: str):
         pass
@@ -123,10 +116,10 @@ class ReporterEcho(ReportBase):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
-        mb = self.get_report_manager_base()
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+        rmb = self.get_report_manager_base()
 
-        full_name = mb.get_full_name(current_test, True)
+        full_name = rmb.get_full_name(current_test, True)
         if usecase := current_test.get_usecase():
             full_name += default_config.separator_package_suite_test + usecase[:20]
 

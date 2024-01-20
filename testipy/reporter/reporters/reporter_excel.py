@@ -5,11 +5,11 @@ from typing import Dict
 
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 from testipy.configs import enums_data
 
 
-class ReporterExcel(ReportBase):
+class ReporterExcel(ReportInterface):
 
     _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Usecase", "Level", "State", "Reason", "Qty", "Duration", "Start time", "TestStep", "Timestamp"]
 
@@ -18,16 +18,19 @@ class ReporterExcel(ReportBase):
         self.rm = rm
 
         # create results folder if doesnt exists
-        self.__ensure_folder(sa.results_folder_runtime)
+        self.__ensure_folder(sa.full_path_results_folder_runtime)
 
         # full path name
-        self._fpn = os.path.join(sa.results_folder_runtime, f"{sa.project_name}.xlsx")
+        self._fpn = os.path.join(sa.full_path_results_folder_runtime, f"{sa.project_name}.xlsx")
 
         # create Excel Writer
         self.writer = pd.ExcelWriter(self._fpn, engine='xlsxwriter', datetime_format='yyyy-mm-dd hh:mm:ss.000')
 
         # DataFrame for testStepCounters
         self._df_step_counters = pd.DataFrame(columns=self._columns)
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def __ensure_folder(self, folder_name):
         try:
@@ -96,16 +99,16 @@ class ReporterExcel(ReportBase):
         pass
 
     def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
+        self.endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
 
     def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
+        self.endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
 
     def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
+        self.endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
 
     def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
+        self.endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
 
     def showStatus(self, message: str):
         pass
@@ -117,7 +120,7 @@ class ReporterExcel(ReportBase):
         pass
 
     # this will serve the purpose only for testSteps, because for tests is done on teardown
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         mb = self.get_report_manager_base()
 
         # gather info for DataFrame

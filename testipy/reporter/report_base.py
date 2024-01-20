@@ -3,17 +3,17 @@ from __future__ import annotations
 import pandas as pd
 
 from typing import Dict, List, Set, Any
-from abc import abstractmethod, ABC
 from mimetypes import guess_type
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration
-from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now, synchronized
+from testipy.reporter.report_interface import ReportInterface
+from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
 
-class ReportBase(ABC):
+class ReportBase(ReportInterface):
     """
     _all_test_results = {
         "reporter_name": string
@@ -80,18 +80,10 @@ class ReportBase(ABC):
         self._test_id_counter = 0
 
         # common for all reporters
-        self._rm_base: ReportBase = None
+        self._rm_base: ReportBase = self
 
         # results stored in da Pandas Dataframe
         self._df = pd.DataFrame(columns=self._columns)
-
-    def set_report_manager_base(self, rm):
-        self._rm_base = rm.get_report_manager_base()
-
-    def get_report_manager_base(self):
-        if not self._rm_base:
-            self._rm_base = self
-        return self._rm_base
 
     # <editor-fold desc="--- Gets ---">
     def get_selected_tests_as_df(self) -> pd.DataFrame:
@@ -175,32 +167,21 @@ class ReportBase(ABC):
                 "mime": guess_type(filename)[0] or "application/octet-stream"}
     # </editor-fold>
 
-    @abstractmethod
-    @synchronized
     def save_file(self, current_test, data, filename) -> Dict:
-        attachment = self.create_attachment(filename, data)
-        self.testInfo(current_test, f"Saved file '{filename}'", "DEBUG", attachment=attachment)
-        return attachment
+        return self.create_attachment(filename, data)
 
-    @abstractmethod
-    @synchronized
     def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
-        attachment = self.create_attachment(dest_filename, data)
-        self.testInfo(current_test, f"Copied file '{orig_filename}' to '{dest_filename}'", "DEBUG", attachment=attachment)
-        return attachment
+        return self.create_attachment(dest_filename, data)
 
-    @abstractmethod
     def __startup__(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
         return self
 
-    @abstractmethod
     def __teardown__(self, end_state):
         self.end_state = end_state
         self._all_test_results["details"].end_timer()
         return self
 
-    @abstractmethod
     def startPackage(self, package_name):
         if package_name in self._all_test_results["package_list"]:
             self._current_package = self._all_test_results["package_list"][package_name]
@@ -213,12 +194,10 @@ class ReportBase(ABC):
             self._all_test_results["package_list"][package_name] = self._current_package
         return self
 
-    @abstractmethod
     def endPackage(self):
         self._current_package["details"].end_timer()
         return self
 
-    @abstractmethod
     def startSuite(self, suite_name, attr=None):
         if suite_name in self._current_package["suite_list"]:
             self._current_suite = self._current_package["suite_list"][suite_name]
@@ -232,7 +211,6 @@ class ReportBase(ABC):
             self._current_package["suite_list"][suite_name] = self._current_suite
         return self
 
-    @abstractmethod
     def endSuite(self):
         self._current_suite["details"].end_timer()
         return self
@@ -250,8 +228,6 @@ class ReportBase(ABC):
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    @abstractmethod
-    @synchronized
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
         test_name = current_test.get_name()
@@ -264,48 +240,14 @@ class ReportBase(ABC):
 
         return current_test
 
-    @abstractmethod
     def testInfo(self, current_test, info, level, attachment=None):
         current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
         return self
 
-    @abstractmethod
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         current_test.testStep(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
-    @abstractmethod
-    @synchronized
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    @abstractmethod
-    @synchronized
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    @abstractmethod
-    @synchronized
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    @abstractmethod
-    @synchronized
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
-    @abstractmethod
-    def showStatus(self, message: str):
-        pass
-
-    @abstractmethod
-    def showAlertMessage(self, message: str):
-        pass
-
-    @abstractmethod
-    def inputPromptMessage(self, message: str, default_value: str = ""):
-        pass
-
-    def __endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
+    def endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
         current_test.end_timer()
         current_test.counters.inc_state(state, reason_of_state=reason_of_state, description="end test", qty=1, exc_value=exc_value)
@@ -346,6 +288,15 @@ class ReportBase(ABC):
                                        test_prio, test_features, test_number, test_comment, test_id]
 
         return self
+
+    def showStatus(self, message: str):
+        pass
+
+    def showAlertMessage(self, message: str):
+        pass
+
+    def inputPromptMessage(self, message: str, default_value: str = ""):
+        pass
 
     def __update_package_suite_test_counters(self, prio: int, state: str, reason_of_state: str):
         if prio not in self._current_suite["test_state_by_prio"]:

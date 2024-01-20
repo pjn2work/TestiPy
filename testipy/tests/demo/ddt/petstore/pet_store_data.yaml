@@ -1,3 +1,5 @@
+---
+
 CONST_ER1: &ER1
   id: 1
   name: Sissi
@@ -112,3 +114,5 @@ STORY1:
           expected_status_code: 404
         param: 1
         expected_response: "Pet not found"
+
+...

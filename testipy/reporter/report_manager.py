@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Any
 
 from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration
+from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules import webhook_http_listener as HL
 from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.args_parser import ArgsParser
@@ -30,15 +31,20 @@ class ReportManager(ReportBase):
 
     def add_reporter(self, name, new_reporter_class) -> ReportManager:
         self._execution_log("DEBUG", f"Added reporter {name}")
-        new_reporter_class.set_report_manager_base(self)  # Add myself as the ReportManager on this new_reporter_class
         self._reporters_list[name] = new_reporter_class
         return self
+
+    def get_report_manager_base(self):
+        return super()
 
     def get_ap(self) -> ArgsParser:
         return self._ap
 
     def has_ap_flag(self, key: str) -> bool:
         return self._ap.has_flag_or_option(key)
+
+    def is_debugcode(self):
+        return self._sa.debugcode
 
     def get_project_name(self) -> str:
         return self._sa.project_name
@@ -50,14 +56,10 @@ class ReportManager(ReportBase):
         return self._sa.foldername_runtime
 
     def get_results_folder_runtime(self) -> str:
-        return self._sa.results_folder_runtime
+        return self._sa.full_path_results_folder_runtime
 
-    def _get_full_path_tests_scripts_foldername_deprecated(self) -> str:
+    def get_full_path_tests_scripts_foldername(self) -> str:
         return self._sa.full_path_tests_scripts_foldername
-
-    def _get_full_path_package_foldername_deprecated(self, package_name) -> str:
-        return os.path.join(self._get_full_path_tests_scripts_foldername_deprecated(),
-                            package_name.replace(default_config.separator_package, os.sep))
 
     def get_results_folder_filename(self, current_test: TestDetails = None, filename: str = "") -> str:
         fn = self.get_results_folder_runtime()
@@ -184,18 +186,18 @@ class ReportManager(ReportBase):
     # </editor-fold>
 
     # <editor-fold desc="--- Common functions starts here ---">
-    def get_report_manager_base(self):
-        return super()
-
+    @synchronized
     def save_file(self, current_test, data, filename):
         filename = self.generate_filename(current_test, filename)
 
         attachment = super().save_file(current_test, data, filename)
+        self.testInfo(current_test, f"Saving file '{filename}'", "DEBUG", attachment=attachment)
         for reporter_name, reporter in self._reporters_list.items():
             reporter.save_file(current_test, data, filename)
 
         return attachment
 
+    @synchronized
     def copy_file(self, current_test, orig_filename="screenshot.png", dest_filename=None, data=None, delete_source=True):
         if not dest_filename:
             dest_filename = orig_filename
@@ -210,6 +212,8 @@ class ReportManager(ReportBase):
 
         if data:
             attachment = super().copy_file(current_test, orig_filename, dest_filename, data)
+            self.testInfo(current_test, f"Copying file '{orig_filename}' to '{dest_filename}'", "DEBUG",
+                          attachment=attachment)
             for reporter_name, reporter in self._reporters_list.items():
                 reporter.copy_file(current_test, orig_filename, dest_filename, data)
         else:
@@ -223,18 +227,15 @@ class ReportManager(ReportBase):
 
         return attachment
 
-    def is_debugcode(self):
-        return self._sa.debugcode
-
     def __startup__(self, selected_tests: Dict) -> ReportManager:
         super().__startup__(selected_tests)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.__startup__(selected_tests)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.__startup__ on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.__startup__ on {reporter_name}: {e}")
 
         return self
 
@@ -248,9 +249,9 @@ class ReportManager(ReportBase):
             try:
                 reporter.__teardown__(end_state)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.__teardown__ on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.__teardown__ on {reporter_name}: {e}")
 
         # close web_browser and opened HTTP ports
         try:
@@ -268,24 +269,26 @@ class ReportManager(ReportBase):
             try:
                 reporter.startPackage(name)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.startPackage on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.startPackage on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def startSuite(self, name, attr=None) -> ReportManager:
         super().startSuite(name, attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.startSuite(name, attr)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.startSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.startSuite on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         current_test = super().startTest(method_attr, test_name, usecase, description)
         self._add_test_running(current_test)
@@ -293,24 +296,26 @@ class ReportManager(ReportBase):
             try:
                 reporter.startTest(current_test.get_attributes(), current_test.get_name(), usecase, description)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.startTest on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.startTest on {reporter_name}: {e}")
 
         return current_test
 
+    @synchronized
     def testInfo(self, current_test, info, level="DEBUG", attachment=None) -> ReportManager:
         super().testInfo(current_test, info, level, attachment)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testInfo(current_test, info, str(level).upper(), attachment)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.testInfo on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.testInfo on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None) -> ReportManager:
         super().testStep(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
 
@@ -318,92 +323,56 @@ class ReportManager(ReportBase):
             try:
                 self.get_bm().take_screenshot(current_test)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.testStep.screenshot on {self.get_bm().name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.testStep.screenshot on {self.get_bm().name}: {e}")
 
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.testStep(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
             except Exception as e:
-                if self.is_debugcode():
-                    raise
                 self._execution_log("CRITICAL", f"Internal error rm.testStep on {reporter_name}: {e}")
+                if self.is_debugcode():
+                    raise
 
         return self
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
-        super().testSkipped(current_test, reason_of_state, exc_value)
+    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+        self.endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
+
+    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
+        self.endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
+
+    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
+        self.endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
+
+    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+        self.endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
+
+    @synchronized
+    def endTest(self, current_test, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
+        super().endTest(current_test, state, reason_of_state, exc_value)
         self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.testSkipped(current_test, reason_of_state, exc_value)
+                reporter.endTest(current_test, state, reason_of_state, exc_value)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.endTest({state}) on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.testSkipped on {reporter_name}: {e}")
 
         return self
 
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
-        super().testPassed(current_test, reason_of_state, exc_value)
-        self._remove_test_running(current_test)
-        for reporter_name, reporter in self._reporters_list.items():
-            try:
-                reporter.testPassed(current_test, reason_of_state, exc_value)
-            except Exception as e:
-                if self.is_debugcode():
-                    raise
-                self._execution_log("CRITICAL", f"Internal error rm.testPassed on {reporter_name}: {e}")
-
-        return self
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
-        super().testFailed(current_test, reason_of_state, exc_value)
-        self._remove_test_running(current_test)
-        for reporter_name, reporter in self._reporters_list.items():
-            try:
-                reporter.testFailed(current_test, reason_of_state, exc_value)
-            except Exception as e:
-                if self.is_debugcode():
-                    raise
-                self._execution_log("CRITICAL", f"Internal error rm.testFailed on {reporter_name}: {e}")
-
-        return self
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
-        super().testFailedKnownBug(current_test, reason_of_state, exc_value)
-        self._remove_test_running(current_test)
-        for reporter_name, reporter in self._reporters_list.items():
-            try:
-                reporter.testFailedKnownBug(current_test, reason_of_state, exc_value)
-            except Exception as e:
-                if self.is_debugcode():
-                    raise
-                self._execution_log("CRITICAL", f"Internal error rm.testFailedKnownBug on {reporter_name}: {e}")
-
-        return self
-
-    def testEndAs(self, current_test, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
-        if state == enums_data.STATE_PASSED:
-            self.testPassed(current_test, reason_of_state, exc_value)
-        elif state == enums_data.STATE_SKIPPED:
-            self.testSkipped(current_test, reason_of_state, exc_value)
-        elif state == enums_data.STATE_FAILED_KNOWN_BUG:
-            self.testFailedKnownBug(current_test, reason_of_state, exc_value)
-        else:
-            self.testFailed(current_test, reason_of_state, exc_value)
-        return self
-
+    @synchronized
     def endSuite(self) -> ReportManager:
         super().endSuite()
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.endSuite()
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.endSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.endSuite on {reporter_name}: {e}")
 
         return self
 
@@ -413,34 +382,37 @@ class ReportManager(ReportBase):
             try:
                 reporter.endPackage()
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.endPackage on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.endPackage on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def showStatus(self, message: str) -> ReportManager:
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.showStatus(message)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.showStatus on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.showStatus on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def showAlertMessage(self, message: str) -> ReportManager:
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.showAlertMessage(message)
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.showMessage on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.showMessage on {reporter_name}: {e}")
 
         return self
 
+    @synchronized
     def inputPromptMessage(self, message: str, default_value: str = ""):
         result = None
         for reporter_name, reporter in self._reporters_list.items():
@@ -449,9 +421,9 @@ class ReportManager(ReportBase):
                 if result is None and res:
                     result = res
             except Exception as e:
+                self._execution_log("CRITICAL", f"Internal error rm.inputMessage on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
-                self._execution_log("CRITICAL", f"Internal error rm.inputMessage on {reporter_name}: {e}")
 
         return result
 

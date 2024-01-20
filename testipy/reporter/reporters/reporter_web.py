@@ -13,7 +13,7 @@ from time import sleep
 from testipy.configs import enums_data
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 
 from engineio.payload import Payload
 Payload.max_decode_packets = 100
@@ -111,7 +111,7 @@ class ServerSocketIO:
             emit('s2c', "Server Disconnected!", callback=can_disconnect)
 
 
-class ReporterWeb(ReportBase):
+class ReporterWeb(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
@@ -128,6 +128,9 @@ class ReporterWeb(ReportBase):
         ServerSocketIO(app, socket_io, self.namespace)
 
         Thread(target=_run_flask_in_thread).start()
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def save_file(self, current_test, data, filename):
         pass
@@ -229,24 +232,6 @@ class ReporterWeb(ReportBase):
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         self.showStatus(f"{state} || {reason_of_state} || {description}")
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
-    def showStatus(self, message: str):
-        self.notify_clients('show_status', message, save_to_cache=False)
-
-    def showAlertMessage(self, message: str):
-        self.notify_clients('show_alert_message', message, save_to_cache=False)
-
     def inputPromptMessage(self, message: str, default_value: str = ""):
         global response; response = None
         timer = Timer(25)
@@ -257,7 +242,7 @@ class ReporterWeb(ReportBase):
 
         return response
 
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         mb = self.get_report_manager_base()  # get manager base
         package_name = mb.get_package_name()
         suite_name = mb.get_suite_name()
@@ -277,6 +262,12 @@ class ReporterWeb(ReportBase):
                 "global_duration_value": global_duration_value,
                 "status_class": STATUS_TO_CLASS.get(ending_state)}
         self.notify_clients('end_test', data)
+
+    def showStatus(self, message: str):
+        self.notify_clients('show_status', message, save_to_cache=False)
+
+    def showAlertMessage(self, message: str):
+        self.notify_clients('show_alert_message', message, save_to_cache=False)
 
     def notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):
         if save_to_cache:

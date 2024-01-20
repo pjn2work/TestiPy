@@ -6,16 +6,16 @@ from testipy.configs import enums_data, default_config
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter.report_manager import ReportManager, ReportBase
+from testipy.reporter import ReportManager, ReportInterface
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 
 
-class ReporterJUnitXML(ReportBase):
+class ReporterJUnitXML(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
-        self._rm = rm
+        self.rm = rm
 
         # create results folder if doesnt exists
         self.__ensure_folder(rm.get_results_folder_runtime())
@@ -27,13 +27,16 @@ class ReporterJUnitXML(ReportBase):
         with open(self.fpn, "w"):
             pass
 
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
+
     def __ensure_folder(self, folder_name):
         try:
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name, exist_ok=True)
-                self._rm._execution_log("INFO", f"Created folder {folder_name}")
+                self.rm._execution_log("INFO", f"Created folder {folder_name}")
         except:
-            self._rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
+            self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
 
     def save_file(self, current_test, data, filename):
         pass
@@ -72,17 +75,8 @@ class ReporterJUnitXML(ReportBase):
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
+    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+        pass
 
     def showStatus(self, message: str):
         pass
@@ -93,18 +87,15 @@ class ReporterJUnitXML(ReportBase):
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
 
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
-        pass
-
     def _generate_tag_testsuites(self, mb: ReportManager, xml_file):
         # all tests counter
         atc = mb.get_all_test_results()["details"].get_counters()
 
         # set id
-        id = self._rm.get_foldername_runtime()
+        id = self.rm.get_foldername_runtime()
 
         # set name
-        name = self._rm.get_project_name()
+        name = self.rm.get_project_name()
 
         # set total of tests
         tests = str(atc.get_total())
