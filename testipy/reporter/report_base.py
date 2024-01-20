@@ -3,17 +3,17 @@ from __future__ import annotations
 import pandas as pd
 
 from typing import Dict, List, Set, Any
-from abc import abstractmethod, ABC
 from mimetypes import guess_type
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
 from testipy.helpers import format_duration
+from testipy.reporter.report_interface import ReportInterface
 from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
 
-class ReportBase(ABC):
+class ReportBase(ReportInterface):
     """
     _all_test_results = {
         "reporter_name": string
@@ -64,6 +64,7 @@ class ReportBase(ABC):
     _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Steps", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
 
     def __init__(self, reporter_name):
+        super().__init__(reporter_name)
         self._all_test_results = dict()
         self._all_test_results["details"] = ReportDetails(reporter_name)
         self._all_test_results["package_list"] = dict()
@@ -80,18 +81,10 @@ class ReportBase(ABC):
         self._test_id_counter = 0
 
         # common for all reporters
-        self._rm_base: ReportBase = None
+        self._rm_base: ReportBase = self
 
         # results stored in da Pandas Dataframe
         self._df = pd.DataFrame(columns=self._columns)
-
-    def set_report_manager_base(self, rm):
-        self._rm_base = rm.get_report_manager_base()
-
-    def get_report_manager_base(self):
-        if not self._rm_base:
-            self._rm_base = self
-        return self._rm_base
 
     # <editor-fold desc="--- Gets ---">
     def get_selected_tests_as_df(self) -> pd.DataFrame:
@@ -175,31 +168,23 @@ class ReportBase(ABC):
                 "mime": guess_type(filename)[0] or "application/octet-stream"}
     # </editor-fold>
 
-    @abstractmethod
+    # <editor-fold desc="--- Common functions starts here ---">
     def save_file(self, current_test, data, filename) -> Dict:
-        attachment = self.create_attachment(filename, data)
-        self.testInfo(current_test, f"Saved file '{filename}'", "DEBUG", attachment=attachment)
-        return attachment
+        return self.create_attachment(filename, data)
 
-    @abstractmethod
     def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
-        attachment = self.create_attachment(dest_filename, data)
-        self.testInfo(current_test, f"Copied file '{orig_filename}' to '{dest_filename}'", "DEBUG", attachment=attachment)
-        return attachment
+        return self.create_attachment(dest_filename, data)
 
-    @abstractmethod
     def __startup__(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
         return self
 
-    @abstractmethod
     def __teardown__(self, end_state):
         self.end_state = end_state
         self._all_test_results["details"].end_timer()
         return self
 
-    @abstractmethod
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         if package_name in self._all_test_results["package_list"]:
             self._current_package = self._all_test_results["package_list"][package_name]
             self._current_package["details"].inc_cycle()
@@ -211,27 +196,24 @@ class ReportBase(ABC):
             self._all_test_results["package_list"][package_name] = self._current_package
         return self
 
-    @abstractmethod
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         self._current_package["details"].end_timer()
         return self
 
-    @abstractmethod
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         if suite_name in self._current_package["suite_list"]:
             self._current_suite = self._current_package["suite_list"][suite_name]
             self._current_suite["details"].inc_cycle()
         else:
             self._current_suite = dict()
-            self._current_suite["details"] = ReportDetails(suite_name, attr)
+            self._current_suite["details"] = ReportDetails(suite_name, suite_attr)
             self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
             self._current_suite["test_state_by_prio"] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
 
             self._current_package["suite_list"][suite_name] = self._current_suite
         return self
 
-    @abstractmethod
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         self._current_suite["details"].end_timer()
         return self
 
@@ -248,7 +230,6 @@ class ReportBase(ABC):
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    @abstractmethod
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
         test_name = current_test.get_name()
@@ -261,44 +242,14 @@ class ReportBase(ABC):
 
         return current_test
 
-    @abstractmethod
     def testInfo(self, current_test, info, level, attachment=None):
         current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
         return self
 
-    @abstractmethod
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         current_test.testStep(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
-    @abstractmethod
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
-
-    @abstractmethod
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
-
-    @abstractmethod
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    @abstractmethod
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        return self.__endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
-    @abstractmethod
-    def showStatus(self, message: str):
-        pass
-
-    @abstractmethod
-    def showAlertMessage(self, message: str):
-        pass
-
-    @abstractmethod
-    def inputPromptMessage(self, message: str, default_value: str = ""):
-        pass
-
-    def __endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
+    def endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
         current_test.end_timer()
         current_test.counters.inc_state(state, reason_of_state=reason_of_state, description="end test", qty=1, exc_value=exc_value)
@@ -340,6 +291,17 @@ class ReportBase(ABC):
 
         return self
 
+    def showStatus(self, message: str):
+        pass
+
+    def showAlertMessage(self, message: str):
+        pass
+
+    def inputPromptMessage(self, message: str, default_value: str = ""):
+        pass
+
+    # </editor-fold>
+
     def __update_package_suite_test_counters(self, prio: int, state: str, reason_of_state: str):
         if prio not in self._current_suite["test_state_by_prio"]:
             self._current_suite["test_state_by_prio"][prio] = set()
@@ -348,6 +310,32 @@ class ReportBase(ABC):
         self._current_suite["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update suite counters", qty=1)
         self._current_package["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update package counters", qty=1)
         self._all_test_results["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update global counters", qty=1)
+
+
+class Package:
+    def __init__(self, name: str, package_attr: Dict):
+        self.name: str = name
+        self.package_attr: Dict = package_attr
+
+        self.cycle_number: int = 1
+        self.state_counters: StateCounter = StateCounter()
+
+        self.start_time = get_datetime_now()
+        self.end_time = None
+
+
+class PackageManager:
+    def __init__(self):
+        self._package_by_name: Dict[str, Package] = dict()
+
+    def startPackage(self, name: str, package_attr: Dict):
+        if name in self._package_by_name:
+            self._package_by_name[name].cycle_number += 1
+        else:
+            self._package_by_name[name] = Package(name, package_attr)
+
+    def endPackage(self, name: str, package_attr: Dict):
+        self._package_by_name[name].end_time = get_datetime_now()
 
 
 class ReportDetails:
@@ -506,3 +494,50 @@ class TestDetails(ReportDetails):
 
     def __repr__(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_name(True)}, status={self.get_state()})"
+
+
+"""
+{
+'package_name': 'assertions',
+'ncycles': 1,
+'package_id': 1}
+   {'filename': 'test_rm_create_tests.py', 
+   'suite_name': 'SuiteRM_CreateTests', 
+   'ncycles': 1, 
+   '@NAME': 'RM_CreateTests', 
+   '@TAG': {'UT'},
+   '@LEVEL': 1, 
+   '@PRIO': 9, 
+   '@FEATURES': '', 
+   '@TN': '9', 
+   '@DEPENDS': set(), 
+   '@ON_SUCCESS': set(), 
+   '@ON_FAILURE': set(), 
+   'package_id': 1, 
+   'package_name': 'assertions', 
+   'suite_id': 1}
+      {'method_name': 'test_doc_string', 
+      'ncycles': 1, 
+      'param': {}, 
+      '@NAME': 'doc_string_test', 
+      '@TAG': {'AA1', 'BB2', 'CC'}, 
+      '@LEVEL': 1, '@PRIO': 10, 
+      '@FEATURES': 'DOC F2', 
+      '@TN': '9.5', 
+      '@DEPENDS': set(), 
+      '@ON_SUCCESS': set(), 
+      '@ON_FAILURE': set(), 
+      'auto_included': False, 
+      'package_id': 1, 
+      'package_name': 'assertions', 
+      'suite_id': 1, 
+      'suite_name': 'SuiteRM_CreateTests',
+      'method_id': 1}
+      {'method_name': 'test_create_test_with_override_comment', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_override_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 2}
+      {'method_name': 'test_create_test_with_override_name', 'ncycles': 2, 'param': {}, '@NAME': 'create_test_with_override_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 3}
+      {'method_name': 'test_create_test_with_usecase', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_usecase', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 4}
+      {'method_name': 'test_create_test_without_attr', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_attr', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 5}
+      {'method_name': 'test_create_test_without_name', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 6}
+      {'method_name': 'test_has_default_comment', 'ncycles': 1, 'param': {}, '@NAME': 'has_default_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 7}
+      {'method_name': 'test_will_be_auto_created', 'ncycles': 1, 'param': {}, '@NAME': 'will_be_auto_created', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 8}
+"""

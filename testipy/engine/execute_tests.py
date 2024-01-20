@@ -34,12 +34,12 @@ class Executer:
             for _ in range(1 if onlyonce else package_attr.get("ncycles", 1)):
 
                 self._change_cwd_to_package(package_attr["package_name"])
-                rm.startPackage(package_attr["package_name"])
+                rm.startPackage(package_attr["package_name"], package_attr)
 
                 for suite_attr in package_attr["suite_list"]:
                     for _ in range(1 if onlyonce else suite_attr.get("ncycles", 1)):
 
-                        rm.startSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, "suite_obj"))
+                        rm.startSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, ["suite_obj", "test_list"]))
 
                         # initialize suite __init__()
                         try:
@@ -64,9 +64,9 @@ class Executer:
                                 self._call_test_method(package_attr, suite_attr, dict(method_attr), rm, dryrun_mode, debug_code, onlyonce, percent_completed)
                             del suite_attr["app"]
 
-                        rm.endSuite()
+                        rm.endSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, ["suite_obj", "test_list"]))
 
-                rm.endPackage()
+                rm.endPackage(package_attr["package_name"], package_attr)
 
     def _print_progress_when_method_ends(self, state: str, percent_completed: float, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
         self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
@@ -89,7 +89,7 @@ class Executer:
                 rm.testFailed(current_test, reason_of_state=str(had_exception), exc_value=had_exception)
         else:
             tc_state, tc_ros = current_test.get_test_step_counters().get_state_by_severity()
-            rm.testEndAs(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
+            rm.endTest(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
 
     def _auto_close_all_open_tests_for_that_method(self, rm: ReportManager, method_attr, had_exception: Exception = None):
         for current_test in list(rm.get_test_running_list(method_attr["method_id"])):
@@ -108,7 +108,7 @@ class Executer:
         else:
             # no test created by the method call, impossible to get here - just a safeguard
             current_test = rm.startTest(method_attr, usecase="AUTO-CREATED")
-            rm.testEndAs(current_test, state=default_config.if_no_test_started_mark_as, reason_of_state=f"No test started by {method_attr['method_name']}", exc_value=had_exception)
+            rm.endTest(current_test, state=default_config.if_no_test_started_mark_as, reason_of_state=f"No test started by {method_attr['method_name']}", exc_value=had_exception)
 
         # increment global failed (skipped, bug)
         total_failed = sum([results[state] for state in default_config.count_as_failed_states])
@@ -145,7 +145,7 @@ class Executer:
 
                     # no test started by the method call, create one and close it
                     if rm.get_current_test() is None:
-                        rm.testEndAs(rm.startTest(method_attr, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
+                        rm.endTest(rm.startTest(method_attr, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
 
                     self._auto_close_all_open_tests_for_that_method(rm=rm, method_attr=method_attr)
                 except Exception as ex:

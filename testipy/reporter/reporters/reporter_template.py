@@ -1,15 +1,17 @@
 from typing import Dict
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter.report_manager import ReportManager, ReportBase
-from testipy.configs import enums_data
+from testipy.reporter import ReportManager, ReportInterface
 
 
-class ReporterTemplate(ReportBase):
+class ReporterTemplate(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
-        self._rm = rm
-        self._sa = sa
+        self.rm = rm
+        self.sa = sa
+
+    def get_report_manager_base(self):
+        return self.rm.get_report_manager_base()
 
     def save_file(self, current_test, data, filename):
         pass
@@ -18,61 +20,40 @@ class ReporterTemplate(ReportBase):
         pass
 
     def __startup__(self, selected_tests: Dict):
-        mb = self.get_report_manager_base()  # get manager base
+        rmb = self.get_report_manager_base()
 
     def __teardown__(self, end_state):
-        mb = self.get_report_manager_base()  # get manager base
+        rmb = self.get_report_manager_base()
 
-    def startPackage(self, package_name):
-        mb = self.get_report_manager_base()  # get manager base
+    def startPackage(self, package_name: str, package_attr: Dict):
+        rmb = self.get_report_manager_base()
 
-    def endPackage(self):
-        mb = self.get_report_manager_base()  # get manager base
+    def endPackage(self, package_name: str, package_attr: Dict):
+        rmb = self.get_report_manager_base()
 
-    def startSuite(self, suite_name, attr=None):
-        mb = self.get_report_manager_base()  # get manager base
+    def startSuite(self, suite_name: str, suite_attr: Dict):
+        rmb = self.get_report_manager_base()
 
-    def endSuite(self):
-        mb = self.get_report_manager_base()  # get manager base
+    def endSuite(self, suite_name: str, suite_attr: Dict):
+        rmb = self.get_report_manager_base()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        mb = self.get_report_manager_base()  # get manager base
+        rmb = self.get_report_manager_base()
 
     def testInfo(self, current_test, info, level, attachment=None):
-        mb = self.get_report_manager_base()  # get manager base
+        rmb = self.get_report_manager_base()
 
     def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        mb = self.get_report_manager_base()  # get manager base
+        rmb = self.get_report_manager_base()
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
+    def endTest(self, current_test, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+        rmb = self.get_report_manager_base()
 
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
+        package_name = rmb.get_package_name()
+        package_cycle = rmb.get_package_cycle_number()
 
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
-
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self._endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
-
-    def showStatus(self, message: str):
-        pass
-
-    def showAlertMessage(self, message: str):
-        pass
-
-    def inputPromptMessage(self, message: str, default_value: str = ""):
-        pass
-
-    def _endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
-        mb = self.get_report_manager_base()  # get manager base
-
-        package_name = mb.get_package_name()
-        package_cycle = mb.get_package_cycle_number()
-
-        suite_name = mb.get_suite_name()
-        suite_cycle = mb.get_suite_cycle_number()
+        suite_name = rmb.get_suite_name()
+        suite_cycle = rmb.get_suite_cycle_number()
 
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
@@ -89,3 +70,12 @@ class ReporterTemplate(ReportBase):
         test_features = current_test.get_features()
         test_number = current_test.get_test_number()
         test_comment = current_test.get_comment()
+
+    def showStatus(self, message: str):
+        pass
+
+    def showAlertMessage(self, message: str):
+        pass
+
+    def inputPromptMessage(self, message: str, default_value: str = ""):
+        pass

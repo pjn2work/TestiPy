@@ -8,4 +8,4 @@ from testipy.run import run_testipy
 
 
 if __name__ == "__main__":
-    run_testipy()
+    sys.exit(run_testipy())

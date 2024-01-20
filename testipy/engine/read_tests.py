@@ -23,7 +23,7 @@ def get_doc_dict(obj, name: str = "") -> TYPE_DOC:
     doc_dict[enums_data.TAG_NAME] = name
     doc_dict[enums_data.TAG_TAG] = set()
     doc_dict[enums_data.TAG_LEVEL] = 1 if default_config.execute_test_with_no_doc else 0
-    doc_dict[enums_data.TAG_PRIO] = 0
+    doc_dict[enums_data.TAG_PRIO] = 999
     doc_dict[enums_data.TAG_FEATURES] = ""
     doc_dict[enums_data.TAG_TESTNUMBER] = ""
     doc_dict[enums_data.TAG_DEPENDS] = set()
@@ -157,38 +157,53 @@ def is_valid_level(doc: TYPE_DOC, level_filter: Tuple[List, List, List, List] = 
 def show_test_structure(execution_log, selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST):
     str_res = ""
     for package_attr in selected_packages_suites_methods_list:
-        str_res += "\npackage_name {} | {} suites\n".format(package_attr["package_name"], len(package_attr["suite_list"]))
+        str_res += "\n{}\n".format(cm.dict_without_keys(package_attr, "suite_list"))
 
         for suite_attr in package_attr["suite_list"]:
-            str_res += "   {}\n".format(cm.dict_without_keys(suite_attr, ("test_list", "suite_obj", "suite_comment", enums_data.TAG_LEVEL)))  # len(suite["test_list"]),
+            str_res += "\t{}\n".format(cm.dict_without_keys(suite_attr, ("test_list", "suite_obj")))
 
             for method_attr in suite_attr["test_list"]:
-                str_res += "      {}\n".format(cm.dict_without_keys(method_attr, ("test_obj", "test_comment")))
+                str_res += "\t\t{}\n".format(cm.dict_without_keys(method_attr, "test_obj"))
 
     execution_log("INFO", "TestStructure:" + str_res[:-1])
 
 
 def sort_test_structure(selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
-    method_id = 0
     for package_attr in selected_packages_suites_methods_list:
         package_attr["suite_list"] = sorted(package_attr["suite_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
         for suite_attr in package_attr["suite_list"]:
             suite_attr["test_list"] = sorted(suite_attr["test_list"], key=lambda x: (x[enums_data.TAG_PRIO], x[enums_data.TAG_NAME]), reverse=False)
 
-            for method_attr in suite_attr["test_list"]:
-                method_id += 1
-                method_attr["method_id"] = method_id
-
     return selected_packages_suites_methods_list
 
 
-def mark_meid(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
-    method_id = 0
+def mark_pkg_sui_mth_ids(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
+    package_id = suite_id = method_id = 0
     for package_attr in test_list:
+        package_id += 1
+
+        package_attr["package_id"] = package_id
+        package_name = package_attr["package_name"]
+
         for suite_attr in package_attr["suite_list"]:
+            suite_id += 1
+
+            suite_attr["package_id"] = package_id
+            suite_attr["package_name"] = package_name
+
+            suite_attr["suite_id"] = suite_id
+            suite_name = suite_attr["suite_name"]
+
             for method_attr in suite_attr["test_list"]:
                 method_id += 1
+
+                method_attr["package_id"] = package_id
+                method_attr["package_name"] = package_name
+
+                method_attr["suite_id"] = suite_id
+                method_attr["suite_name"] = suite_name
+
                 method_attr["method_id"] = method_id
 
     return test_list
@@ -205,9 +220,9 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
     """
     list structure, example:
     [
-      {package_name="qa/regression/v1", suite_list=[
-            {filename="abcdef.py", suite_name="suite_Rest_Api", suite_obj=@class, @TAGs=..., test_list=[ ... ]},
-            {filename="abcdef.py", suite_name="suite_draft_Api", suite_obj=@class, @TAGs=..., test_list=[ ... ]},
+      {package_name="qa/regression/v1", package_id=1, suite_list=[
+            {filename="abcdef.py", suite_id=1, suite_name="suite_Rest_Api", suite_obj=@class, @TAGs=..., test_list=[ ... ]},
+            {filename="abcdef.py", suite_id=2, suite_name="suite_draft_Api", suite_obj=@class, @TAGs=..., test_list=[ ... ]},
       , {package_name="...", suite_list=[ --- ]}
     ]
 
@@ -312,7 +327,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                         current_suite_attr = dict(filename=filename,
                                              suite_name=suite_name,
                                              suite_obj=obj,
-                                             suite_comment=py_inspector.get_comment(obj),
+                                             suite_comment=py_inspector.get_comment(obj) or "",
                                              ncycles=1,
                                              test_list=test_methods_list)
 
@@ -364,7 +379,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
         raise NotADirectoryError(full_path_tests_scripts_foldername)
 
     # final list with all tests (already filtered by include/exclude)
-    result_list = []
+    selected_tests = []
 
     # for all folders under test_scripts_root_folder, collect suites/tests
     for name in sorted(os.listdir(full_path_tests_scripts_foldername)):
@@ -372,11 +387,11 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
         if os.path.isdir(fpn):
             package_list = get_package_suite_test_methods_list(fpn, name)
             if package_list:
-                result_list += package_list
+                selected_tests += package_list
 
-    result_list = mark_meid(sort_test_structure(result_list))
+    selected_tests = mark_pkg_sui_mth_ids(sort_test_structure(selected_tests))
 
-    return result_list
+    return selected_tests
 
 
 # get value from a list of dict
@@ -457,7 +472,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
                     current_package["suite_list"] = suite_list
                     selected_tests.append(current_package)
 
-    selected_tests = mark_meid(selected_tests)
+    selected_tests = mark_pkg_sui_mth_ids(selected_tests)
 
     return selected_tests
 
