@@ -157,13 +157,13 @@ def is_valid_level(doc: TYPE_DOC, level_filter: Tuple[List, List, List, List] = 
 def show_test_structure(execution_log, selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST):
     str_res = ""
     for package_attr in selected_packages_suites_methods_list:
-        str_res += "\n{} package_name {} | {} suites\n".format(package_attr["package_id"], package_attr["package_name"], len(package_attr["suite_list"]))
+        str_res += "\n{}\n".format(cm.dict_without_keys(package_attr, "suite_list"))
 
         for suite_attr in package_attr["suite_list"]:
-            str_res += "   {}\n".format(cm.dict_without_keys(suite_attr, ("test_list", "suite_obj", "suite_comment", enums_data.TAG_LEVEL)))  # len(suite["test_list"]),
+            str_res += "\t{}\n".format(cm.dict_without_keys(suite_attr, ("test_list", "suite_obj")))
 
             for method_attr in suite_attr["test_list"]:
-                str_res += "      {}\n".format(cm.dict_without_keys(method_attr, ("test_obj", "test_comment")))
+                str_res += "\t\t{}\n".format(cm.dict_without_keys(method_attr, "test_obj"))
 
     execution_log("INFO", "TestStructure:" + str_res[:-1])
 
@@ -182,17 +182,28 @@ def mark_pkg_sui_mth_ids(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_T
     package_id = suite_id = method_id = 0
     for package_attr in test_list:
         package_id += 1
+
         package_attr["package_id"] = package_id
+        package_name = package_attr["package_name"]
 
         for suite_attr in package_attr["suite_list"]:
             suite_id += 1
+
             suite_attr["package_id"] = package_id
+            suite_attr["package_name"] = package_name
+
             suite_attr["suite_id"] = suite_id
+            suite_name = suite_attr["suite_name"]
 
             for method_attr in suite_attr["test_list"]:
                 method_id += 1
+
                 method_attr["package_id"] = package_id
+                method_attr["package_name"] = package_name
+
                 method_attr["suite_id"] = suite_id
+                method_attr["suite_name"] = suite_name
+
                 method_attr["method_id"] = method_id
 
     return test_list
@@ -316,7 +327,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                         current_suite_attr = dict(filename=filename,
                                              suite_name=suite_name,
                                              suite_obj=obj,
-                                             suite_comment=py_inspector.get_comment(obj),
+                                             suite_comment=py_inspector.get_comment(obj) or "",
                                              ncycles=1,
                                              test_list=test_methods_list)
 

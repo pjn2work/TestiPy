@@ -312,6 +312,32 @@ class ReportBase(ReportInterface):
         self._all_test_results["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update global counters", qty=1)
 
 
+class Package:
+    def __init__(self, name: str, package_attr: Dict):
+        self.name: str = name
+        self.package_attr: Dict = package_attr
+
+        self.cycle_number: int = 1
+        self.state_counters: StateCounter = StateCounter()
+
+        self.start_time = get_datetime_now()
+        self.end_time = None
+
+
+class PackageManager:
+    def __init__(self):
+        self._package_by_name: Dict[str, Package] = dict()
+
+    def startPackage(self, name: str, package_attr: Dict):
+        if name in self._package_by_name:
+            self._package_by_name[name].cycle_number += 1
+        else:
+            self._package_by_name[name] = Package(name, package_attr)
+
+    def endPackage(self, name: str, package_attr: Dict):
+        self._package_by_name[name].end_time = get_datetime_now()
+
+
 class ReportDetails:
 
     def __init__(self, name: str, attr: Dict[str, Any] = None):
@@ -468,3 +494,50 @@ class TestDetails(ReportDetails):
 
     def __repr__(self):
         return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_name(True)}, status={self.get_state()})"
+
+
+"""
+{
+'package_name': 'assertions',
+'ncycles': 1,
+'package_id': 1}
+   {'filename': 'test_rm_create_tests.py', 
+   'suite_name': 'SuiteRM_CreateTests', 
+   'ncycles': 1, 
+   '@NAME': 'RM_CreateTests', 
+   '@TAG': {'UT'},
+   '@LEVEL': 1, 
+   '@PRIO': 9, 
+   '@FEATURES': '', 
+   '@TN': '9', 
+   '@DEPENDS': set(), 
+   '@ON_SUCCESS': set(), 
+   '@ON_FAILURE': set(), 
+   'package_id': 1, 
+   'package_name': 'assertions', 
+   'suite_id': 1}
+      {'method_name': 'test_doc_string', 
+      'ncycles': 1, 
+      'param': {}, 
+      '@NAME': 'doc_string_test', 
+      '@TAG': {'AA1', 'BB2', 'CC'}, 
+      '@LEVEL': 1, '@PRIO': 10, 
+      '@FEATURES': 'DOC F2', 
+      '@TN': '9.5', 
+      '@DEPENDS': set(), 
+      '@ON_SUCCESS': set(), 
+      '@ON_FAILURE': set(), 
+      'auto_included': False, 
+      'package_id': 1, 
+      'package_name': 'assertions', 
+      'suite_id': 1, 
+      'suite_name': 'SuiteRM_CreateTests',
+      'method_id': 1}
+      {'method_name': 'test_create_test_with_override_comment', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_override_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 2}
+      {'method_name': 'test_create_test_with_override_name', 'ncycles': 2, 'param': {}, '@NAME': 'create_test_with_override_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 3}
+      {'method_name': 'test_create_test_with_usecase', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_usecase', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 4}
+      {'method_name': 'test_create_test_without_attr', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_attr', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 5}
+      {'method_name': 'test_create_test_without_name', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 6}
+      {'method_name': 'test_has_default_comment', 'ncycles': 1, 'param': {}, '@NAME': 'has_default_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 7}
+      {'method_name': 'test_will_be_auto_created', 'ncycles': 1, 'param': {}, '@NAME': 'will_be_auto_created', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 8}
+"""

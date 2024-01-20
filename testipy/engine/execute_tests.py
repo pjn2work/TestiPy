@@ -64,9 +64,9 @@ class Executer:
                                 self._call_test_method(package_attr, suite_attr, dict(method_attr), rm, dryrun_mode, debug_code, onlyonce, percent_completed)
                             del suite_attr["app"]
 
-                        rm.endSuite()
+                        rm.endSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, ["suite_obj", "test_list"]))
 
-                rm.endPackage()
+                rm.endPackage(package_attr["package_name"], package_attr)
 
     def _print_progress_when_method_ends(self, state: str, percent_completed: float, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
         self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(

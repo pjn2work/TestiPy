@@ -77,16 +77,16 @@ class ReporterExcel(ReportInterface):
     def __teardown__(self, end_state):
         self.create_summarys(self.get_report_manager_base().get_df())
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
