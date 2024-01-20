@@ -192,21 +192,21 @@ class ReporterWeb(ReportInterface):
         except Exception as e:
             self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         mb = self.get_report_manager_base()  # get manager base
         _delete_from_cache("start_suite")
         _delete_from_cache("start_test")
         self.notify_clients("start_package", {"name": package_name, "ncycle": mb.get_package_cycle_number()})
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         mb = self.get_report_manager_base()  # get manager base
         _delete_from_cache("start_test")
         self.notify_clients("start_suite", {"name": suite_name, "ncycle": mb.get_suite_cycle_number()})
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
@@ -222,7 +222,6 @@ class ReporterWeb(ReportInterface):
         self.notify_clients("start_test", test_details)
 
         self.testInfo(current_test, f"Test details:\n{prettify(current_test.get_attributes())}", "DEBUG")
-
 
     def testInfo(self, current_test, info, level, attachment=None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"

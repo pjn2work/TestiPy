@@ -56,12 +56,6 @@ class ReporterEcho(ReportInterface):
         print("#"*_line_size)
         print(" Teardown {} ".format(rmb.get_reporter_details()).center(_line_size, "#"))
         print("#"*_line_size)
-        #show_totals(rmb.get_reporter_counter())
-
-        # get resume tables
-        df = rmb.get_df()
-        #df = df[df["Package"] == rmb.get_package_name(False)]
-        #df = df[df["Suite"] == rmb.get_suite_name(False)]
 
         # show resume tables
         print("")
@@ -72,30 +66,25 @@ class ReporterEcho(ReportInterface):
         print(textdecor.color_line(tabulate(dfm.reduce_datetime(dfm.get_suite_state_summary(df)), headers='keys', tablefmt='simple', showindex=False)))
         print("#"*_line_size)
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         rmb = self.get_report_manager_base()
         current_test = rmb.get_current_test()
 
-        test_id = current_test.get_test_id()  # attr["test_id"]
-        test_prio = str(current_test.get_prio())
-        usecase = f" - {usecase}" if usecase else ""
-
         print("\n"*5)
         print("-"*_line_size)
         print(f"> Starting test: {current_test} <".center(_line_size, "-"))
-        # print("\n".join([f"{k} {str(v).replace('set()', '')}" for k, v in attr.items() if k.startswith("@")]))
 
     def testInfo(self, current_test, info, level, attachment=None):
         rmb = self.get_report_manager_base()
@@ -126,16 +115,17 @@ class ReporterEcho(ReportInterface):
         duration = current_test.get_duration()
         end_state = textdecor.color_state(ending_state)
 
-        self.__log_test_steps(current_test)
+        _log_test_steps(current_test)
 
         print(f"> Ending test {full_name} - {end_state} - took {format_duration(duration)} - reason: {end_reason} <".center(_line_size + len(end_state) - len(ending_state), "-"))
         print("-"*_line_size)
 
-    def __log_test_steps(self, current_test):
-        tc = current_test.get_test_step_counters()
-        if len(tc.get_timed_laps()) > 0:
-            print("\n" + current_test.get_test_step_counters_tabulate())
-            str_res = "\nSteps Summary: " + tc.summary(verbose=False)
-        else:
-            str_res = "\nTest Summary: " + current_test.get_counters().summary(verbose=False)
-        print(str_res)
+
+def _log_test_steps(current_test):
+    tc = current_test.get_test_step_counters()
+    if len(tc.get_timed_laps()) > 0:
+        print("\n" + current_test.get_test_step_counters_tabulate())
+        str_res = "\nSteps Summary: " + tc.summary(verbose=False)
+    else:
+        str_res = "\nTest Summary: " + current_test.get_counters().summary(verbose=False)
+    print(str_res)

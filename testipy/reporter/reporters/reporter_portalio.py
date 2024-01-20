@@ -83,17 +83,17 @@ class ReporterPortalIO(ReportInterface):
         self._service.finish_launch(end_time=timestamp(), status=enums_data.STATE_PASSED)
         self._service.terminate()
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         self._package_id = self._service.start_test_item(name=package_name,
                                                          description="Package",
                                                          start_time=timestamp(),
                                                          item_type="SUITE")
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._package_id)
 
-    def startSuite(self, suite_name, attr=None):
-        tags = {"TAG": " ".join(attr[enums_data.TAG_TAG]), "LEVEL": attr[enums_data.TAG_LEVEL]}
+    def startSuite(self, suite_name: str, suite_attr: Dict):
+        tags = {"TAG": " ".join(suite_attr[enums_data.TAG_TAG]), "LEVEL": suite_attr[enums_data.TAG_LEVEL]}
         self._suite_id = self._service.start_test_item(name=suite_name,
                                                        description="Suite",
                                                        start_time=timestamp(),
@@ -102,7 +102,7 @@ class ReporterPortalIO(ReportInterface):
                                                        parent_item_id=self._package_id)
         self._all_parent_tests_by_name = dict()
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         self.__close_parent_tests()
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._suite_id)
 

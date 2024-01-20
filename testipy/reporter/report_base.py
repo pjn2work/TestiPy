@@ -168,6 +168,7 @@ class ReportBase(ReportInterface):
                 "mime": guess_type(filename)[0] or "application/octet-stream"}
     # </editor-fold>
 
+    # <editor-fold desc="--- Common functions starts here ---">
     def save_file(self, current_test, data, filename) -> Dict:
         return self.create_attachment(filename, data)
 
@@ -183,7 +184,7 @@ class ReportBase(ReportInterface):
         self._all_test_results["details"].end_timer()
         return self
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         if package_name in self._all_test_results["package_list"]:
             self._current_package = self._all_test_results["package_list"][package_name]
             self._current_package["details"].inc_cycle()
@@ -195,24 +196,24 @@ class ReportBase(ReportInterface):
             self._all_test_results["package_list"][package_name] = self._current_package
         return self
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         self._current_package["details"].end_timer()
         return self
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         if suite_name in self._current_package["suite_list"]:
             self._current_suite = self._current_package["suite_list"][suite_name]
             self._current_suite["details"].inc_cycle()
         else:
             self._current_suite = dict()
-            self._current_suite["details"] = ReportDetails(suite_name, attr)
+            self._current_suite["details"] = ReportDetails(suite_name, suite_attr)
             self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
             self._current_suite["test_state_by_prio"] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
 
             self._current_package["suite_list"][suite_name] = self._current_suite
         return self
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         self._current_suite["details"].end_timer()
         return self
 
@@ -298,6 +299,8 @@ class ReportBase(ReportInterface):
 
     def inputPromptMessage(self, message: str, default_value: str = ""):
         pass
+
+    # </editor-fold>
 
     def __update_package_suite_test_counters(self, prio: int, state: str, reason_of_state: str):
         if prio not in self._current_suite["test_state_by_prio"]:

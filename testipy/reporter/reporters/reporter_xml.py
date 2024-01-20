@@ -54,16 +54,16 @@ class ReporterJUnitXML(ReportInterface):
             xml_file.write(HEADER)
             self._generate_tag_testsuites(mb, xml_file)
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):

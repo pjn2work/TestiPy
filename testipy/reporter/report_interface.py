@@ -14,23 +14,23 @@ class ReportInterface(ABC):
         pass
 
     @abstractmethod
-    def __teardown__(self, end_state):
+    def __teardown__(self, end_state: str):
         pass
 
     @abstractmethod
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         pass
 
     @abstractmethod
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         pass
 
     @abstractmethod
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     @abstractmethod
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         pass
 
     @abstractmethod

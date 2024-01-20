@@ -25,16 +25,16 @@ class ReporterTemplate(ReportInterface):
     def __teardown__(self, end_state):
         rmb = self.get_report_manager_base()
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endSuite(self):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):

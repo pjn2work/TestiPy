@@ -72,20 +72,20 @@ class ReporterSlack(ReportInterface):
         for name, user in NOTIFY_USERS.items():
             self._send_message(channel=user, threadts=False, text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{rmb.get_reporter_details()}")
 
-    def startPackage(self, package_name):
+    def startPackage(self, package_name: str, package_attr: Dict):
         rmb =self.get_report_manager_base()
         # self._send_message(text=":open_file_folder: Starting package {} ".format(rmb.get_package_details()))
 
-    def endPackage(self):
+    def endPackage(self, package_name: str, package_attr: Dict):
         rmb =self.get_report_manager_base()
         self._send_message(text=":file_folder: Ending package {} ".format(rmb.get_package_details()))
 
-    def startSuite(self, suite_name, attr=None):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         rmb =self.get_report_manager_base()
         # self._send_message(text=":scroll: Starting suite {} ".format(rmb.get_suite_details()))
 
-    def endSuite(self):
-        rmb =self.get_report_manager_base()
+    def endSuite(self, suite_name: str, suite_attr: Dict):
+        rmb = self.get_report_manager_base()
         self._send_message(text=":scroll: Ending suite {} ".format(rmb.get_suite_details()))
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):

@@ -80,7 +80,7 @@ class ReportManager(ReportBase):
         return self.get_results_folder_filename(current_test, f'_{current_test.get_cycle():02}_{filename}')
 
     # <editor-fold desc="--- Engine ---">
-    def get_test_running_list(self, meid):
+    def get_test_running_list(self, meid: int):
         if meid in self._test_running_list:
             return self._test_running_list[meid]
         return []
@@ -239,7 +239,7 @@ class ReportManager(ReportBase):
 
         return self
 
-    def __teardown__(self, end_state) -> ReportManager:
+    def __teardown__(self, end_state: str) -> ReportManager:
         totals = super().get_reporter_counter()
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
         end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
@@ -263,11 +263,11 @@ class ReportManager(ReportBase):
         self._execution_log("INFO", f"{color_state(end_state)} All took {format_duration(super().get_reporter_duration()):>10} [{totals}]")
         return self
 
-    def startPackage(self, name) -> ReportManager:
-        super().startPackage(name)
+    def startPackage(self, name: str, package_attr: Dict) -> ReportManager:
+        super().startPackage(name, package_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.startPackage(name)
+                reporter.startPackage(name, package_attr)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.startPackage on {reporter_name}: {e}")
                 if self.is_debugcode():
@@ -276,11 +276,11 @@ class ReportManager(ReportBase):
         return self
 
     @synchronized
-    def startSuite(self, name, attr=None) -> ReportManager:
-        super().startSuite(name, attr)
+    def startSuite(self, name: str, suite_attr: Dict) -> ReportManager:
+        super().startSuite(name, suite_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.startSuite(name, attr)
+                reporter.startSuite(name, suite_attr)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.startSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
@@ -364,11 +364,11 @@ class ReportManager(ReportBase):
         return self
 
     @synchronized
-    def endSuite(self) -> ReportManager:
-        super().endSuite()
+    def endSuite(self, suite_name: str, suite_attr: Dict) -> ReportManager:
+        super().endSuite(suite_name, suite_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.endSuite()
+                reporter.endSuite(suite_name, suite_attr)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.endSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
@@ -376,11 +376,11 @@ class ReportManager(ReportBase):
 
         return self
 
-    def endPackage(self) -> ReportManager:
-        super().endPackage()
+    def endPackage(self, package_name: str, package_attr: Dict) -> ReportManager:
+        super().endPackage(package_name, package_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.endPackage()
+                reporter.endPackage(package_name, package_attr)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.endPackage on {reporter_name}: {e}")
                 if self.is_debugcode():

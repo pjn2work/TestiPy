@@ -34,12 +34,12 @@ class Executer:
             for _ in range(1 if onlyonce else package_attr.get("ncycles", 1)):
 
                 self._change_cwd_to_package(package_attr["package_name"])
-                rm.startPackage(package_attr["package_name"])
+                rm.startPackage(package_attr["package_name"], package_attr)
 
                 for suite_attr in package_attr["suite_list"]:
                     for _ in range(1 if onlyonce else suite_attr.get("ncycles", 1)):
 
-                        rm.startSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, "suite_obj"))
+                        rm.startSuite(suite_attr[enums_data.TAG_NAME], cm.dict_without_keys(suite_attr, ["suite_obj", "test_list"]))
 
                         # initialize suite __init__()
                         try:
