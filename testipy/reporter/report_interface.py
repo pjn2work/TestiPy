@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Dict
 from abc import abstractmethod, ABC
 
+from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
+
 
 class ReportInterface(ABC):
 
@@ -18,19 +20,19 @@ class ReportInterface(ABC):
         pass
 
     @abstractmethod
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
         pass
 
     @abstractmethod
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def endPackage(self, pd: PackageDetails):
         pass
 
     @abstractmethod
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict) -> SuiteDetails:
         pass
 
     @abstractmethod
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def endSuite(self, sd: SuiteDetails):
         pass
 
     @abstractmethod
@@ -38,23 +40,23 @@ class ReportInterface(ABC):
         pass
 
     @abstractmethod
-    def testInfo(self, current_test, info, level, attachment=None):
+    def testInfo(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):
         pass
 
     @abstractmethod
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def testStep(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
     @abstractmethod
-    def endTest(self, current_test, state: str, reason_of_state: str, exc_value: BaseException = None):
+    def endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         pass
 
     @abstractmethod
-    def save_file(self, current_test, data, filename) -> Dict:
+    def save_file(self, current_test: TestDetails, data, filename) -> Dict:
         pass
 
     @abstractmethod
-    def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
+    def copy_file(self, current_test: TestDetails, orig_filename, dest_filename, data) -> Dict:
         pass
 
     @abstractmethod

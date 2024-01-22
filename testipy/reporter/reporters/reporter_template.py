@@ -1,6 +1,7 @@
 from typing import Dict
+
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface
+from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReporterTemplate(ReportInterface):
@@ -22,19 +23,19 @@ class ReporterTemplate(ReportInterface):
     def __startup__(self, selected_tests: Dict):
         rmb = self.get_report_manager_base()
 
-    def __teardown__(self, end_state):
+    def __teardown__(self, end_state: str):
         rmb = self.get_report_manager_base()
 
     def startPackage(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def endPackage(self, pd: PackageDetails):
         rmb = self.get_report_manager_base()
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def endSuite(self, sd: SuiteDetails):
         rmb = self.get_report_manager_base()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):

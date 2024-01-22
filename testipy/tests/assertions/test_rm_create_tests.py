@@ -52,7 +52,7 @@ class SuiteRM_CreateTests:
         """
         expected_test_name = param.get("name", "override_test_name")
         current_test = rm.startTest(ma, expected_test_name)
-        current_test_name = current_test.get_test_name()
+        current_test_name = current_test.get_name()
 
         rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
 

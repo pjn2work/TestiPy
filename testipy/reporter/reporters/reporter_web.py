@@ -14,6 +14,7 @@ from testipy.configs import enums_data
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface
+from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
 
 from engineio.payload import Payload
 Payload.max_decode_packets = 100
@@ -132,13 +133,13 @@ class ReporterWeb(ReportInterface):
     def get_report_manager_base(self):
         return self.rm.get_report_manager_base()
 
-    def save_file(self, current_test, data, filename):
+    def save_file(self, current_test: TestDetails, data, filename):
         pass
 
-    def copy_file(self, current_test, orig_filename, dest_filename, data):
+    def copy_file(self, current_test: TestDetails, orig_filename, dest_filename, data):
         pass
 
-    def _format_info(self, current_test):
+    def _format_info(self, current_test: TestDetails):
         mb = self.get_report_manager_base()  # get manager base
 
         str_res = "<strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
@@ -198,20 +199,20 @@ class ReporterWeb(ReportInterface):
         _delete_from_cache("start_test")
         self.notify_clients("start_package", {"name": package_name, "ncycle": mb.get_package_cycle_number()})
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def endPackage(self, pd: PackageDetails):
         pass
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
         mb = self.get_report_manager_base()  # get manager base
         _delete_from_cache("start_test")
         self.notify_clients("start_suite", {"name": suite_name, "ncycle": mb.get_suite_cycle_number()})
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def endSuite(self, sd: SuiteDetails):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         mb = self.get_report_manager_base()  # get manager base
-        current_test = mb.get_current_test()
+        current_test = mb.get_test_by_id()
         test_details = {"name": current_test.get_name(),
                         "ncycle": current_test.get_cycle(),
                         "usecase": current_test.get_usecase(),
@@ -223,12 +224,12 @@ class ReporterWeb(ReportInterface):
 
         self.testInfo(current_test, f"Test details:\n{prettify(current_test.get_attributes())}", "DEBUG")
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def testInfo(self, current_test: TestDetails, info: str, level: str, attachment: Dict = None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
         msg = {"test_id": current_test.get_test_id(), "data": data}
         self.notify_clients("test_info", msg)
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def testStep(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         self.showStatus(f"{state} || {reason_of_state} || {description}")
 
     def inputPromptMessage(self, message: str, default_value: str = ""):
@@ -241,7 +242,7 @@ class ReporterWeb(ReportInterface):
 
         return response
 
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def endTest(self, current_test: TestDetails, ending_state, end_reason, exc_value: BaseException = None):
         mb = self.get_report_manager_base()  # get manager base
         package_name = mb.get_package_name()
         suite_name = mb.get_suite_name()

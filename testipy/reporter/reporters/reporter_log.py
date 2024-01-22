@@ -90,23 +90,23 @@ class ReporterLog(ReportInterface):
             enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_reporter_duration()), end_state, tab_resume), "INFO")
         self.close_logger()
 
-    def startPackage(self, package_name: str):
+    def startPackage(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
         self.log(f"Starting Package {rmb.get_package_name(True)}", "INFO")
 
-    def endPackage(self, package_name: str):
+    def endPackage(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
         sc = rmb.get_package_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
         self.log("Ending Package {} - {:.2f}%/{} took {}\n{}".format(rmb.get_package_name(True), sc.get_state_percentage(
             enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_package_duration()), tab_resume), "INFO")
 
-    def startSuite(self, suite_name):
+    def startSuite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
         self.log(f"Starting Suite {rmb.get_suite_name(True)}", "INFO")
         self.__create_folder(self.rm.get_results_folder_filename())
 
-    def endSuite(self, suite_name: str):
+    def endSuite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
         sc = rmb.get_suite_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")

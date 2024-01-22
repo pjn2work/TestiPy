@@ -13,7 +13,7 @@ from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
 from testipy.lib_modules.browser_manager import BrowserManager
-from testipy.reporter.report_base import ReportBase, TestDetails
+from testipy.reporter.report_base import ReportBase, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReportManager(ReportBase):
@@ -22,7 +22,6 @@ class ReportManager(ReportBase):
         super().__init__("ReportManager")
 
         self._reporters_list = dict()
-        self._test_running_list = dict()
         self._execution_log = execution_log
         self._ap = ap
         self._sa = sa
@@ -61,12 +60,12 @@ class ReportManager(ReportBase):
     def get_full_path_tests_scripts_foldername(self) -> str:
         return self._sa.full_path_tests_scripts_foldername
 
-    def get_results_folder_filename(self, current_test: TestDetails = None, filename: str = "") -> str:
+    def get_results_folder_filename(self, current_test: TestDetails, filename: str = "") -> str:
         fn = self.get_results_folder_runtime()
 
-        package_name = super().get_package_name()
-        suite_name = super().get_suite_name()
-        test_name = current_test.get_test_name() if current_test else ""
+        package_name = current_test.get_package_name()
+        suite_name = current_test.get_suite_name()
+        test_name = current_test.get_name()
 
         folders = package_name.split(default_config.separator_package)
         folders.append(suite_name)
@@ -76,36 +75,8 @@ class ReportManager(ReportBase):
 
         return fn + str(filename)
 
-    def generate_filename(self, current_test, filename=".txt") -> str:
+    def generate_filename(self, current_test: TestDetails, filename: str = ".txt") -> str:
         return self.get_results_folder_filename(current_test, f'_{current_test.get_cycle():02}_{filename}')
-
-    # <editor-fold desc="--- Engine ---">
-    def get_test_running_list(self, meid: int):
-        if meid in self._test_running_list:
-            return self._test_running_list[meid]
-        return []
-
-    def _add_test_running(self, current_test) -> ReportManager:
-        meid = current_test.get_method_id()
-        if meid not in self._test_running_list:
-            self._test_running_list[meid] = list()
-        self._test_running_list[meid].append(current_test)
-        return self
-
-    def _remove_test_running(self, current_test) -> ReportManager:
-        meid = current_test.get_method_id()
-        if meid in self._test_running_list and current_test in self._test_running_list[meid]:
-            self._test_running_list[meid].remove(current_test)
-        return self
-
-    def get_test_list_by_method_id(self, meid: int) -> List[TestDetails]:
-        result_tests_list = []
-        for method_name, test_list in super().get_test_methods_list_for_current_suite().items():
-            for current_test in test_list:
-                if current_test.get_method_id() == meid:
-                    result_tests_list.append(current_test)
-        return result_tests_list
-    # </editor-fold>
 
     # <editor-fold desc="--- HTTP Server ---">
     @staticmethod
@@ -240,11 +211,8 @@ class ReportManager(ReportBase):
         return self
 
     def __teardown__(self, end_state: str) -> ReportManager:
-        totals = super().get_reporter_counter()
-        total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
-        end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
-
         super().__teardown__(end_state)
+        end_state = self.end_state
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.__teardown__(end_state)
@@ -260,11 +228,11 @@ class ReportManager(ReportBase):
         except:
             pass
 
-        self._execution_log("INFO", f"{color_state(end_state)} All took {format_duration(super().get_reporter_duration()):>10} [{totals}]")
+        self._execution_log("INFO", f"{color_state(end_state)} All took {format_duration(self.pm.get_duration()):>10} [{self.pm.state_counter}]")
         return self
 
-    def startPackage(self, name: str, package_attr: Dict) -> ReportManager:
-        super().startPackage(name, package_attr)
+    def startPackage(self, name: str, package_attr: Dict) -> PackageDetails:
+        pd = super().startPackage(name, package_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.startPackage(name, package_attr)
@@ -273,25 +241,24 @@ class ReportManager(ReportBase):
                 if self.is_debugcode():
                     raise
 
-        return self
+        return pd
 
     @synchronized
-    def startSuite(self, name: str, suite_attr: Dict) -> ReportManager:
-        super().startSuite(name, suite_attr)
+    def startSuite(self, pd: PackageDetails, name: str, suite_attr: Dict) -> SuiteDetails:
+        sd = super().startSuite(pd, name, suite_attr)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.startSuite(name, suite_attr)
+                reporter.startSuite(pd, name, suite_attr)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.startSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
-        return self
+        return sd
 
     @synchronized
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         current_test = super().startTest(method_attr, test_name, usecase, description)
-        self._add_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.startTest(current_test.get_attributes(), current_test.get_name(), usecase, description)
@@ -303,7 +270,7 @@ class ReportManager(ReportBase):
         return current_test
 
     @synchronized
-    def testInfo(self, current_test, info, level="DEBUG", attachment=None) -> ReportManager:
+    def testInfo(self, current_test: TestDetails, info: str, level: str = "DEBUG", attachment: Dict = None) -> ReportManager:
         super().testInfo(current_test, info, level, attachment)
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -316,7 +283,7 @@ class ReportManager(ReportBase):
         return self
 
     @synchronized
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None) -> ReportManager:
+    def testStep(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None) -> ReportManager:
         super().testStep(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
 
         if take_screenshot and self.is_browser_setup():
@@ -337,22 +304,21 @@ class ReportManager(ReportBase):
 
         return self
 
-    def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testPassed(self, current_test: TestDetails, reason_of_state="", exc_value: BaseException = None):
         self.endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
 
-    def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testSkipped(self, current_test: TestDetails, reason_of_state="", exc_value: BaseException = None):
         self.endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
 
-    def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testFailedKnownBug(self, current_test: TestDetails, reason_of_state="", exc_value: BaseException = None):
         self.endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
 
-    def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
+    def testFailed(self, current_test: TestDetails, reason_of_state="", exc_value: BaseException = None):
         self.endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
 
     @synchronized
-    def endTest(self, current_test, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
+    def endTest(self, current_test: TestDetails, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None) -> ReportManager:
         super().endTest(current_test, state, reason_of_state, exc_value)
-        self._remove_test_running(current_test)
         for reporter_name, reporter in self._reporters_list.items():
             try:
                 reporter.endTest(current_test, state, reason_of_state, exc_value)
@@ -364,11 +330,11 @@ class ReportManager(ReportBase):
         return self
 
     @synchronized
-    def endSuite(self, suite_name: str, suite_attr: Dict) -> ReportManager:
-        super().endSuite(suite_name, suite_attr)
+    def endSuite(self, sd: SuiteDetails) -> ReportManager:
+        super().endSuite(sd)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.endSuite(suite_name, suite_attr)
+                reporter.endSuite(sd)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.endSuite on {reporter_name}: {e}")
                 if self.is_debugcode():
@@ -376,11 +342,11 @@ class ReportManager(ReportBase):
 
         return self
 
-    def endPackage(self, package_name: str, package_attr: Dict) -> ReportManager:
-        super().endPackage(package_name, package_attr)
+    def endPackage(self, pd: PackageDetails) -> ReportManager:
+        super().endPackage(pd)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.endPackage(package_name, package_attr)
+                reporter.endPackage(pd)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.endPackage on {reporter_name}: {e}")
                 if self.is_debugcode():
