@@ -130,20 +130,121 @@ class ReporterWeb(ReportInterface):
 
         Thread(target=_run_flask_in_thread).start()
 
-    def get_report_manager_base(self):
-        return self.rm.get_report_manager_base()
-
-    def save_file(self, current_test: TestDetails, data, filename):
+    def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test: TestDetails, orig_filename, dest_filename, data):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
+
+    def __startup__(self, selected_tests: Dict):
+        try:
+            webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
+        except:
+            pass
+        _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
+
+    def __teardown__(self, end_state: str):
+        global WAIT_FOR_FIRST_CLIENT
+
+        msg = {"global_duration_value": "Ended within " + format_duration(self.rm.pm.get_duration())}
+
+        self._notify_clients('teardown', msg)
+
+        if WAIT_FOR_FIRST_CLIENT:
+            # wait 5 sec for a client to connect - so it won't lose all results
+            t = Timer(5)
+            while WAIT_FOR_FIRST_CLIENT and not t.is_timer_over():
+                sleep(1)
+        else:
+            # if client is connected give 2 sec to sync last results
+            Timer(1).sleep_until_over()
+
+        try:
+            socket_io.stop()
+        except Exception as e:
+            self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
+
+    def start_package(self, pd: PackageDetails):
+        _delete_from_cache("start_suite")
+        _delete_from_cache("start_test")
+        self._notify_clients("start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()})
+
+    def end_package(self, pd: PackageDetails):
+        pass
+
+    def start_suite(self, sd: SuiteDetails):
+        _delete_from_cache("start_test")
+        self._notify_clients("start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()})
+
+    def end_suite(self, sd: SuiteDetails):
+        pass
+
+    def start_test(self, current_test: TestDetails):
+        _delete_from_cache("start_test")
+        test_details = {"name": current_test.get_name(),
+                        "ncycle": current_test.get_cycle(),
+                        "usecase": current_test.get_usecase(),
+                        "method_id": current_test.get_method_id(),
+                        "test_id": current_test.get_test_id(),
+                        "comment": current_test.get_comment()}
+        self._notify_clients("start_test", test_details)
+
+        self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
+
+    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+        data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
+        msg = {"test_id": current_test.get_test_id(), "data": data}
+        self._notify_clients("test_info", msg)
+
+    def test_step(self,
+                  current_test: TestDetails,
+                  state: str,
+                  reason_of_state: str = "",
+                  description: str = "",
+                  take_screenshot: bool = False,
+                  qty: int = 1,
+                  exc_value: BaseException = None):
+        self.show_status(f"{state} || {reason_of_state} || {description}")
+
+    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+        package_name = current_test.suite.package.get_name()
+        suite_name = current_test.get_name()
+        test_method_id = current_test.get_method_id()
+        test_id = current_test.get_test_id()
+        test_name = current_test.get_name()
+        test_usecase = current_test.get_usecase()
+        test_duration = current_test.get_duration()
+
+        info = self._format_info(current_test)
+
+        data = {"status": ending_state,
+                "method_id": test_method_id,
+                "test_id": test_id,
+                "log_output": info,
+                "data": (test_method_id, package_name, suite_name, test_name, test_id, test_usecase, ending_state, f"{test_duration:.3f} s", end_reason),
+                "global_duration_value": format_duration(test_duration),
+                "status_class": STATUS_TO_CLASS.get(ending_state)}
+        self._notify_clients('end_test', data)
+
+    def show_status(self, message: str):
+        self._notify_clients('show_status', message, save_to_cache=False)
+
+    def show_alert_message(self, message: str):
+        self._notify_clients('show_alert_message', message, save_to_cache=False)
+
+    def input_prompt_message(self, message: str, default_value: str = ""):
+        global response; response = None
+        timer = Timer(25)
+
+        self._notify_clients('input_prompt_message', {"message": message, "default_value": default_value}, save_to_cache=False, callback=_callback_response)
+        while response is None and timer.is_timer_valid():
+            timer.sleep_for_if_not_over(2)
+
+        return response
 
     def _format_info(self, current_test: TestDetails):
-        mb = self.get_report_manager_base()  # get manager base
-
         str_res = "<strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
-        str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {mb.get_full_name(current_test, True)} - {current_test.get_usecase()} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
+        str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {current_test.get_full_name(with_cycle_number=True)} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
         str_res += f"{current_test.get_counters().get_begin_time()} - {current_test.get_counters().get_end_time()} took {format_duration(current_test.get_duration())}"
 
         # add test info log
@@ -161,115 +262,7 @@ class ReporterWeb(ReportInterface):
 
         return str_res
 
-    def __startup__(self, selected_tests: Dict):
-        try:
-            webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
-        except:
-            pass
-        _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
-
-    def __teardown__(self, end_state):
-        global WAIT_FOR_FIRST_CLIENT
-
-        mb = self.get_report_manager_base()  # get manager base
-        msg = {"global_duration_value": "Ended after " + format_duration(mb.get_reporter_counter().get_timed_total_elapsed())}
-
-        if mb.get_reporter_duration():
-            msg["global_duration_value"] = "Ended within " + format_duration(mb.get_reporter_duration())
-
-        self.notify_clients('teardown', msg)
-
-        if WAIT_FOR_FIRST_CLIENT:
-            # wait 5 sec for a client to connect - so it won't lose all results
-            t = Timer(5)
-            while WAIT_FOR_FIRST_CLIENT and not t.is_timer_over():
-                sleep(1)
-        else:
-            # if client is connected give 2 sec to sync last results
-            Timer(1).sleep_until_over()
-
-        try:
-            socket_io.stop()
-        except Exception as e:
-            self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
-
-    def start_package(self, package_name: str, package_attr: Dict):
-        mb = self.get_report_manager_base()  # get manager base
-        _delete_from_cache("start_suite")
-        _delete_from_cache("start_test")
-        self.notify_clients("start_package", {"name": package_name, "ncycle": mb.get_package_cycle_number()})
-
-    def end_package(self, pd: PackageDetails):
-        pass
-
-    def start_suite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
-        mb = self.get_report_manager_base()  # get manager base
-        _delete_from_cache("start_test")
-        self.notify_clients("start_suite", {"name": suite_name, "ncycle": mb.get_suite_cycle_number()})
-
-    def end_suite(self, sd: SuiteDetails):
-        pass
-
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        mb = self.get_report_manager_base()  # get manager base
-        current_test = mb.get_test_by_id()
-        test_details = {"name": current_test.get_name(),
-                        "ncycle": current_test.get_cycle(),
-                        "usecase": current_test.get_usecase(),
-                        "method_id": current_test.get_method_id(),
-                        "test_id": current_test.get_test_id(),
-                        "comment": current_test.get_comment()}
-        _delete_from_cache("start_test")
-        self.notify_clients("start_test", test_details)
-
-        self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
-
-    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict = None):
-        data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
-        msg = {"test_id": current_test.get_test_id(), "data": data}
-        self.notify_clients("test_info", msg)
-
-    def test_step(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        self.show_status(f"{state} || {reason_of_state} || {description}")
-
-    def input_prompt_message(self, message: str, default_value: str = ""):
-        global response; response = None
-        timer = Timer(25)
-
-        self.notify_clients('input_prompt_message', {"message": message, "default_value": default_value}, save_to_cache=False, callback=_callback_response)
-        while response is None and timer.is_timer_valid():
-            timer.sleep_for_if_not_over(2)
-
-        return response
-
-    def end_test(self, current_test: TestDetails, ending_state, end_reason, exc_value: BaseException = None):
-        mb = self.get_report_manager_base()  # get manager base
-        package_name = mb.get_package_name()
-        suite_name = mb.get_suite_name()
-        method_id = current_test.get_method_id()
-        test_id = current_test.get_test_id()
-        test_name = current_test.get_name()
-        usecase = current_test.get_usecase()
-        duration = current_test.get_duration()
-        info = self._format_info(current_test)
-        global_duration_value = format_duration(mb.get_reporter_counter().get_timed_total_elapsed())
-
-        data = {"status": ending_state,
-                "method_id": method_id,
-                "test_id": test_id,
-                "log_output": info,
-                "data": (method_id, package_name, suite_name, test_name, test_id, usecase, ending_state, f"{duration:.3f} s", end_reason),
-                "global_duration_value": global_duration_value,
-                "status_class": STATUS_TO_CLASS.get(ending_state)}
-        self.notify_clients('end_test', data)
-
-    def show_status(self, message: str):
-        self.notify_clients('show_status', message, save_to_cache=False)
-
-    def show_alert_message(self, message: str):
-        self.notify_clients('show_alert_message', message, save_to_cache=False)
-
-    def notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):
+    def _notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):
         if save_to_cache:
             _push_to_cache(event, msg)
 

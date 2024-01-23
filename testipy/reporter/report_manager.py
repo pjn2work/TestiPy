@@ -139,10 +139,10 @@ class ReportManager(ReportBase, ReportManagerClient):
         self.start_test(td)
         return td
 
-    def start_test(self, td: TestDetails):
+    def start_test(self, current_test: TestDetails):
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.start_test(td)
+                reporter.start_test(current_test)
             except Exception as e:
                 self._execution_log("CRITICAL", f"Internal error rm.start_test on {reporter_name}: {e}")
                 if self.is_debugcode():

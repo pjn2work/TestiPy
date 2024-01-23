@@ -35,7 +35,7 @@ class ReporterTemplate(ReportInterface):
     def end_suite(self, sd: SuiteDetails):
         pass
 
-    def start_test(self, td: TestDetails):
+    def start_test(self, current_test: TestDetails):
         pass
 
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
@@ -58,6 +58,9 @@ class ReporterTemplate(ReportInterface):
         suite_name = current_test.get_name()
         suite_cycle = current_test.get_cycle()
 
+        test_method_id = current_test.get_method_id()
+        test_id = current_test.get_test_id()
+
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
         test_usecase = current_test.get_usecase()
@@ -66,6 +69,8 @@ class ReporterTemplate(ReportInterface):
         test_duration = current_test.get_duration()
         test_start = current_test.get_starttime()
         test_end = current_test.get_endtime()
+        test_counters = current_test.get_counters()
+        test_step_counters = current_test.get_test_step_counters()
 
         test_tags = " ".join(current_test.get_tags())
         test_level = current_test.get_level()

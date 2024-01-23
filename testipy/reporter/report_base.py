@@ -101,7 +101,7 @@ class ReportBase(ReportInterface):
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    def start_test(self, td: TestDetails):
+    def start_test(self, current_test: TestDetails):
         pass
 
     def test_info(self, current_test, info, level, attachment=None):

@@ -75,10 +75,10 @@ class ReporterEcho(ReportInterface):
     def end_suite(self, sd: SuiteDetails):
         pass
 
-    def start_test(self, td: TestDetails):
+    def start_test(self, current_test: TestDetails):
         print("\n"*5)
         print("-"*_line_size)
-        print(f"> Starting test: {td} <".center(_line_size, "-"))
+        print(f"> Starting test: {current_test} <".center(_line_size, "-"))
 
     def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):
         full_name = current_test.get_full_name(with_cycle_number=True)

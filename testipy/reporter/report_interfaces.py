@@ -42,7 +42,7 @@ class ReportInterface(ABC):
         pass
 
     @abstractmethod
-    def start_test(self, td: TestDetails):
+    def start_test(self, current_test: TestDetails):
         pass
 
     @abstractmethod
