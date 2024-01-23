@@ -90,23 +90,23 @@ class ReporterLog(ReportInterface):
             enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_reporter_duration()), end_state, tab_resume), "INFO")
         self.close_logger()
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
         self.log(f"Starting Package {rmb.get_package_name(True)}", "INFO")
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def end_package(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
         sc = rmb.get_package_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
         self.log("Ending Package {} - {:.2f}%/{} took {}\n{}".format(rmb.get_package_name(True), sc.get_state_percentage(
             enums_data.STATE_PASSED), sc.get_total(), format_duration(rmb.get_package_duration()), tab_resume), "INFO")
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def start_suite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
         self.log(f"Starting Suite {rmb.get_suite_name(True)}", "INFO")
         self.__create_folder(self.rm.get_results_folder_filename())
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def end_suite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
         sc = rmb.get_suite_counter()
         tab_resume = tabulate(sc.get_summary_per_state(), headers=("State", "Qty", "%", "RoS"), floatfmt=".2f", tablefmt="fancy_grid")
@@ -122,7 +122,7 @@ class ReporterLog(ReportInterface):
         #str_attr = "\n".join([f"{k}: {str(v).replace('set()', '')}" for k, v in attr.items() if k != "test_comment"])
         #self.testInfo(rmb.get_current_test(), f"TAGs:\n{str_attr}", "DEBUG")
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         rmb = self.get_report_manager_base()
 
         test_full_name = rmb.get_full_name(current_test, True)
@@ -130,7 +130,7 @@ class ReporterLog(ReportInterface):
 
         self.log(f"{test_full_name} - {usecase}: {info}", level)
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         self.__log_exception(current_test, exc_value)
         if take_screenshot:
             with mss() as sct:
@@ -139,16 +139,16 @@ class ReporterLog(ReportInterface):
                 sct.shot(output=output_file, mon=1)
                 self.rm.copy_file(current_test, orig_filename=output_file, delete_source=True)
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         rmb = self.get_report_manager_base()
 
         test_full_name = rmb.get_full_name(current_test, True)

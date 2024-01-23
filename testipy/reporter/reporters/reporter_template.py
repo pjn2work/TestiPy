@@ -26,28 +26,28 @@ class ReporterTemplate(ReportInterface):
     def __teardown__(self, end_state: str):
         rmb = self.get_report_manager_base()
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endPackage(self, pd: PackageDetails):
+    def end_package(self, pd: PackageDetails):
         rmb = self.get_report_manager_base()
 
-    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
+    def start_suite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
 
-    def endSuite(self, sd: SuiteDetails):
+    def end_suite(self, sd: SuiteDetails):
         rmb = self.get_report_manager_base()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         rmb = self.get_report_manager_base()
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         rmb = self.get_report_manager_base()
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         rmb = self.get_report_manager_base()
 
-    def endTest(self, current_test, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         rmb = self.get_report_manager_base()
 
         package_name = rmb.get_package_name()
@@ -72,11 +72,11 @@ class ReporterTemplate(ReportInterface):
         test_number = current_test.get_test_number()
         test_comment = current_test.get_comment()
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass

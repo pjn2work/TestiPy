@@ -193,21 +193,21 @@ class ReporterWeb(ReportInterface):
         except Exception as e:
             self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         mb = self.get_report_manager_base()  # get manager base
         _delete_from_cache("start_suite")
         _delete_from_cache("start_test")
         self.notify_clients("start_package", {"name": package_name, "ncycle": mb.get_package_cycle_number()})
 
-    def endPackage(self, pd: PackageDetails):
+    def end_package(self, pd: PackageDetails):
         pass
 
-    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
+    def start_suite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict):
         mb = self.get_report_manager_base()  # get manager base
         _delete_from_cache("start_test")
         self.notify_clients("start_suite", {"name": suite_name, "ncycle": mb.get_suite_cycle_number()})
 
-    def endSuite(self, sd: SuiteDetails):
+    def end_suite(self, sd: SuiteDetails):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
@@ -222,17 +222,17 @@ class ReporterWeb(ReportInterface):
         _delete_from_cache("start_test")
         self.notify_clients("start_test", test_details)
 
-        self.testInfo(current_test, f"Test details:\n{prettify(current_test.get_attributes())}", "DEBUG")
+        self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
 
-    def testInfo(self, current_test: TestDetails, info: str, level: str, attachment: Dict = None):
+    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict = None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
         msg = {"test_id": current_test.get_test_id(), "data": data}
         self.notify_clients("test_info", msg)
 
-    def testStep(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        self.showStatus(f"{state} || {reason_of_state} || {description}")
+    def test_step(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+        self.show_status(f"{state} || {reason_of_state} || {description}")
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         global response; response = None
         timer = Timer(25)
 
@@ -242,7 +242,7 @@ class ReporterWeb(ReportInterface):
 
         return response
 
-    def endTest(self, current_test: TestDetails, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test: TestDetails, ending_state, end_reason, exc_value: BaseException = None):
         mb = self.get_report_manager_base()  # get manager base
         package_name = mb.get_package_name()
         suite_name = mb.get_suite_name()
@@ -263,10 +263,10 @@ class ReporterWeb(ReportInterface):
                 "status_class": STATUS_TO_CLASS.get(ending_state)}
         self.notify_clients('end_test', data)
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         self.notify_clients('show_status', message, save_to_cache=False)
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         self.notify_clients('show_alert_message', message, save_to_cache=False)
 
     def notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):

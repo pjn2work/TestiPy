@@ -77,50 +77,50 @@ class ReporterExcel(ReportInterface):
     def __teardown__(self, end_state):
         self.create_summarys(self.get_report_manager_base().get_df())
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         pass
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def end_package(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def start_suite(self, suite_name: str, suite_attr: Dict):
         pass
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def end_suite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         pass
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
     def testSkipped(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.endTest(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
+        self.end_test(current_test, enums_data.STATE_SKIPPED, reason_of_state, exc_value)
 
     def testPassed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.endTest(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
+        self.end_test(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)
 
     def testFailed(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.endTest(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
+        self.end_test(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
 
     def testFailedKnownBug(self, current_test, reason_of_state="", exc_value: BaseException = None):
-        self.endTest(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
+        self.end_test(current_test, enums_data.STATE_FAILED_KNOWN_BUG, reason_of_state, exc_value)
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
     # this will serve the purpose only for testSteps, because for tests is done on teardown
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         mb = self.get_report_manager_base()
 
         # gather info for DataFrame

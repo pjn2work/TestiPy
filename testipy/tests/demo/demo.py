@@ -29,12 +29,12 @@ class SuiteDemo_01:
 
         for current_ntime in range(1, ntimes + 1):
             sleep(0.01)
-            current_test.testStep(enums_data.STATE_SKIPPED, "Skip all")
+            current_test.test_step(enums_data.STATE_SKIPPED, "Skip all")
 
         attachment={"name": "results.txt",
                     "data": str(current_test.get_test_step_counters()),
                     "mime": "text/plain"}
-        rm.testInfo(current_test, current_test.get_test_step_counters(), "DEBUG", attachment)
+        rm.test_info(current_test, current_test.get_test_step_counters(), "DEBUG", attachment)
 
         rm.testSkipped(current_test, "Ran {} times".format(current_ntime))
 
@@ -64,7 +64,7 @@ class SuiteDemo_01:
             tc.inc_state(enums_data.STATE_FAILED, reason_of_state="on purpose", description=f"run {current_ntime}")
 
             if tc.get_last_consecutive_qty(enums_data.STATE_FAILED) >= 3:
-                rm.testInfo(current_test, tc, "DEBUG")
+                rm.test_info(current_test, tc, "DEBUG")
                 rm.testFailed(current_test, "consecutive fails")
                 return
 
@@ -86,8 +86,8 @@ class SuiteDemo_02:
         @PRIO 10
         """
         current_test = rm.startTest(ma)
-        rm.testInfo(current_test, "test dict: " + str(ma), "DEBUG")
-        rm.testInfo(current_test, "test param: " + str(param), "DEBUG")
+        rm.test_info(current_test, "test dict: " + str(ma), "DEBUG")
+        rm.test_info(current_test, "test param: " + str(param), "DEBUG")
         rm.testPassed(current_test, "OK")
 
     # fail the test outside by raise exception from assert
@@ -185,24 +185,24 @@ class SuiteDemoWeb:
         current_test = rm.startTest(ma)
 
         rm.get_bm().setup_webdriver("chrome")
-        rm.testStep(current_test, enums_data.STATE_PASSED, "setup web browser")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "setup web browser")
 
         rm.get_bm().goto("https://search.brave.com/").take_screenshot(current_test)
-        rm.testStep(current_test, enums_data.STATE_PASSED, "open browser")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "open browser")
 
         rm.get_bm().click_and_type("input[id='searchbox']", text_to_send="Pedro Nunes").take_screenshot(current_test, "brave")
-        rm.testStep(current_test, enums_data.STATE_PASSED, "search")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "search")
 
         rm.get_bm().new_tab("https://pplware.sapo.pt/", "tab 2").take_screenshot(current_test, "pplware")
-        rm.testStep(current_test, enums_data.STATE_PASSED, "open new tab")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "open new tab")
 
         rm.get_bm().close_tab("tab 2")
-        rm.testStep(current_test, enums_data.STATE_PASSED, "close tab")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "close tab")
 
         rm.get_bm().close_page()
-        rm.testStep(current_test, enums_data.STATE_PASSED, "close page")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "close page")
 
         rm.get_bm().sleep(1).stop()
-        rm.testStep(current_test, enums_data.STATE_PASSED, "stop playwright")
+        rm.test_step(current_test, enums_data.STATE_PASSED, "stop playwright")
 
         rm.testPassed(current_test, "ok")

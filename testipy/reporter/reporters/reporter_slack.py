@@ -72,41 +72,41 @@ class ReporterSlack(ReportInterface):
         for name, user in NOTIFY_USERS.items():
             self._send_message(channel=user, threadts=False, text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{rmb.get_reporter_details()}")
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         rmb =self.get_report_manager_base()
         # self._send_message(text=":open_file_folder: Starting package {} ".format(rmb.get_package_details()))
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def end_package(self, package_name: str, package_attr: Dict):
         rmb =self.get_report_manager_base()
         self._send_message(text=":file_folder: Ending package {} ".format(rmb.get_package_details()))
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def start_suite(self, suite_name: str, suite_attr: Dict):
         rmb =self.get_report_manager_base()
         # self._send_message(text=":scroll: Starting suite {} ".format(rmb.get_suite_details()))
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def end_suite(self, suite_name: str, suite_attr: Dict):
         rmb = self.get_report_manager_base()
         self._send_message(text=":scroll: Ending suite {} ".format(rmb.get_suite_details()))
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
         pass
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         pass
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name()
         duration = current_test.get_duration()
         usecase = current_test.get_usecase()

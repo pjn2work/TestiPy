@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from typing import Dict, List, Set
+from collections import namedtuple
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
+
+
+TestInfo = namedtuple("TEST_INFO", "timestamp time level info attachment")
 
 
 class CommonDetails:
@@ -66,14 +70,13 @@ class SuiteDetails(CommonDetails):
 
         self.package = parent
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
-        self.test_manager: TestManager = TestManager(self)
+        self.test_manager = TestManager(self)
 
     def endSuite(self):
         self.end_time = get_datetime_now()
 
     def startTest(self, test_name: str, test_attr: Dict) -> TestDetails:
         current_test = self.test_manager.startTest(test_name, test_attr)
-        self.package.parent.add_test_by_id(current_test)
         return current_test
 
     def update_package_suite_counters(self, prio: int, state: str, reason_of_state: str):
@@ -142,19 +145,15 @@ class TestDetails(CommonDetails):
         return self.attr.get(enums_data.TAG_FEATURES, "")
 
     def add_info(self, ts: int, current_time: str, level: str, info: str, attachment: Dict):
-        self._info.append((ts, current_time, str(level).upper(), info, attachment))
-        return self
+        self._info.append(TestInfo(ts, current_time, str(level).upper(), info, attachment))
 
-    def get_attributes(self) -> Dict:
-        return self.attr
-
-    def get_info(self) -> List:
+    def get_info(self) -> List[TestInfo]:
         return list(self._info)
 
     def get_number_test_steps(self) -> int:
         return self._test_step.get_total()
 
-    def testStep(self, state: str, reason_of_state: str = "", description: str = "", qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, state: str, reason_of_state: str = "", description: str = "", qty: int = 1, exc_value: BaseException = None):
         self._test_step.inc_state(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
     def get_new_state_counter(self) -> StateCounter:
@@ -165,7 +164,14 @@ class TestDetails(CommonDetails):
 
     def get_test_step_counters_tabulate(self, tablefmt="simple") -> str:
         # reverse timed_laps row order, with timestamp being the first column
-        tl = [(str(lap.timed_all_end)[:23], lap.state, lap.qty, lap.total_seconds, lap.reason_of_state, lap.description) for lap in self.get_test_step_counters().get_timed_laps()]
+        tl = [(
+            str(lap.timed_all_end)[:23],
+            lap.state,
+            lap.qty,
+            lap.total_seconds,
+            lap.reason_of_state,
+            lap.description)
+            for lap in self.get_test_step_counters().get_timed_laps()]
 
         return tabulate(tl, headers=("Timestamp", "State", "Qty", "Elapsed", "Reason of State", "Step"),
                  floatfmt=".4f", tablefmt=tablefmt)
@@ -186,12 +192,6 @@ class TestDetails(CommonDetails):
     def is_skipped(self):
         return self.get_state() == enums_data.STATE_SKIPPED
 
-    def get_package(self) -> PackageDetails:
-        return self.suite.package
-
-    def get_suite(self) -> SuiteDetails:
-        return self.suite
-
     def __str__(self):
         res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_name()}"
         if usecase := self.get_usecase():
@@ -206,22 +206,26 @@ class TestDetails(CommonDetails):
 
 class PackageManager:
     def __init__(self):
-        self._package_by_name: Dict[str, PackageDetails] = dict()
         self.state_counter = StateCounter()
         self.start_time = None
         self.end_time = None
-        self._test_by_id: Dict[int, TestDetails] = dict()
+        self._package_by_name_started: Dict[str, int] = dict()
 
     def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
         if self.start_time is None:
             self.start_time = get_datetime_now()
 
         package_name = package_name if package_name else package_attr["package_name"]
-        if package_name in self._package_by_name:
-            self._package_by_name[package_name].cycle_number += 1
+        current_package = PackageDetails(self, package_name, package_attr)
+
+        # increment cycle_number if same package_name
+        if package_name in self._package_by_name_started:
+            self._package_by_name_started[package_name] += 1
+            current_package.cycle_number = self._package_by_name_started[package_name]
         else:
-            self._package_by_name[package_name] = PackageDetails(self, package_name, package_attr)
-        return self._package_by_name[package_name]
+            self._package_by_name_started[package_name] = 1
+
+        return current_package
 
     def update_package_suite_counters(self, state: str, reason_of_state: str):
         self.state_counter.inc_state(state, reason_of_state=reason_of_state, description="update global counters")
@@ -231,42 +235,30 @@ class PackageManager:
             self.end_time = get_datetime_now()
         return (self.end_time - self.start_time).total_seconds()
 
-    def get_package_by_name(self, package_name: str = "", package_attr: Dict = "") -> PackageDetails:
-        package_name = package_name if package_name else package_attr["package_name"]
-        return self._package_by_name.get(package_name)
-
-    def add_test_by_id(self, td: TestDetails):
-        self._test_by_id[td.get_test_id()] = td
-
-    def get_test_by_id(self, tid: int) -> TestDetails:
-        return self._test_by_id[tid]
-
 
 class SuiteManager:
     def __init__(self, parent: PackageDetails):
         self.parent = parent
-        self._suite_by_id: Dict[int, SuiteDetails] = dict()
+        self._suite_by_name_started: Dict[str, int] = dict()
 
     def startSuite(self, suite_name: str, suite_attr: Dict) -> SuiteDetails:
-        suite_id = suite_attr["suite_id"]
-        if suite_id in self._suite_by_id:
-            self._suite_by_id[suite_id].cycle_number += 1
-            # clear for new re-run
-            self._suite_by_id[suite_id].test_state_by_prio.clear()
-            self._suite_by_id[suite_id].test_manager._tests_by_meid.clear()
+        suite_name = suite_name if suite_name else suite_attr["suite_name"]
+        current_suite = SuiteDetails(self.parent, suite_name, suite_attr)
+
+        # increment cycle_number if same suite_name inside same package
+        if suite_name in self._suite_by_name_started:
+            self._suite_by_name_started[suite_name] += 1
+            current_suite.cycle_number = self._suite_by_name_started[suite_name]
         else:
-            self._suite_by_id[suite_id] = SuiteDetails(self.parent, suite_name, suite_attr)
+            self._suite_by_name_started[suite_name] = 1
 
-        return self._suite_by_id[suite_id]
-
-    def get_suite_by_id(self, _id: int) -> SuiteDetails:
-        return self._suite_by_id.get(_id)
+        return current_suite
 
 
 class TestManager:
     def __init__(self, parent: SuiteDetails):
         self.parent = parent
-        self._qty_test_by_name: Dict[str, int] = dict()
+        self._test_by_name_started: Dict[str, int] = dict()
         self._tests_by_meid: Dict[int, List[TestDetails]] = dict()
         self._tests_running_by_meid: Dict[int, List[TestDetails]] = dict()
 
@@ -274,14 +266,15 @@ class TestManager:
         test_name = test_name if test_name else test_attr["test_name"]
         current_test = TestDetails(self.parent, test_name, test_attr)
 
-        if test_name in self._qty_test_by_name:
-            self._qty_test_by_name[test_name] += 1
-            current_test.cycle_number = self._qty_test_by_name[test_name]
+        # increment cycle_number if same test_name inside same suite
+        if test_name in self._test_by_name_started:
+            self._test_by_name_started[test_name] += 1
+            current_test.cycle_number = self._test_by_name_started[test_name]
         else:
-            self._qty_test_by_name[test_name] = 1
+            self._test_by_name_started[test_name] = 1
 
+        # store sui
         meid = current_test.get_method_id()
-
         if meid in self._tests_by_meid:
             self._tests_by_meid[meid].append(current_test)
             self._tests_running_by_meid[meid].append(current_test)

@@ -44,29 +44,22 @@ class Executer:
                         # initialize suite __init__()
                         try:
                             suite_attr["app"] = suite_attr["suite_obj"](**suite_attr.get("suite_kwargs", dict()))
+                            _error = None
                         except Exception as ex:
-                            # skip all methods/tests under this suite
-                            for method_attr in suite_attr["test_list"]:
-                                method_seq += 1
-                                percent_completed = method_seq * 100 / total_methods_to_call
-                                rof = f"Init suite failed: {ex}"
+                            _error = ex
 
-                                rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=rof, exc_value=ex)
+                        for method_attr in suite_attr["test_list"]:
+                            method_seq += 1
+                            percent_completed = method_seq * 100 / total_methods_to_call
 
-                                self._print_progress_when_method_ends(state=enums_data.STATE_SKIPPED,
-                                                                      percent_completed=percent_completed, duration=0.0, total_failed=0, total=1,
-                                                                      package_attr=package_attr, suite_attr=suite_attr, method_attr=method_attr, ros=rof)
-                        else:
-                            for method_attr in suite_attr["test_list"]:
-                                method_seq += 1
-                                percent_completed = method_seq * 100 / total_methods_to_call
+                            self._call_test_method(package_attr, suite_attr, dict(method_attr), sd, rm, dryrun_mode, debug_code, onlyonce, percent_completed, _error)
 
-                                self._call_test_method(package_attr, suite_attr, dict(method_attr), sd, rm, dryrun_mode, debug_code, onlyonce, percent_completed)
+                        if "app" in suite_attr:
                             del suite_attr["app"]
 
-                        rm.endSuite(sd)
+                        rm.end_suite(sd)
 
-                rm.endPackage(pd)
+                rm.end_package(pd)
 
     def _print_progress_when_method_ends(self, state: str, percent_completed: float, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
         self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
@@ -85,11 +78,11 @@ class Executer:
             else:
                 # get full stacktrace
                 tb = _get_stacktrace_string_for_tests(had_exception)
-                rm.testInfo(current_test, f"Full stacktrace:\n{tb}", "ERROR")
+                rm.test_info(current_test, f"Full stacktrace:\n{tb}", "ERROR")
                 rm.testFailed(current_test, reason_of_state=str(had_exception), exc_value=had_exception)
         else:
             tc_state, tc_ros = current_test.get_test_step_counters().get_state_by_severity()
-            rm.endTest(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
+            rm.end_test(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
 
     def _auto_close_all_open_tests_for_that_method(self, rm: ReportManager, sd: SuiteDetails, method_attr, had_exception: Exception = None):
         for current_test in list(sd.get_tests_running_by_meid(method_attr["method_id"])):
@@ -108,7 +101,7 @@ class Executer:
         else:
             # no test created by the method call, impossible to get here - just a safeguard
             current_test = rm.startTest(method_attr, usecase="AUTO-CREATED")
-            rm.endTest(current_test, state=default_config.if_no_test_started_mark_as, reason_of_state=f"No test started by {method_attr['method_name']}", exc_value=had_exception)
+            rm.end_test(current_test, state=default_config.if_no_test_started_mark_as, reason_of_state=f"No test started by {method_attr['method_name']}", exc_value=had_exception)
 
         # increment global failed (skipped, bug)
         total_failed = sum([results[state] for state in default_config.count_as_failed_states])
@@ -124,12 +117,15 @@ class Executer:
 
         self._print_progress_when_method_ends(method_state, percent_completed, duration, total_failed, total, package_attr, suite_attr, method_attr, method_ros or "!")
 
-    def _call_test_method(self, package_attr, suite_attr, method_attr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed):
+    def _call_test_method(self, package_attr, suite_attr, method_attr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed, _error):
         had_exception = None
+        method_attr["suite_details"] = sd
 
         if dryrun_mode:
             # if "--dryrun" was passed then will skip all tests execution
             rm.testSkipped(rm.startTest(method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
+        elif _error:
+            rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=f"Init suite failed: {_error}", exc_value=_error)
         elif nok := _get_nok_on_success_or_on_failure(sd, method_attr):
             # get @ON_FAILURE or @ON_SUCCESS dependency
             rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
@@ -142,7 +138,7 @@ class Executer:
 
                     # no test started by the method call, create one and close it
                     if len(sd.get_tests_by_meid(ma["method_id"])) == 0:
-                        rm.endTest(rm.startTest(ma, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
+                        rm.end_test(rm.startTest(ma, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
 
                     self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, method_attr=ma)
                 except Exception as ex:

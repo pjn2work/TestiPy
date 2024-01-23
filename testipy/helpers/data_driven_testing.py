@@ -249,7 +249,7 @@ class SafeTry:
 
     def set_step_text(self, step_description: str):
         self.step_description = step_description
-        self.rm.showStatus(step_description)
+        self.rm.show_status(step_description)
         return self
 
     def set_ros_success(self, ros_success: str):
@@ -283,7 +283,7 @@ class SafeTry:
                 status = enums_data.STATE_FAILED_KNOWN_BUG if jira_issue else enums_data.STATE_FAILED
                 self.ros = f"{jira_issue} {end_reason}".lstrip()
 
-        self.rm.testStep(self.current_test, status, self.ros.lstrip(), self.step_description, take_screenshot=self.take_screenshot, exc_value=exc_val)
+        self.rm.test_step(self.current_test, status, self.ros.lstrip(), self.step_description, take_screenshot=self.take_screenshot, exc_value=exc_val)
 
     def new_step(self, step_description, ros_success: str = None, ros_failure: str = None, ros_expected_failure: str = None, take_screenshot: bool = None):
         self._end_last_step(None)
@@ -314,7 +314,7 @@ class SafeTry:
         if exc_val is None or isinstance(exc_val, (ExpectedError, SkipTestError)):
             pass
         else:
-            self.rm.testInfo(self.current_test, get_traceback_tabulate(exc_val), "ERROR")
+            self.rm.test_info(self.current_test, get_traceback_tabulate(exc_val), "ERROR")
             if self.rm.is_debugcode():
                 raise exc_val
 
@@ -361,7 +361,7 @@ class DDTMethods(DataReader):
             rm.testSkipped(current_test, "--norun")
         else:
             usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
-            rm.testInfo(current_test, f"{tag_name=} {scenario_name=} TEST_STEPS:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
+            rm.test_info(current_test, f"{tag_name=} {scenario_name=} TEST_STEPS:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
 
             _, failed_usecase = self._run_all_usecases_as_teststeps(rm, current_test, usecases)
             endTest(rm, current_test, bug=bug)
@@ -377,10 +377,10 @@ class DDTMethods(DataReader):
             if rm.has_ap_flag("--norun"):
                 rm.testSkipped(current_test, "--norun")
             else:
-                rm.testInfo(current_test, f"{tag=} {scenario_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
+                rm.test_info(current_test, f"{tag=} {scenario_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
 
                 if usecase.get("_skip_all_"):
-                    rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
+                    rm.test_step(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
                     break
                 else:
                     with SafeTry(self.exec_toolbox, rm, current_test, step_description=usecase_name) as st:
@@ -400,7 +400,7 @@ class DDTMethods(DataReader):
         failed_usecase = ""
         for usecase_name, usecase in usecases.items():
             if usecase.get("_skip_all_"):
-                rm.testStep(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
+                rm.test_step(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
                 break
             else:
                 if failed_usecase == "" or usecase.get("_no_skip_"):
@@ -417,7 +417,7 @@ class DDTMethods(DataReader):
                     if st.is_failed() and not failed_usecase:
                         failed_usecase = usecase_name
                 else:
-                    rm.testStep(current_test, enums_data.STATE_SKIPPED, f"Because usecase {failed_usecase} failed", usecase_name)
+                    rm.test_step(current_test, enums_data.STATE_SKIPPED, f"Because usecase {failed_usecase} failed", usecase_name)
 
         return self.response_from_usecases, failed_usecase
 

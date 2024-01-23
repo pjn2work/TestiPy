@@ -83,16 +83,16 @@ class ReporterPortalIO(ReportInterface):
         self._service.finish_launch(end_time=timestamp(), status=enums_data.STATE_PASSED)
         self._service.terminate()
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         self._package_id = self._service.start_test_item(name=package_name,
                                                          description="Package",
                                                          start_time=timestamp(),
                                                          item_type="SUITE")
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def end_package(self, package_name: str, package_attr: Dict):
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._package_id)
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def start_suite(self, suite_name: str, suite_attr: Dict):
         tags = {"TAG": " ".join(suite_attr[enums_data.TAG_TAG]), "LEVEL": suite_attr[enums_data.TAG_LEVEL]}
         self._suite_id = self._service.start_test_item(name=suite_name,
                                                        description="Suite",
@@ -102,7 +102,7 @@ class ReporterPortalIO(ReportInterface):
                                                        parent_item_id=self._package_id)
         self._all_parent_tests_by_name = dict()
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def end_suite(self, suite_name: str, suite_attr: Dict):
         self.__close_parent_tests()
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._suite_id)
 
@@ -110,10 +110,10 @@ class ReporterPortalIO(ReportInterface):
         current_test = self.rm.get_current_test()
 
         if usecase and test_name not in self._all_parent_tests_by_name:
-            tags = {"TAG": " ".join(current_test.get_attributes()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attributes()[
+            tags = {"TAG": " ".join(current_test.get_attr()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attr()[
                 enums_data.TAG_LEVEL]}
             tags = {k: v for k, v in tags.items() if v}
-            parameters = current_test.get_attributes()["param"] if isinstance(current_test.get_attributes()["param"], dict) and len(current_test.get_attributes()["param"]) > 0 else {"param": str(current_test.get_attributes()["param"])}
+            parameters = current_test.get_attr()["param"] if isinstance(current_test.get_attr()["param"], dict) and len(current_test.get_attr()["param"]) > 0 else {"param": str(current_test.get_attr()["param"])}
             start_time = str(int(current_test.get_starttime().timestamp() * 1000))
 
             parent_item_id = self._service.start_test_item(name=test_name,
@@ -129,22 +129,22 @@ class ReporterPortalIO(ReportInterface):
             if test_name in self._all_parent_tests_by_name:
                 self._all_parent_tests_by_name[test_name]["tests"].append(current_test)
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         pass
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name(False)
 
         # Get parent test or suite
@@ -159,10 +159,10 @@ class ReporterPortalIO(ReportInterface):
             usecase = test_name
 
         # Create data to send to ReportPortalIO
-        tags = {"TAG": " ".join(current_test.get_attributes()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attributes()[
+        tags = {"TAG": " ".join(current_test.get_attr()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attr()[
             enums_data.TAG_LEVEL]}
         tags = {k: v for k, v in tags.items() if v}
-        parameters = current_test.get_attributes()["param"] if isinstance(current_test.get_attributes()["param"], dict) and len(current_test.get_attributes()["param"]) > 0 else {"param": str(current_test.get_attributes()["param"])}
+        parameters = current_test.get_attr()["param"] if isinstance(current_test.get_attr()["param"], dict) and len(current_test.get_attr()["param"]) > 0 else {"param": str(current_test.get_attr()["param"])}
         start_time = str(int(current_test.get_starttime().timestamp() * 1000))
         end_time = str(int(current_test.get_endtime().timestamp() * 1000))
 

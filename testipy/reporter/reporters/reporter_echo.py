@@ -66,16 +66,16 @@ class ReporterEcho(ReportInterface):
         print(textdecor.color_line(tabulate(dfm.reduce_datetime(dfm.get_suite_state_summary(df)), headers='keys', tablefmt='simple', showindex=False)))
         print("#"*_line_size)
 
-    def startPackage(self, package_name: str, package_attr: Dict):
+    def start_package(self, package_name: str, package_attr: Dict):
         pass
 
-    def endPackage(self, package_name: str, package_attr: Dict):
+    def end_package(self, package_name: str, package_attr: Dict):
         pass
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
+    def start_suite(self, suite_name: str, suite_attr: Dict):
         pass
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
+    def end_suite(self, suite_name: str, suite_attr: Dict):
         pass
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
@@ -86,26 +86,26 @@ class ReporterEcho(ReportInterface):
         print("-"*_line_size)
         print(f"> Starting test: {current_test} <".center(_line_size, "-"))
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         rmb = self.get_report_manager_base()
         full_name = rmb.get_full_name(current_test, True)
         usecase = current_test.get_usecase()
 
         print(f"{level} {full_name} - {usecase}: {prettify(info)}")
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         rmb = self.get_report_manager_base()
 
         full_name = rmb.get_full_name(current_test, True)

@@ -6,7 +6,7 @@ from typing import Dict
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
-from testipy.reporter.report_interface import ReportInterface
+from testipy.reporter.report_interfaces import ReportInterface
 from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp
 from testipy.reporter.package_manager import PackageManager, PackageDetails, SuiteDetails, TestDetails
 
@@ -38,12 +38,9 @@ class ReportBase(ReportInterface):
         return self._df.copy()
 
     def get_full_name(self, current_test: TestDetails, with_cycle_number=False, sep=default_config.separator_package_suite_test):
-        return sep.join((current_test.get_package_name(with_cycle_number),
-                         current_test.get_suite_name(with_cycle_number),
+        return sep.join((current_test.suite.package.get_name(with_cycle_number),
+                         current_test.suite.get_name(with_cycle_number),
                          current_test.get_name(with_cycle_number)))
-
-    def get_test_by_id(self, tid: int) -> TestDetails:
-        return self.pm.get_test_by_id(tid)
 
     @staticmethod
     def create_attachment(filename, data) -> Dict:
@@ -53,10 +50,10 @@ class ReportBase(ReportInterface):
     # </editor-fold>
 
     # <editor-fold desc="--- Common functions starts here ---">
-    def save_file(self, current_test, data, filename) -> Dict:
+    def save_file(self, current_test: TestDetails, data, filename: str) -> Dict:
         return self.create_attachment(filename, data)
 
-    def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data) -> Dict:
         return self.create_attachment(dest_filename, data)
 
     def __startup__(self, selected_tests: Dict):
@@ -70,13 +67,19 @@ class ReportBase(ReportInterface):
     def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
         return self.pm.startPackage(package_name, package_attr)
 
-    def endPackage(self, pd: PackageDetails):
+    def start_package(self, pd: PackageDetails):
+        pass
+
+    def end_package(self, pd: PackageDetails):
         pd.endPackage()
 
     def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict) -> SuiteDetails:
         return pd.startSuite(suite_name, suite_attr)
 
-    def endSuite(self, sd: SuiteDetails):
+    def start_suite(self, sd: SuiteDetails):
+        pass
+
+    def end_suite(self, sd: SuiteDetails):
         sd.endSuite()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
@@ -89,25 +92,24 @@ class ReportBase(ReportInterface):
             test_attr["test_comment"] = str(description) if description else test_attr.get("test_comment", "")
             test_attr["test_usecase"] = str(usecase)
 
-            pd = self.pm.get_package_by_name("", test_attr)
-            if pd is None:
-                raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), missing 'package_name'.")
-
-            sd = pd.suite_manager.get_suite_by_id(test_attr["suite_id"])
+            sd: SuiteDetails = test_attr.get("suite_details")
             if sd is None:
-                raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), missing 'suite_name'." +str(test_attr))
+                raise ValueError("When starting a new test, you must have in your MethodAttributes (dict) 'suite_details'." + str(test_attr))
 
             return sd.startTest(test_name, test_attr)
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    def testInfo(self, current_test, info, level, attachment=None):
+    def start_test(self, td: TestDetails):
+        pass
+
+    def test_info(self, current_test, info, level, attachment=None):
         current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        current_test.testStep(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+        current_test.test_step(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
-    def endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
+    def end_test(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
         current_test.endTest(state, reason_of_state, exc_value)
 
@@ -145,13 +147,13 @@ class ReportBase(ReportInterface):
 
         return self
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
     # </editor-fold>
