@@ -96,6 +96,7 @@ class ReportBase(ReportInterface):
             if sd is None:
                 raise ValueError("When starting a new test, you must have in your MethodAttributes (dict) 'suite_details'." + str(test_attr))
 
+            del test_attr["suite_details"]
             return sd.startTest(test_name, test_attr)
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")

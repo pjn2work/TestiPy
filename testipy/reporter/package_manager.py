@@ -112,6 +112,16 @@ class TestDetails(CommonDetails):
         self.suite.update_package_suite_counters(self.get_prio(), state, reason_of_state)
         self.suite.test_manager.remove_test_running(self)
 
+    def get_full_name(self, with_cycle_number: bool = True, sep = default_config.separator_package_suite_test) -> str:
+        return sep.join(
+            (
+            self.suite.package.get_name(with_cycle_number),
+            self.suite.get_name(with_cycle_number),
+            self.get_name(with_cycle_number),
+            self.get_usecase()
+            )
+        ).rstrip(sep)
+
     def get_usecase(self) -> str:
         return self.attr["test_usecase"]
 
