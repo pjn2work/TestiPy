@@ -78,7 +78,7 @@ class ReportInterface(ABC):
         pass
 
 
-class ReportManagerClient:
+class ReportManagerAddons:
 
     def __init__(self, execution_log, ap: ArgsParser, sa: StartArguments):
         self._execution_log = execution_log

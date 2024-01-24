@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os.path
 from datetime import datetime
 from typing import Union, List, Tuple, Dict
 from collections import namedtuple
@@ -325,6 +326,10 @@ class StateCounter:
 
     def items(self):
         return self._counter.items()
+
+    def export_summary_to_file(self, filename: str):
+        with open(filename, "w+") as f:
+            f.write("\n".join([f"{state}: {qty}" for state, qty in self._counter.items()]))
 
     def __str__(self):
         state_total = [f"{state}={total}" for state, total in self._counter.items()]

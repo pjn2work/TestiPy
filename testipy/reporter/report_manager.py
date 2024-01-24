@@ -11,14 +11,14 @@ from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
 from testipy.reporter.report_base import ReportBase, PackageDetails, SuiteDetails, TestDetails
-from testipy.reporter.report_interfaces import ReportManagerClient
+from testipy.reporter.report_interfaces import ReportManagerAddons
 
 
-class ReportManager(ReportBase, ReportManagerClient):
+class ReportManager(ReportBase, ReportManagerAddons):
 
     def __init__(self, execution_log, ap: ArgsParser, sa: StartArguments):
         super(ReportManager, self).__init__("ReportManager")
-        ReportManagerClient.__init__(self, execution_log, ap, sa)
+        ReportManagerAddons.__init__(self, execution_log, ap, sa)
 
         self._reporters_list = dict()
 

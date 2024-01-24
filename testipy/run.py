@@ -95,6 +95,10 @@ class Runner:
         if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
             self.execution_log("ERROR", prettify(get_traceback_list(exc_val)))
 
+        # export the overall results
+        f = os.path.join(self.sa.full_path_results_folder_runtime, "results.yaml")
+        self.report_manager.pm.state_counter.export_summary_to_file(f)
+
         return self
 
     @property
