@@ -21,7 +21,7 @@ class ReporterLog(ReportInterface):
         super().__init__(self.__class__.__name__)
 
         self.results_folder_runtime = rm.get_results_folder_runtime()
-        self.filename = f"{rm.get_project_name()}.log"
+        self.filename = "report.log"
         self.rm = rm
         self.sa = sa
         self._logger: logging.Logger = None
