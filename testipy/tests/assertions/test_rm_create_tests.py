@@ -22,7 +22,7 @@ class SuiteRM_CreateTests:
             current_test = rm.startTest(None)
         except ValueError as ve:
             current_test = rm.startTest(ma)
-            rm.testStep(current_test=current_test, state=enums_data.STATE_PASSED, reason_of_state="screenshot", take_screenshot=True)
+            rm.test_step(current_test=current_test, state=enums_data.STATE_PASSED, reason_of_state="screenshot", take_screenshot=True)
             assert str(ve) == expected_error, f"The error should be '{expected_error}', and not '{ve}'"
             rm.testPassed(current_test, "Failed with expected ValueError")
         except Exception as ex:
@@ -40,7 +40,7 @@ class SuiteRM_CreateTests:
         expected_test_name = ma[enums_data.TAG_NAME]
         current_test_name = current_test.get_name()
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_test.get_attr()))
 
         assert expected_test_name == current_test_name, f"Expected {expected_test_name=}, not {current_test_name}"
 
@@ -52,11 +52,11 @@ class SuiteRM_CreateTests:
         """
         expected_test_name = param.get("name", "override_test_name")
         current_test = rm.startTest(ma, expected_test_name)
-        current_test_name = current_test.get_test_name()
+        current_test_name = current_test.get_name()
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_test.get_attr()))
 
-        rm.testInfo(current_test, "Received parameters = " + str(param), level="INFO")
+        rm.test_info(current_test, "Received parameters = " + str(param), level="INFO")
 
         assert expected_test_name == current_test_name, f"Expected {expected_test_name=}, not {current_test_name}"
 
@@ -70,7 +70,7 @@ class SuiteRM_CreateTests:
         current_test = rm.startTest(ma, usecase=expected_usecase)
         current_usecase = current_test.get_usecase()
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_test.get_attr()))
 
         assert expected_usecase == current_usecase, f"Expected {expected_usecase=}, not {current_usecase}"
 
@@ -86,7 +86,7 @@ class SuiteRM_CreateTests:
         current_comment = current_test.get_comment()
         expected_comment = "This test has a comment\nwith two lines"
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_test.get_attr()))
 
         assert expected_comment == current_comment, f"Expected {expected_comment=}, not {current_comment}"
 
@@ -101,7 +101,7 @@ class SuiteRM_CreateTests:
         current_test = rm.startTest(ma, description=expected_comment)
         current_comment = current_test.get_comment()
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_test.get_attributes()))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_test.get_attr()))
 
         assert expected_comment == current_comment, f"Expected {expected_comment=}, not {current_comment}"
 
@@ -117,7 +117,7 @@ class SuiteRM_CreateTests:
         @TN .5
         """
         current_test = rm.startTest(ma)
-        current_attributes = current_test.get_attributes()
+        current_attributes = current_test.get_attr()
         expected_attributes = {
             '@NAME': 'doc_string_test',
             '@TAG': {'BB2', 'CC', 'AA1'},
@@ -126,8 +126,8 @@ class SuiteRM_CreateTests:
             '@FEATURES': 'DOC F2', '@TN': '9.5'
         }
 
-        rm.testInfo(current_test, "Test Attributes:\n" + prettify(current_attributes))
-        rm.testInfo(current_test, "Expected Attributes:\n" + prettify(expected_attributes))
+        rm.test_info(current_test, "Test Attributes:\n" + prettify(current_attributes))
+        rm.test_info(current_test, "Expected Attributes:\n" + prettify(expected_attributes))
 
         assert current_attributes.items() >= expected_attributes.items(), "The attributes differ!"
 

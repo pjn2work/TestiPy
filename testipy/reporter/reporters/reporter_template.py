@@ -1,6 +1,7 @@
 from typing import Dict
+
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface
+from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReporterTemplate(ReportInterface):
@@ -10,58 +11,66 @@ class ReporterTemplate(ReportInterface):
         self.rm = rm
         self.sa = sa
 
-    def get_report_manager_base(self):
-        return self.rm.get_report_manager_base()
-
-    def save_file(self, current_test, data, filename):
+    def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test, orig_filename, dest_filename, data):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
     def __startup__(self, selected_tests: Dict):
-        rmb = self.get_report_manager_base()
+        pass
 
-    def __teardown__(self, end_state):
-        rmb = self.get_report_manager_base()
+    def __teardown__(self, end_state: str):
+        pass
 
-    def startPackage(self, package_name: str, package_attr: Dict):
-        rmb = self.get_report_manager_base()
+    def start_package(self, pd: PackageDetails):
+        pass
 
-    def endPackage(self, package_name: str, package_attr: Dict):
-        rmb = self.get_report_manager_base()
+    def end_package(self, pd: PackageDetails):
+        pass
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
-        rmb = self.get_report_manager_base()
+    def start_suite(self, sd: SuiteDetails):
+        pass
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
-        rmb = self.get_report_manager_base()
+    def end_suite(self, sd: SuiteDetails):
+        pass
 
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        rmb = self.get_report_manager_base()
+    def start_test(self, current_test: TestDetails):
+        pass
 
-    def testInfo(self, current_test, info, level, attachment=None):
-        rmb = self.get_report_manager_base()
+    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+        pass
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        rmb = self.get_report_manager_base()
+    def test_step(self, 
+                  current_test: TestDetails, 
+                  state: str, 
+                  reason_of_state: str = "", 
+                  description: str = "", 
+                  take_screenshot: bool = False, 
+                  qty: int = 1, 
+                  exc_value: BaseException = None):
+        pass
 
-    def endTest(self, current_test, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
-        rmb = self.get_report_manager_base()
+    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+        package_name = current_test.suite.package.get_name()
+        package_cycle = current_test.suite.package.get_cycle()
 
-        package_name = rmb.get_package_name()
-        package_cycle = rmb.get_package_cycle_number()
+        suite_name = current_test.get_name()
+        suite_cycle = current_test.get_cycle()
 
-        suite_name = rmb.get_suite_name()
-        suite_cycle = rmb.get_suite_cycle_number()
+        test_method_id = current_test.get_method_id()
+        test_id = current_test.get_test_id()
 
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
         test_usecase = current_test.get_usecase()
+        test_full_name = current_test.get_full_name(with_cycle_number=True)
 
         test_duration = current_test.get_duration()
         test_start = current_test.get_starttime()
         test_end = current_test.get_endtime()
+        test_counters = current_test.get_counters()
+        test_step_counters = current_test.get_test_step_counters()
 
         test_tags = " ".join(current_test.get_tags())
         test_level = current_test.get_level()
@@ -71,11 +80,11 @@ class ReporterTemplate(ReportInterface):
         test_number = current_test.get_test_number()
         test_comment = current_test.get_comment()
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass

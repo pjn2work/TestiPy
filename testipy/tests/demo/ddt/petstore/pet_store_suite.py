@@ -10,6 +10,7 @@ class SuitePetStore:
     """
     @LEVEL 1
     @TAG DDT PETSTORE
+    @PRIO 1
     """
     def __init__(self):
         self.ddt = DDTMethods("pet_store_data.yaml", "", Toolbox())

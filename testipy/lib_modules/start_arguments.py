@@ -27,6 +27,7 @@ class StartArguments:
     debugcode: bool
     onlyonce: bool
     repetitions: int
+    suite_threads: int
 
     storyboard: List[str]
 
@@ -114,6 +115,12 @@ class ParseStartArguments:
             rep = 1
         return rep
 
+    def get_suite_threads(self) -> int:
+        st = int(self.ap.get_option("-st", str(default_config.suite_threads)))
+        if st > 8:
+            raise ValueError("Number of suite_threads cannot exceed 8.")
+        return st
+
     def _get_tests_scripts_build(self, full_path_tests_scripts_foldername: str) -> Dict:
         try:
             filename = os.path.join(full_path_tests_scripts_foldername, default_config.tests_build_filename)
@@ -137,6 +144,7 @@ class ParseStartArguments:
             debugcode=self._is_debugcode(),
             onlyonce=self._is_onlyonce(),
             repetitions=self._get_repetitions(),
+            suite_threads=self.get_suite_threads(),
 
             storyboard=self._get_storyboard(),
 

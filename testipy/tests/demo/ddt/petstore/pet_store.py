@@ -24,7 +24,7 @@ class Toolbox(ExecutionToolbox):
         url = f"https://petstore3.swagger.io/api/v3/pet"
         try:
             response = _post_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("expected_response"))
-            rm.testInfo(current_test, f"{usecase_name} - POST {url} - received payload:\n" + prettify(response, as_yaml=False))
+            rm.test_info(current_test, f"{usecase_name} - POST {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "POST", ex)
             raise
@@ -33,7 +33,7 @@ class Toolbox(ExecutionToolbox):
         url = f"https://petstore3.swagger.io/api/v3/pet/" + str(usecase["param"])
         try:
             response = _get_as_dict(url, **usecase["control"], expected_response=usecase.get("expected_response"))
-            rm.testInfo(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
+            rm.test_info(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "GET", ex)
             raise
@@ -42,7 +42,7 @@ class Toolbox(ExecutionToolbox):
         url = f"https://petstore3.swagger.io/api/v3/pet"
         try:
             response = _put_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("expected_response"))
-            rm.testInfo(current_test, f"{usecase_name} - PUT {url} - received payload:\n" + prettify(response, as_yaml=False))
+            rm.test_info(current_test, f"{usecase_name} - PUT {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "PUT", ex)
             raise
@@ -51,7 +51,7 @@ class Toolbox(ExecutionToolbox):
         url = f"https://petstore3.swagger.io/api/v3/pet/" + str(usecase["param"])
         try:
             response = _delete_as_str(url, **usecase["control"], expected_response=usecase.get("expected_response"))
-            rm.testInfo(current_test, f"{usecase_name} - DELETE {url} - received payload:\n" + prettify(response, as_yaml=False))
+            rm.test_info(current_test, f"{usecase_name} - DELETE {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "DELETE", ex)
             raise
@@ -60,7 +60,7 @@ class Toolbox(ExecutionToolbox):
         url = f"https://petstore3.swagger.io/api/v3/pet/buy/" + str(usecase["param"])
         try:
             response = _get_as_dict(url, **usecase["control"], expected_response=usecase.get("expected_response"))
-            rm.testInfo(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
+            rm.test_info(current_test, f"{usecase_name} - GET {url} - received payload:\n" + prettify(response, as_yaml=False))
         except Exception as ex:
             _show_expected_payload_vs_received(rm, current_test, usecase, usecase_name, url, "GET", ex)
             raise
@@ -91,11 +91,11 @@ def _delete_as_str(url: str = "", timeout: int = 5, expected_status_code: int = 
 
 
 def _show_expected_payload_vs_received(rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, url: str, http_method: str, ex: Exception):
-    rm.testInfo(current_test,
-                info=f"{usecase_name} - {http_method} {url} - received Error payload:\n" +
+    rm.test_info(current_test,
+                 info=f"{usecase_name} - {http_method} {url} - received Error payload:\n" +
                     prettify(handle_http_response.body, as_yaml=False),
-                level="DEBUG" if isinstance(ex, ExpectedError) else "ERROR")
+                 level="DEBUG" if isinstance(ex, ExpectedError) else "ERROR")
     if expected_response := usecase.get("expected_response"):
-        rm.testInfo(current_test,
-                    info=f"{usecase_name} - expected payload:\n{prettify(expected_response, as_yaml=False)}",
-                    level="DEBUG")
+        rm.test_info(current_test,
+                     info=f"{usecase_name} - expected payload:\n{prettify(expected_response, as_yaml=False)}",
+                     level="DEBUG")

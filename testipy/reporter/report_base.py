@@ -2,89 +2,33 @@ from __future__ import annotations
 
 import pandas as pd
 
-from typing import Dict, List, Set, Any
+from typing import Dict
 from mimetypes import guess_type
-from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
-from testipy.helpers import format_duration
-from testipy.reporter.report_interface import ReportInterface
-from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp, get_datetime_now
-from testipy.lib_modules.state_counter import StateCounter
+from testipy.reporter.report_interfaces import ReportInterface
+from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp
+from testipy.reporter.package_manager import PackageManager, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReportBase(ReportInterface):
-    """
-    _all_test_results = {
-        "reporter_name": string
-        "counters": StateCounter()
-        "start_time": datetime
-        "end_time": datetime
-        "duration": int(seconds)
-        "details": class ReporterDetails
-        "package_list": {
-            "my.package.1": {
-                "package_name": "my.package.1"
-                "counters": StateCounter()
-                "start_time": datetime
-                "end_time": datetime
-                "duration": int(seconds)
-                "details": class ReporterDetails
-                "suite_list": {
-                    "suite001": {
-                        "suite_name": "suite001"
-                        "counters": StateCounter()
-                        "start_time": datetime
-                        "end_time": datetime
-                        "duration": int(seconds)
-                        "test_list": {
-                            "test_name": [ClassTestDetails, ClassTestDetails, ...],
-                            "Test Logout": [
-                                {
-                                    "method_name": "test_logout"
-                                    "attr": dict()
-                                    "info": [(timestamp, currentTime, level, info, attach), ...]
-                                    "counters": StateCounter()
-                                    "start_time": datetime
-                                    "end_time": datetime
-                                    "duration": int(seconds)
-                                },
-                                {...same test name, different usecase or ncycle...}
-                            ]
-                        } # end test_list
-                    },
-                    "suite002": {}
-                } # end suite_list
-            },
-            "another.package.2" = {}
-        } # end package_list
-    }
-    """
 
-    _columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Steps", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
+    _df_columns = ["Package", "P#", "Suite", "S#", "Test", "T#", "Level", "State", "Usecase", "Reason", "Steps", "Duration", "Start time", "End time", "TAGs", "Param", "Prio", "Features", "TestNumber", "Description", "TID"]
 
     def __init__(self, reporter_name):
         super().__init__(reporter_name)
-        self._all_test_results = dict()
-        self._all_test_results["details"] = ReportDetails(reporter_name)
-        self._all_test_results["package_list"] = dict()
 
         self._selected_tests: pd.DataFrame = None
-
-        self._current_package: Dict = None
-        self._current_suite: Dict = None
-        self._current_test: Dict = None
-
         self.end_state: str = None
+
+        # manage counters for packages/suites/tests
+        self.pm = PackageManager()
 
         # sequencial counter for test_id
         self._test_id_counter = 0
 
-        # common for all reporters
-        self._rm_base: ReportBase = self
-
         # results stored in da Pandas Dataframe
-        self._df = pd.DataFrame(columns=self._columns)
+        self._df = pd.DataFrame(columns=self._df_columns)
 
     # <editor-fold desc="--- Gets ---">
     def get_selected_tests_as_df(self) -> pd.DataFrame:
@@ -92,74 +36,6 @@ class ReportBase(ReportInterface):
 
     def get_df(self) -> pd.DataFrame:
         return self._df.copy()
-
-    def get_all_test_results(self) -> Dict:
-        return self._all_test_results
-
-    def get_reporter_name(self) -> str:
-        return self._all_test_results["details"].get_name(False)
-
-    def get_package_name(self, with_cycle_number=False):
-        return self._current_package["details"].get_name(with_cycle_number)
-
-    def get_suite_name(self, with_cycle_number=False):
-        return self._current_suite["details"].get_name(with_cycle_number)
-
-    def get_full_name(self, current_test, with_cycle_number=False):
-        return default_config.separator_package_suite_test.join((self.get_package_name(with_cycle_number),
-                                                                 self.get_suite_name(with_cycle_number),
-                                                                 current_test.get_name(with_cycle_number)))
-
-    def get_reporter_duration(self):
-        return self._all_test_results["details"].get_duration()
-
-    def get_package_duration(self):
-        return self._current_package["details"].get_duration()
-
-    def get_suite_duration(self):
-        return self._current_suite["details"].get_duration()
-
-    def get_package_cycle_number(self):
-        return self._current_package["details"].get_cycle()
-
-    def get_suite_cycle_number(self):
-        return self._current_suite["details"].get_cycle()
-
-    def get_reporter_counter(self):
-        return self._all_test_results["details"].get_counters()
-
-    def get_package_counter(self):
-        return self._current_package["details"].get_counters()
-
-    def get_suite_counter(self):
-        return self._current_suite["details"].get_counters()
-
-    def get_reporter_details(self):
-        return self._all_test_results["details"]
-
-    def get_package_details(self):
-        return self._current_package["details"]
-
-    def get_suite_details(self):
-        return self._current_suite["details"]
-
-    def get_test_methods_list_for_current_suite(self) -> Dict:
-        return self._current_suite["test_list"]
-
-    def get_test_state_by_prio(self, prio: int) -> Set:
-        return self._current_suite["test_state_by_prio"].get(prio, {})
-
-    def get_suite_list(self) -> Dict:
-        return self._current_package["suite_list"]
-
-    def get_package_list(self) -> Dict:
-        return self._all_test_results["package_list"]
-
-    def get_current_test(self):
-        return self._current_test
-
-    def clear_current_test(self):
-        self._current_test = None
 
     @staticmethod
     def create_attachment(filename, data) -> Dict:
@@ -169,99 +45,75 @@ class ReportBase(ReportInterface):
     # </editor-fold>
 
     # <editor-fold desc="--- Common functions starts here ---">
-    def save_file(self, current_test, data, filename) -> Dict:
+    def save_file(self, current_test: TestDetails, data, filename: str) -> Dict:
         return self.create_attachment(filename, data)
 
-    def copy_file(self, current_test, orig_filename, dest_filename, data) -> Dict:
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data) -> Dict:
         return self.create_attachment(dest_filename, data)
 
     def __startup__(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
-        return self
 
     def __teardown__(self, end_state):
-        self.end_state = end_state
-        self._all_test_results["details"].end_timer()
-        return self
+        totals = self.pm.state_counter
+        total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
+        self.end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
 
-    def startPackage(self, package_name: str, package_attr: Dict):
-        if package_name in self._all_test_results["package_list"]:
-            self._current_package = self._all_test_results["package_list"][package_name]
-            self._current_package["details"].inc_cycle()
-        else:
-            self._current_package = dict()
-            self._current_package["details"] = ReportDetails(package_name)
-            self._current_package["suite_list"] = dict()
+    def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
+        return self.pm.startPackage(package_name, package_attr)
 
-            self._all_test_results["package_list"][package_name] = self._current_package
-        return self
+    def start_package(self, pd: PackageDetails):
+        pass
 
-    def endPackage(self, package_name: str, package_attr: Dict):
-        self._current_package["details"].end_timer()
-        return self
+    def end_package(self, pd: PackageDetails):
+        pd.endPackage()
 
-    def startSuite(self, suite_name: str, suite_attr: Dict):
-        if suite_name in self._current_package["suite_list"]:
-            self._current_suite = self._current_package["suite_list"][suite_name]
-            self._current_suite["details"].inc_cycle()
-        else:
-            self._current_suite = dict()
-            self._current_suite["details"] = ReportDetails(suite_name, suite_attr)
-            self._current_suite["test_list"] = dict() # it will be a dict of "test_name": [TestDetails, TestDetails, (current_test), ...]
-            self._current_suite["test_state_by_prio"] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
+    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict) -> SuiteDetails:
+        return pd.startSuite(suite_name, suite_attr)
 
-            self._current_package["suite_list"][suite_name] = self._current_suite
-        return self
+    def start_suite(self, sd: SuiteDetails):
+        pass
 
-    def endSuite(self, suite_name: str, suite_attr: Dict):
-        self._current_suite["details"].end_timer()
-        return self
+    def end_suite(self, sd: SuiteDetails):
+        sd.endSuite()
 
-    def __create_new_test(self, attr, test_name, usecase, description):
-        if attr and isinstance(attr, Dict):
+    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+        if method_attr and isinstance(method_attr, Dict):
             self._test_id_counter += 1
 
-            attr = dict(attr)
-            attr["test_id"] = self._test_id_counter
-            attr["test_comment"] = str(description) if description else attr.get("test_comment", "")
-            attr["test_usecase"] = str(usecase)
+            test_attr = dict(method_attr)
+            test_attr["test_id"] = self._test_id_counter
+            test_attr["test_name"] = test_name or test_attr["@NAME"]
+            test_attr["test_comment"] = str(description) if description else test_attr.get("test_comment", "")
+            test_attr["test_usecase"] = str(usecase)
 
-            return TestDetails(test_name, attr)
+            sd: SuiteDetails = test_attr.get("suite_details")
+            if sd is None:
+                raise ValueError("When starting a new test, you must have in your MethodAttributes (dict) 'suite_details'." + str(test_attr))
+
+            del test_attr["suite_details"]
+            return sd.startTest(test_name, test_attr)
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        self._current_test = current_test = self.__create_new_test(method_attr, test_name, usecase, description)
-        test_name = current_test.get_name()
+    def start_test(self, current_test: TestDetails):
+        pass
 
-        if test_name in self._current_suite["test_list"]:
-            self._current_suite["test_list"][test_name].append(current_test)
-            current_test.set_cycle(len(self._current_suite["test_list"][test_name]))
-        else:
-            self._current_suite["test_list"][test_name] = [current_test]
-
-        return current_test
-
-    def testInfo(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None):
         current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
-        return self
 
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        current_test.testStep(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
+    def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
+        current_test.test_step(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
-    def endTest(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
+    def end_test(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
-        current_test.end_timer()
-        current_test.counters.inc_state(state, reason_of_state=reason_of_state, description="end test", qty=1, exc_value=exc_value)
-
-        # update package and suite
-        self.__update_package_suite_test_counters(current_test.get_prio(), state, reason_of_state)
+        current_test.endTest(state, reason_of_state, exc_value)
 
         # gather info for DataFrame
-        package_name = self.get_package_name(False)
-        package_cycle = self.get_package_cycle_number()
-        suite_name = self.get_suite_name(False)
-        suite_cycle = self.get_suite_cycle_number()
+        package_name = current_test.suite.package.get_name(False)
+        package_cycle = current_test.suite.package.get_cycle()
+        suite_name = current_test.suite.get_name(False)
+        suite_cycle = current_test.suite.get_cycle()
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
         test_usecase = current_test.get_usecase()
@@ -291,253 +143,13 @@ class ReportBase(ReportInterface):
 
         return self
 
-    def showStatus(self, message: str):
+    def show_status(self, message: str):
         pass
 
-    def showAlertMessage(self, message: str):
+    def show_alert_message(self, message: str):
         pass
 
-    def inputPromptMessage(self, message: str, default_value: str = ""):
+    def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
     # </editor-fold>
-
-    def __update_package_suite_test_counters(self, prio: int, state: str, reason_of_state: str):
-        if prio not in self._current_suite["test_state_by_prio"]:
-            self._current_suite["test_state_by_prio"][prio] = set()
-        self._current_suite["test_state_by_prio"][prio].add(state)
-
-        self._current_suite["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update suite counters", qty=1)
-        self._current_package["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update package counters", qty=1)
-        self._all_test_results["details"].counters.inc_state(state, reason_of_state=reason_of_state, description="update global counters", qty=1)
-
-
-class Package:
-    def __init__(self, name: str, package_attr: Dict):
-        self.name: str = name
-        self.package_attr: Dict = package_attr
-
-        self.cycle_number: int = 1
-        self.state_counters: StateCounter = StateCounter()
-
-        self.start_time = get_datetime_now()
-        self.end_time = None
-
-
-class PackageManager:
-    def __init__(self):
-        self._package_by_name: Dict[str, Package] = dict()
-
-    def startPackage(self, name: str, package_attr: Dict):
-        if name in self._package_by_name:
-            self._package_by_name[name].cycle_number += 1
-        else:
-            self._package_by_name[name] = Package(name, package_attr)
-
-    def endPackage(self, name: str, package_attr: Dict):
-        self._package_by_name[name].end_time = get_datetime_now()
-
-
-class ReportDetails:
-
-    def __init__(self, name: str, attr: Dict[str, Any] = None):
-        self.attr = attr or {enums_data.TAG_NAME: name}
-        self.attr["cycle_number"] = 1
-        self.name = str(name) or attr[enums_data.TAG_NAME]
-        self.counters = StateCounter()
-        self.start_time = get_datetime_now()
-        self.end_time = None
-
-    def get_attributes(self) -> Dict:
-        return self.attr
-
-    def get_cycle(self) -> int:
-        return self.attr["cycle_number"]
-
-    def set_cycle(self, current_cycle: int):
-        self.attr["cycle_number"] = current_cycle
-        return self
-
-    def inc_cycle(self):
-        self.attr["cycle_number"] += 1
-        self.end_time = None
-        return self
-
-    def end_timer(self):
-        self.end_time = get_datetime_now()
-        return self
-
-    def get_name(self, with_cycle_number=False) -> str:
-        return f"{self.name}{default_config.separator_cycle}{self.get_cycle()}" if with_cycle_number else self.name
-
-    def get_counters(self) -> StateCounter:
-        return self.counters
-
-    def get_starttime(self):
-        return self.start_time
-
-    def get_endtime(self):
-        return self.end_time
-
-    def get_duration(self) -> int:
-        return self.duration
-
-    @property
-    def duration(self):
-        if not self.end_time:
-            return None
-        return (self.end_time - self.start_time).total_seconds()
-
-    # ex: suiteCertificates#21 ["PASSED":12, "FAILED": 2, "SKIPPED": 0, "Total": 14] took
-    def __str__(self):
-        sname = self.get_name(True)
-
-        if self.duration:
-            return "{} {:.2f}% [{}] took {}".format(sname, self.counters.get_state_percentage(enums_data.STATE_PASSED), self.counters, format_duration(self.duration))
-
-        return sname
-
-
-class TestDetails(ReportDetails):
-
-    def __init__(self, test_name: str, attr: Dict[str, Any]):
-        super().__init__(test_name, attr)
-        self.attr["test_name"] = self.name
-        self._info = list()
-        self._test_step = StateCounter()
-
-    def get_method_id(self) -> int:
-        return self.attr["method_id"]
-
-    def get_test_id(self) -> int:
-        return self.attr["test_id"]
-
-    def get_tags(self) -> List:
-        if enums_data.TAG_TAG not in self.attr:
-            return []
-        return list(self.attr[enums_data.TAG_TAG])
-
-    def get_level(self) -> int:
-        return self.attr.get(enums_data.TAG_LEVEL, 0)
-
-    def get_prio(self) -> int:
-        return self.attr.get(enums_data.TAG_PRIO, 999)
-
-    def get_features(self) -> str:
-        return self.attr.get(enums_data.TAG_FEATURES, "")
-
-    def get_comment(self) -> str:
-        return self.attr.get("test_comment", "")
-
-    def get_test_number(self) -> str:
-        return self.attr.get(enums_data.TAG_TESTNUMBER, "")
-
-    def get_test_param_parameter(self):
-        return self.attr.get("param")
-
-    def get_test_name(self, with_cycle_number=False) -> str:
-        return self.attr["test_name"]
-
-    def get_usecase(self) -> str:
-        return self.attr["test_usecase"]
-
-    def add_info(self, ts, current_time, level, info, attachment):
-        self._info.append((ts, current_time, str(level).upper(), info, attachment))
-        return self
-
-    def get_info(self) -> List:
-        return list(self._info)
-
-    def get_number_test_steps(self) -> int:
-        return self._test_step.get_total()
-
-    def testStep(self, state: str, reason_of_state: str = "", description: str = "", qty: int = 1, exc_value: BaseException = None):
-        self._test_step.inc_state(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
-        return self
-
-    def get_new_state_counter(self) -> StateCounter:
-        return StateCounter()
-
-    def get_test_step_counters(self) -> StateCounter:
-        return self._test_step
-
-    def get_test_step_counters_tabulate(self, tablefmt="simple") -> str:
-        # reverse timed_laps row order, with timestamp being the first column
-        tl = [(str(lap.timed_all_end)[:23], lap.state, lap.qty, lap.total_seconds, lap.reason_of_state, lap.description) for lap in self.get_test_step_counters().get_timed_laps()]
-
-        return tabulate(tl, headers=("Timestamp", "State", "Qty", "Elapsed", "Reason of State", "Step"),
-                 floatfmt=".4f", tablefmt=tablefmt)
-
-    def set_next_step_starting_from_now(self):
-        self._test_step.set_state_starting_from_now()
-        return self
-
-    def get_state(self):
-        return super().get_counters().get_last_state() or self._test_step.get_last_state()
-
-    def is_passed(self):
-        return self.get_state() == enums_data.STATE_PASSED
-
-    def is_failed(self):
-        return self.get_state() in [enums_data.STATE_FAILED, enums_data.STATE_FAILED_KNOWN_BUG]
-
-    def is_skipped(self):
-        return self.get_state() == enums_data.STATE_SKIPPED
-
-    def __str__(self):
-        res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_test_name()}"
-        if usecase := self.get_usecase():
-            res += f" | {usecase}"
-        if state := self.get_state():
-            res += f" | {state=}"
-        return res
-
-    def __repr__(self):
-        return f"{self.__class__.__module__}.{self.__class__.__name__}(meid={self.get_method_id()}, teid={self.get_test_id()}, prio={self.get_prio()}, {self.get_name(True)}, status={self.get_state()})"
-
-
-"""
-{
-'package_name': 'assertions',
-'ncycles': 1,
-'package_id': 1}
-   {'filename': 'test_rm_create_tests.py', 
-   'suite_name': 'SuiteRM_CreateTests', 
-   'ncycles': 1, 
-   '@NAME': 'RM_CreateTests', 
-   '@TAG': {'UT'},
-   '@LEVEL': 1, 
-   '@PRIO': 9, 
-   '@FEATURES': '', 
-   '@TN': '9', 
-   '@DEPENDS': set(), 
-   '@ON_SUCCESS': set(), 
-   '@ON_FAILURE': set(), 
-   'package_id': 1, 
-   'package_name': 'assertions', 
-   'suite_id': 1}
-      {'method_name': 'test_doc_string', 
-      'ncycles': 1, 
-      'param': {}, 
-      '@NAME': 'doc_string_test', 
-      '@TAG': {'AA1', 'BB2', 'CC'}, 
-      '@LEVEL': 1, '@PRIO': 10, 
-      '@FEATURES': 'DOC F2', 
-      '@TN': '9.5', 
-      '@DEPENDS': set(), 
-      '@ON_SUCCESS': set(), 
-      '@ON_FAILURE': set(), 
-      'auto_included': False, 
-      'package_id': 1, 
-      'package_name': 'assertions', 
-      'suite_id': 1, 
-      'suite_name': 'SuiteRM_CreateTests',
-      'method_id': 1}
-      {'method_name': 'test_create_test_with_override_comment', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_override_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 2}
-      {'method_name': 'test_create_test_with_override_name', 'ncycles': 2, 'param': {}, '@NAME': 'create_test_with_override_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 3}
-      {'method_name': 'test_create_test_with_usecase', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_with_usecase', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 4}
-      {'method_name': 'test_create_test_without_attr', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_attr', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 5}
-      {'method_name': 'test_create_test_without_name', 'ncycles': 1, 'param': {}, '@NAME': 'create_test_without_name', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 6}
-      {'method_name': 'test_has_default_comment', 'ncycles': 1, 'param': {}, '@NAME': 'has_default_comment', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 7}
-      {'method_name': 'test_will_be_auto_created', 'ncycles': 1, 'param': {}, '@NAME': 'will_be_auto_created', '@TAG': set(), '@LEVEL': 1, '@PRIO': 999, '@FEATURES': '', '@TN': '9', '@DEPENDS': set(), '@ON_SUCCESS': set(), '@ON_FAILURE': set(), 'auto_included': False, 'package_id': 1, 'suite_id': 1, 'method_id': 8}
-"""

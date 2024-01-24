@@ -6,7 +6,7 @@ from testipy.configs import enums_data, default_config
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface
+from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 
@@ -27,8 +27,59 @@ class ReporterJUnitXML(ReportInterface):
         with open(self.fpn, "w"):
             pass
 
-    def get_report_manager_base(self):
-        return self.rm.get_report_manager_base()
+    def save_file(self, current_test: TestDetails, data, filename: str):
+        pass
+
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
+        pass
+
+    def __startup__(self, selected_tests: Dict):
+        pass
+
+    def __teardown__(self, end_state: str):
+        with open(self.fpn, "w") as xml_file:
+            xml_file.write(HEADER)
+            self._generate_tag_testsuites(xml_file)
+
+    def start_package(self, pd: PackageDetails):
+        pass
+
+    def end_package(self, pd: PackageDetails):
+        pass
+
+    def start_suite(self, sd: SuiteDetails):
+        pass
+
+    def end_suite(self, sd: SuiteDetails):
+        pass
+
+    def start_test(self, current_test: TestDetails):
+        pass
+
+    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+        pass
+
+    def test_step(self,
+                  current_test: TestDetails,
+                  state: str,
+                  reason_of_state: str = "",
+                  description: str = "",
+                  take_screenshot: bool = False,
+                  qty: int = 1,
+                  exc_value: BaseException = None):
+        pass
+
+    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+        pass
+
+    def show_status(self, message: str):
+        pass
+
+    def show_alert_message(self, message: str):
+        pass
+
+    def input_prompt_message(self, message: str, default_value: str = ""):
+        pass
 
     def __ensure_folder(self, folder_name):
         try:
@@ -38,58 +89,9 @@ class ReporterJUnitXML(ReportInterface):
         except:
             self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
 
-    def save_file(self, current_test, data, filename):
-        pass
-
-    def copy_file(self, current_test, orig_filename, dest_filename, data):
-        pass
-
-    def __startup__(self, selected_tests: Dict):
-        pass
-
-    def __teardown__(self, end_state):
-        mb = self.get_report_manager_base()  # get manager base
-
-        with open(self.fpn, "w") as xml_file:
-            xml_file.write(HEADER)
-            self._generate_tag_testsuites(mb, xml_file)
-
-    def startPackage(self, package_name: str, package_attr: Dict):
-        pass
-
-    def endPackage(self, package_name: str, package_attr: Dict):
-        pass
-
-    def startSuite(self, suite_name: str, suite_attr: Dict):
-        pass
-
-    def endSuite(self, suite_name: str, suite_attr: Dict):
-        pass
-
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        pass
-
-    def testInfo(self, current_test, info, level, attachment=None):
-        pass
-
-    def testStep(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
-        pass
-
-    def endTest(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
-        pass
-
-    def showStatus(self, message: str):
-        pass
-
-    def showAlertMessage(self, message: str):
-        pass
-
-    def inputPromptMessage(self, message: str, default_value: str = ""):
-        pass
-
-    def _generate_tag_testsuites(self, mb: ReportManager, xml_file):
+    def _generate_tag_testsuites(self, xml_file):
         # all tests counter
-        atc = mb.get_all_test_results()["details"].get_counters()
+        atc = self.rm.pm.state_counter
 
         # set id
         id = self.rm.get_foldername_runtime()
@@ -104,26 +106,23 @@ class ReporterJUnitXML(ReportInterface):
         failures = str(atc[enums_data.STATE_FAILED] + atc[enums_data.STATE_FAILED_KNOWN_BUG])
 
         # set total of duration
-        time = "{:.3f}".format(mb.get_reporter_duration())
+        time = "{:.3f}".format(self.rm.pm.get_duration())
 
         # Log XML tag
         xml_file.write(f"<testsuites {id=} {name=} {tests=} {failures=} {time=}>\n".replace("'", '"'))
-        self._generate_tag_testsuite(mb, xml_file)
+        self._generate_tag_testsuite(xml_file)
         xml_file.write("</testsuites>")
 
-    def _generate_tag_testsuite(self, mb: ReportManager, xml_file):
-        for pkg_name, pkg_dict in mb.get_package_list().items():
-            pkg = pkg_dict['details']
-
-            for suite_name, suite_dict in pkg_dict["suite_list"].items():
-                suite = suite_dict['details']
-                sc = suite.get_counters()
+    def _generate_tag_testsuite(self, xml_file):
+        for pd in self.rm.pm.all_packages:
+            for sd in pd.suite_manager.all_suites:
+                sc = sd.state_counter
 
                 # set id
-                id = f"{pkg.get_name(True)}{default_config.separator_package_suite_test}{suite.get_name(True)}"
+                id = sd.get_full_name(with_cycle_number=True)
 
                 # set name
-                name = suite_name
+                name = sd.get_name()
 
                 # set total of tests
                 tests = str(sc.get_total())
@@ -132,43 +131,42 @@ class ReporterJUnitXML(ReportInterface):
                 failures = str(sc[enums_data.STATE_FAILED] + sc[enums_data.STATE_FAILED_KNOWN_BUG])
 
                 # set total of duration
-                time = "{:.3f}".format(suite.get_duration())
+                time = "{:.3f}".format(sd.get_duration())
 
                 # Log XML tag
                 xml_file.write(f" <testsuite {id=} {name=} {tests=} {failures=} {time=}>\n".replace("'", '"'))
-                self._generate_tag_testcase(mb, xml_file, suite_dict["test_list"], id)
+                self._generate_tag_testcase(xml_file, sd, id)
                 xml_file.write(" </testsuite>\n")
 
-    def _generate_tag_testcase(self, mb: ReportManager, xml_file, test_list: dict, suite_id: str):
-        for test_name, list_of_test_usecases in test_list.items():
-            for current_test in list_of_test_usecases:          # ReporterDetails
-                usecase_name = current_test.get_usecase()
+    def _generate_tag_testcase(self, xml_file, sd: SuiteDetails, suite_id: str):
+        for current_test in sd.test_manager.all_tests:
+            usecase_name = current_test.get_usecase()
 
-                # set id
-                id = string_fixer(f"{suite_id}.[{current_test.get_name(True)}] - {usecase_name}")
+            # set id
+            id = string_fixer(current_test.get_full_name(with_cycle_number=True))
 
-                # set name
-                name = string_fixer(f"{test_name} - {usecase_name}")
+            # set name
+            name = string_fixer(f"{current_test.get_name()} - {usecase_name}")
 
-                # set total of duration
-                time = "{:.3f}".format(current_test.get_duration())
+            # set total of duration
+            time = "{:.3f}".format(current_test.get_duration())
 
-                # set total of failures
-                fail_counters = current_test.get_test_step_counters()
+            # set total of failures
+            fail_counters = current_test.get_test_step_counters()
+            failures = fail_counters[enums_data.STATE_FAILED] + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
+            if failures == 0:
+                fail_counters = current_test.get_counters()
                 failures = fail_counters[enums_data.STATE_FAILED] + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
-                if failures == 0:
-                    fail_counters = current_test.get_counters()
-                    failures = fail_counters[enums_data.STATE_FAILED] + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
-                failures = str(failures)
+            failures = str(failures)
 
-                # show testcase
-                xml_file.write(f'  <testcase id="{id}" name="{name}" failures="{failures}" time="{time}"')
-                if failures == "0":
-                    xml_file.write(f' />\n')
-                else:
-                    xml_file.write(f'>\n')
-                    self._generate_tag_failure(xml_file, fail_counters, current_test.get_counters())
-                    xml_file.write("  </testcase>\n")
+            # show testcase
+            xml_file.write(f'  <testcase id="{id}" name="{name}" failures="{failures}" time="{time}"')
+            if failures == "0":
+                xml_file.write(f' />\n')
+            else:
+                xml_file.write(f'>\n')
+                self._generate_tag_failure(xml_file, fail_counters, current_test.get_counters())
+                xml_file.write("  </testcase>\n")
 
     def _generate_tag_failure(self, xml_file, fail_counters: StateCounter, test_counters: StateCounter):
         self._generate_failure_detail(xml_file, fail_counters, test_counters, enums_data.STATE_FAILED)

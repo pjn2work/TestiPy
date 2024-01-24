@@ -193,7 +193,7 @@ def mark_pkg_sui_mth_ids(test_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_T
             suite_attr["package_name"] = package_name
 
             suite_attr["suite_id"] = suite_id
-            suite_name = suite_attr["suite_name"]
+            suite_name = suite_attr["@NAME"]
 
             for method_attr in suite_attr["test_list"]:
                 method_id += 1

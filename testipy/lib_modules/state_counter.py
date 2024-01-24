@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os.path
 from datetime import datetime
 from typing import Union, List, Tuple, Dict
 from collections import namedtuple
@@ -262,6 +263,9 @@ class StateCounter:
     def get_summary_per_state(self) -> List[Tuple[str, int, float, Dict[str, int]]]:
         return [(state, value, self.get_state_percentage(state), self.get_reasons_of_state(state)) for state, value in self._counter.items()]
 
+    def get_summary_per_state_without_ros(self) -> List[Tuple[str, int, float]]:
+        return [(state, value, self.get_state_percentage(state)) for state, value in self._counter.items()]
+
     def get_dict(self) -> Dict[str, int]:
         """
         :return: dict with state counters
@@ -325,6 +329,10 @@ class StateCounter:
 
     def items(self):
         return self._counter.items()
+
+    def export_summary_to_file(self, filename: str):
+        with open(filename, "w+") as f:
+            f.write("\n".join([f"{state}: {qty}" for state, qty in self._counter.items()]))
 
     def __str__(self):
         state_total = [f"{state}={total}" for state, total in self._counter.items()]
