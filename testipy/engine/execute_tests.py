@@ -2,18 +2,48 @@
 
 import os
 import traceback
+import concurrent.futures
 
 from typing import List, Dict
 
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import common_methods as cm
+from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.helpers.prettify import format_duration
 from testipy.helpers.handle_assertions import ExpectedError
 from testipy.reporter.report_manager import ReportManager
-from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter.package_manager import SuiteDetails
+
+
+class ExecutionProgress:
+
+    def __init__(self, execution_log, total_methods_to_call):
+        self.execution_log = execution_log
+        self.total_methods_to_call = total_methods_to_call
+        self.percent_completed = 0.0
+        self.method_seq = 0
+
+    @synchronized
+    def inc(self):
+        self.method_seq += 1
+
+    def get_percent_completed(self):
+        return self.method_seq * 100 / self.total_methods_to_call
+
+    @synchronized
+    def print_progress_when_method_ends(self, state: str, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
+        self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
+            color_state(state),
+            self.get_percent_completed(),
+            format_duration(duration).rjust(10),
+            total_failed, total,
+            package_attr["package_name"], suite_attr["filename"],
+            method_attr["method_name"][len(default_config.prefix_tests):], method_attr["method_id"],
+            ros[:70]))
+
 
 class Executer:
 
@@ -26,9 +56,43 @@ class Executer:
     def get_total_failed_skipped(self):
         return self._total_failed_skipped
 
-    def execute(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False):
-        total_methods_to_call = _get_total_runs_of_selected_methods(selected_tests)
-        method_seq = 0
+    def _execute_parallel(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False, suite_threads=1):
+        ep = ExecutionProgress(self.execution_log, _get_total_runs_of_selected_methods(selected_tests))
+
+        def _process_suite(suite_attr):
+            for _ in range(1 if onlyonce else suite_attr.get("ncycles", 1)):
+                sd = rm.startSuite(pd, suite_attr[enums_data.TAG_NAME],cm.dict_without_keys(suite_attr, ["suite_obj", "test_list"]))
+
+                # initialize suite __init__()
+                try:
+                    suite_attr["app"] = suite_attr["suite_obj"](**suite_attr.get("suite_kwargs", dict()))
+                    _error = None
+                except Exception as ex:
+                    _error = ex
+
+                for method_attr in suite_attr["test_list"]:
+                    ep.inc()
+                    self._call_test_method(package_attr, suite_attr, dict(method_attr), sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
+
+                if "app" in suite_attr:
+                    del suite_attr["app"]
+
+                rm.end_suite(sd)
+
+        for package_attr in selected_tests:
+            for _ in range(1 if onlyonce else package_attr.get("ncycles", 1)):
+
+                self._change_cwd_to_package(package_attr["package_name"])
+                pd = rm.startPackage(package_attr["package_name"], package_attr)
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=suite_threads) as executor:
+                    tasks = {executor.submit(_process_suite, suite_attr): suite_attr for suite_attr in package_attr["suite_list"]}
+                    concurrent.futures.wait(tasks)
+
+                rm.end_package(pd)
+
+    def _execute_sequential(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False):
+        ep = ExecutionProgress(self.execution_log, _get_total_runs_of_selected_methods(selected_tests))
 
         for package_attr in selected_tests:
             for _ in range(1 if onlyonce else package_attr.get("ncycles", 1)):
@@ -49,10 +113,8 @@ class Executer:
                             _error = ex
 
                         for method_attr in suite_attr["test_list"]:
-                            method_seq += 1
-                            percent_completed = method_seq * 100 / total_methods_to_call
-
-                            self._call_test_method(package_attr, suite_attr, dict(method_attr), sd, rm, dryrun_mode, debug_code, onlyonce, percent_completed, _error)
+                            ep.inc()
+                            self._call_test_method(package_attr, suite_attr, dict(method_attr), sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
 
                         if "app" in suite_attr:
                             del suite_attr["app"]
@@ -61,15 +123,11 @@ class Executer:
 
                 rm.end_package(pd)
 
-    def _print_progress_when_method_ends(self, state: str, percent_completed: float, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
-        self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
-            color_state(state),
-            percent_completed,
-            format_duration(duration).rjust(10),
-            total_failed, total,
-            package_attr["package_name"], suite_attr["filename"],
-            method_attr["method_name"][len(default_config.prefix_tests):], method_attr["method_id"],
-            ros[:70]))
+    def execute(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False, suite_threads=1):
+        if suite_threads > 1:
+            self._execute_parallel(rm, selected_tests, dryrun_mode, debug_code, onlyonce, suite_threads)
+        else:
+            self._execute_sequential(rm, selected_tests, dryrun_mode, debug_code, onlyonce)
 
     def _auto_close_single_test(self, rm: ReportManager, current_test, had_exception: Exception = None):
         if had_exception:
@@ -88,7 +146,7 @@ class Executer:
         for current_test in list(sd.get_tests_running_by_meid(method_attr["method_id"])):
             self._auto_close_single_test(rm, current_test, had_exception)
 
-    def _calculate_state_for_all_tests_under_this_method(self, rm: ReportManager, sd: SuiteDetails, package_attr, suite_attr, method_attr, had_exception: Exception, percent_completed: float):
+    def _calculate_state_for_all_tests_under_this_method(self, rm: ReportManager, sd: SuiteDetails, package_attr, suite_attr, method_attr, had_exception: Exception, ep: ExecutionProgress):
         # End not properly ended tests - this should never happen here
         self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, method_attr=method_attr, had_exception=had_exception)
 
@@ -115,9 +173,9 @@ class Executer:
         duration = results.get_sum_time_laps()
         method_state, method_ros = results.get_state_by_severity()
 
-        self._print_progress_when_method_ends(method_state, percent_completed, duration, total_failed, total, package_attr, suite_attr, method_attr, method_ros or "!")
+        ep.print_progress_when_method_ends(method_state, duration, total_failed, total, package_attr, suite_attr, method_attr, method_ros or "!")
 
-    def _call_test_method(self, package_attr, suite_attr, method_attr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, percent_completed, _error):
+    def _call_test_method(self, package_attr, suite_attr, method_attr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, ep: ExecutionProgress, _error):
         had_exception = None
         method_attr["suite_details"] = sd
 
@@ -157,7 +215,7 @@ class Executer:
                         raise ex
                     had_exception = ex
 
-        self._calculate_state_for_all_tests_under_this_method(rm, sd, package_attr, suite_attr, method_attr, had_exception, percent_completed)
+        self._calculate_state_for_all_tests_under_this_method(rm, sd, package_attr, suite_attr, method_attr, had_exception, ep)
 
     def _change_cwd_to_package(self, package_name):
         package_name = package_name.replace(default_config.separator_package, os.path.sep)
@@ -203,6 +261,6 @@ def _get_stacktrace_string_for_tests(ex: Exception) -> str:
 def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List[Dict], rm: ReportManager) -> int:
     runner = Executer(execution_log, sa.full_path_tests_scripts_foldername)
 
-    runner.execute(rm, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce)
+    runner.execute(rm, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce, sa.suite_threads)
 
     return runner.get_total_failed_skipped()

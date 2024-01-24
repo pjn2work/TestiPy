@@ -4,7 +4,7 @@ import os
 from typing import List, Dict
 from abc import abstractmethod, ABC
 
-from testipy.configs import enums_data, default_config
+from testipy.configs import default_config
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.browser_manager import BrowserManager
@@ -126,7 +126,10 @@ class ReportManagerClient:
 
         return fn + str(filename)
 
-        # <editor-fold desc="--- HTTP Server ---">
+    def generate_filename(self, current_test: TestDetails, filename: str = ".txt") -> str:
+        return self.get_results_folder_filename(current_test, f'_{current_test.get_cycle():02}_{filename}')
+
+    # <editor-fold desc="--- HTTP Server ---">
 
     @staticmethod
     def start_http_servers(tcp_ports_list: List, listeners_list: List = None):

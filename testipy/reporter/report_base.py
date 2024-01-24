@@ -37,11 +37,6 @@ class ReportBase(ReportInterface):
     def get_df(self) -> pd.DataFrame:
         return self._df.copy()
 
-    def get_full_name(self, current_test: TestDetails, with_cycle_number=False, sep=default_config.separator_package_suite_test):
-        return sep.join((current_test.suite.package.get_name(with_cycle_number),
-                         current_test.suite.get_name(with_cycle_number),
-                         current_test.get_name(with_cycle_number)))
-
     @staticmethod
     def create_attachment(filename, data) -> Dict:
         return {"name": filename,

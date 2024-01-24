@@ -12,7 +12,7 @@ from testipy.reporter import ReportManager, ReportInterface
 
 SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
 DEFAULT_CHANNEL = "C06BQ1UP6KG"
-NOTIFY_USERS: dict[str, str] = dict()  # {"Pedro Nunes": "D067TJE96NM"}
+NOTIFY_USERS: dict[str, str] = dict()  # {"John Doe": "D067TJE96NM"}
 RATE_WAIT_SEC = 0.45
 
 

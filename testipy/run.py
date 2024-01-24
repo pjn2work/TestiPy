@@ -155,6 +155,8 @@ def run_testipy(args=None) -> int:
             print(f"exitcode={fails} | Results at {sa.full_path_results_folder_runtime}")
     except Exception as ex:
         print(ex, file=sys.stderr)
+        # remove comment for debug purpose
+        # raise ex
 
     return fails
 

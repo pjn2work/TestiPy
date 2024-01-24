@@ -3,7 +3,7 @@ import os
 
 from typing import List, Dict, Tuple, Any
 
-from testipy.configs import enums_data, default_config
+from testipy.configs import enums_data
 from testipy.helpers import format_duration
 from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.textdecor import color_state
@@ -182,9 +182,6 @@ class ReportManager(ReportBase, ReportManagerClient):
                     raise
 
         return self
-
-    def generate_filename(self, current_test: TestDetails, filename: str = ".txt") -> str:
-        return self.get_results_folder_filename(current_test, f'_{current_test.get_cycle():02}_{filename}')
 
     def testPassed(self, current_test: TestDetails, reason_of_state="", exc_value: BaseException = None):
         self.end_test(current_test, enums_data.STATE_PASSED, reason_of_state, exc_value)

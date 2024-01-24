@@ -42,6 +42,7 @@
         -rf         Results Folder (ex: -rf "/qa/test_results/"), where the tests results will be stored
         -tf         Tests Folder (ex: -tf "/qa/tests_scripts/jules/"), full path to where the tests are
         -repeat     Run the exact same pipeline that amount of times
+        -st         Suite Threads = 1..8 (ex: -st 4, meaning 4 suites can run in parallel) 
     
     #### flags
         --dryrun         All tests will run but without really being executed (all of them will end with SKIPPED)
