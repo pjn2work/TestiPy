@@ -11,7 +11,8 @@ from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
-default_format ="%(asctime)s %(levelname)s - %(message)s"
+log_format = "%(asctime)s %(levelname)s - %(message)s"
+table_format = "github"
 
 
 class ReporterLog(ReportInterface):
@@ -53,16 +54,15 @@ class ReporterLog(ReportInterface):
         self.__log(f"{app} {version}", "INFO")
         self.__log("Selected Tests:\n{}".format(tabulate(selected_tests["data"],
                                                          headers=selected_tests["headers"],
-                                                         tablefmt="github")), "INFO")
+                                                         tablefmt=table_format)), "INFO")
 
     def __teardown__(self, end_state: str):
         sc = self.rm.pm.state_counter
-        tab_resume = tabulate(sc.get_summary_per_state(),
-                              headers=("State", "Qty", "%", "RoS"),
+        tab_resume = tabulate(sc.get_summary_per_state_without_ros(),
+                              headers=("State", "Qty", "%"),
                               floatfmt=".2f",
-                              tablefmt="github")
-        self.__log("{} - {:.2f}%/{} took {} to {}\n{}".format(
-            self.rm.name,
+                              tablefmt=table_format)
+        self.__log("Teardown - {:.2f}% success for {} tests, took {} to {}\n{}".format(
             sc.get_state_percentage(enums_data.STATE_PASSED),
             sc.get_total(),
             format_duration(self.rm.pm.get_duration()),
@@ -77,13 +77,13 @@ class ReporterLog(ReportInterface):
     def end_package(self, pd: PackageDetails):
         sc = pd.state_counter
 
-        tab_resume = tabulate(sc.get_summary_per_state(),
-            headers=("State", "Qty", "%", "RoS"),
+        tab_resume = tabulate(sc.get_summary_per_state_without_ros(),
+            headers=("State", "Qty", "%"),
             floatfmt=".2f",
-            tablefmt="github")
+            tablefmt=table_format)
 
         self.__log(
-            "Ending Package {} - {:.2f}%/{} took {}\n{}".format(
+            "Ending Package {} - {:.2f}% success for {} tests, took {}\n{}".format(
                 pd.get_name(with_cycle_number=True),
                 sc.get_state_percentage(enums_data.STATE_PASSED),
                 sc.get_total(),
@@ -91,17 +91,17 @@ class ReporterLog(ReportInterface):
                 tab_resume),"INFO")
 
     def start_suite(self, sd: SuiteDetails):
-        self.__log(f"Starting Suite {sd.get_name(with_cycle_number=True)}", "INFO")
-        self.__create_folder(self.rm.get_results_folder_filename())
+        self.__log(f"Starting Suite {sd.get_full_name(with_cycle_number=True)}", "INFO")
+        self.__create_folder(self.rm.get_results_folder_filename(sd, ""))
 
     def end_suite(self, sd: SuiteDetails):
-        tab_resume = tabulate(sd.state_counter.get_summary_per_state(),
-                              headers=("State", "Qty", "%", "RoS"),
+        tab_resume = tabulate(sd.state_counter.get_summary_per_state_without_ros(),
+                              headers=("State", "Qty", "%"),
                               floatfmt=".2f",
-                              tablefmt="github")
+                              tablefmt=table_format)
 
-        self.__log("Ending Suite {} - {:.2f}%/{} took {}\n{}".format(
-            sd.get_name(with_cycle_number=True),
+        self.__log("Ending Suite {} - {:.2f}% success for {} tests, took {}\n{}".format(
+            sd.get_full_name(with_cycle_number=True),
             sd.state_counter.get_state_percentage(enums_data.STATE_PASSED),
             sd.state_counter.get_total(),
             format_duration(sd.get_duration()),
@@ -149,7 +149,7 @@ class ReporterLog(ReportInterface):
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def __get_logger(self, level=logging.DEBUG, format=default_format):
+    def __get_logger(self, level=logging.DEBUG, format=log_format):
         # create logger
         if self._logger is None:
             fpn = os.path.join(self.results_folder_runtime, self.filename)
@@ -175,11 +175,12 @@ class ReporterLog(ReportInterface):
         except:
             self.__log(f"Could not create results folder {folder_name}", "ERROR")
 
-    def __log_test_steps(self, current_test):
+    def __log_test_steps(self, current_test: TestDetails):
+        test_full_name = current_test.get_full_name(with_cycle_number=True)
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
-            test_steps = current_test.get_test_step_counters_tabulate(tablefmt="github")
-            self.__log("Test steps:\n" + test_steps, "DEBUG")
+            test_steps = current_test.get_test_step_counters_tabulate(tablefmt=table_format)
+            self.__log(f"Test steps {test_full_name}:\n" + test_steps, "DEBUG")
             str_summary = "Steps Summary: " + tc.summary(verbose=False)
         else:
             str_summary = "Test Summary: " + current_test.get_counters().summary(verbose=False)

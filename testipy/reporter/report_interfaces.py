@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 
-from typing import List, Dict
+from typing import Union, List, Dict
 from abc import abstractmethod, ABC
 
 from testipy.configs import default_config
@@ -111,20 +111,28 @@ class ReportManagerAddons:
     def get_full_path_tests_scripts_foldername(self) -> str:
         return self._sa.full_path_tests_scripts_foldername
 
-    def get_results_folder_filename(self, current_test: TestDetails, filename: str = "") -> str:
-        fn = self.get_results_folder_runtime()
+    def get_results_folder_filename(self, pd_sd_td: Union[PackageDetails, SuiteDetails, TestDetails], filename: str = "") -> str:
+        if isinstance(pd_sd_td, PackageDetails):
+            package_name = pd_sd_td.get_name()
+            folders = package_name.split(default_config.separator_package)
+        elif isinstance(pd_sd_td, SuiteDetails):
+            package_name = pd_sd_td.package.get_name()
+            suite_name = pd_sd_td.get_name()
+            folders = package_name.split(default_config.separator_package)
+            folders.append(suite_name)
+        elif isinstance(pd_sd_td, TestDetails):
+            package_name = pd_sd_td.suite.package.get_name()
+            suite_name = pd_sd_td.suite.get_name()
+            test_name = pd_sd_td.get_name()
+            folders = package_name.split(default_config.separator_package)
+            folders.append(suite_name)
+            folders.append(test_name)
+        else:
+            raise TypeError(f"Expected PackageDetails or SuiteDetails or TestDetails, but got {type(pd_sd_td)}")
 
-        package_name = current_test.suite.package.get_name()
-        suite_name = current_test.suite.get_name()
-        test_name = current_test.get_name()
+        fn = str(os.path.join(self.get_results_folder_runtime(), *folders, filename))
 
-        folders = package_name.split(default_config.separator_package)
-        folders.append(suite_name)
-        folders.append(test_name)
-        for folder in folders:
-            fn = str(os.path.join(fn, folder))
-
-        return fn + str(filename)
+        return fn
 
     def generate_filename(self, current_test: TestDetails, filename: str = ".txt") -> str:
         return self.get_results_folder_filename(current_test, f'_{current_test.get_cycle():02}_{filename}')

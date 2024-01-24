@@ -263,6 +263,9 @@ class StateCounter:
     def get_summary_per_state(self) -> List[Tuple[str, int, float, Dict[str, int]]]:
         return [(state, value, self.get_state_percentage(state), self.get_reasons_of_state(state)) for state, value in self._counter.items()]
 
+    def get_summary_per_state_without_ros(self) -> List[Tuple[str, int, float]]:
+        return [(state, value, self.get_state_percentage(state)) for state, value in self._counter.items()]
+
     def get_dict(self) -> Dict[str, int]:
         """
         :return: dict with state counters

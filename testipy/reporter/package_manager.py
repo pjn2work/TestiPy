@@ -96,6 +96,12 @@ class SuiteDetails(CommonDetails):
     def get_tests_running_by_meid(self, test_method_id: int) -> List[TestDetails]:
         return self.test_manager.get_tests_running_by_meid(test_method_id)
 
+    def get_full_name(self, with_cycle_number: bool = True, sep = default_config.separator_package_suite_test) -> str:
+        return sep.join(
+            (self.package.get_name(with_cycle_number),
+            self.get_name(with_cycle_number))
+        ).rstrip(sep)
+
 
 class TestDetails(CommonDetails):
     def __init__(self, parent: SuiteDetails, test_name: str, test_attr: Dict):
@@ -220,6 +226,7 @@ class PackageManager:
         self.start_time = None
         self.end_time = None
         self._package_by_name_started: Dict[str, int] = dict()
+        self.all_packages: List[PackageDetails] = []
 
     def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
         if self.start_time is None:
@@ -227,6 +234,7 @@ class PackageManager:
 
         package_name = package_name if package_name else package_attr["package_name"]
         current_package = PackageDetails(self, package_name, package_attr)
+        self.all_packages.append(current_package)
 
         # increment cycle_number if same package_name
         if package_name in self._package_by_name_started:
@@ -250,10 +258,12 @@ class SuiteManager:
     def __init__(self, parent: PackageDetails):
         self.parent = parent
         self._suite_by_name_started: Dict[str, int] = dict()
+        self.all_suites: List[SuiteDetails] = []
 
     def startSuite(self, suite_name: str, suite_attr: Dict) -> SuiteDetails:
         suite_name = suite_name if suite_name else suite_attr["suite_name"]
         current_suite = SuiteDetails(self.parent, suite_name, suite_attr)
+        self.all_suites.append(current_suite)
 
         # increment cycle_number if same suite_name inside same package
         if suite_name in self._suite_by_name_started:
@@ -271,10 +281,12 @@ class TestManager:
         self._test_by_name_started: Dict[str, int] = dict()
         self._tests_by_meid: Dict[int, List[TestDetails]] = dict()
         self._tests_running_by_meid: Dict[int, List[TestDetails]] = dict()
+        self.all_tests: List[TestDetails] = []
 
     def startTest(self, test_name: str, test_attr: Dict):
         test_name = test_name if test_name else test_attr["test_name"]
         current_test = TestDetails(self.parent, test_name, test_attr)
+        self.all_tests.append(current_test)
 
         # increment cycle_number if same test_name inside same suite
         if test_name in self._test_by_name_started:
