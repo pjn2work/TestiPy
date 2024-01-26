@@ -86,11 +86,11 @@ class Runner:
         return total_fails
 
     def __enter__(self):
-        self.report_manager.__startup__(self._format_test_structure_for_reporters())
+        self.report_manager._startup_(self._format_test_structure_for_reporters())
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.report_manager.__teardown__(None)
+        self.report_manager._teardown_(None)
 
         if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
             self.execution_log("ERROR", prettify(get_traceback_list(exc_val)))

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, override
 
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
@@ -11,37 +11,48 @@ class ReporterTemplate(ReportInterface):
         self.rm = rm
         self.sa = sa
 
+    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
+    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    @override
+    def _startup_(self, selected_tests: Dict):
         pass
 
-    def __teardown__(self, end_state: str):
+    @override
+    def _teardown_(self, end_state: str):
         pass
 
+    @override
     def start_package(self, pd: PackageDetails):
         pass
 
+    @override
     def end_package(self, pd: PackageDetails):
         pass
 
+    @override
     def start_suite(self, sd: SuiteDetails):
         pass
 
+    @override
     def end_suite(self, sd: SuiteDetails):
         pass
 
+    @override
     def start_test(self, current_test: TestDetails):
         pass
 
+    @override
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self, 
+    @override
+    def test_step(self,
                   current_test: TestDetails, 
                   state: str, 
                   reason_of_state: str = "", 
@@ -51,6 +62,7 @@ class ReporterTemplate(ReportInterface):
                   exc_value: BaseException = None):
         pass
 
+    @override
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         package_name = current_test.suite.package.get_name()
         package_cycle = current_test.suite.package.get_cycle()
@@ -80,11 +92,14 @@ class ReporterTemplate(ReportInterface):
         test_number = current_test.get_test_number()
         test_comment = current_test.get_comment()
 
+    @override
     def show_status(self, message: str):
         pass
 
+    @override
     def show_alert_message(self, message: str):
         pass
 
+    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass

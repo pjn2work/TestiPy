@@ -18,11 +18,11 @@ class ReportInterface(ABC):
         self.name = name
 
     @abstractmethod
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         pass
 
     @abstractmethod
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         pass
 
     @abstractmethod

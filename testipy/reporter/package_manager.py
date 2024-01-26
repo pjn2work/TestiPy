@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
-from collections import namedtuple
+from typing import Dict, List, Set, NamedTuple, Any
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
@@ -9,7 +8,12 @@ from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
 
-TestInfo = namedtuple("TEST_INFO", "timestamp time level info attachment")
+class TestInfo(NamedTuple):
+    timestamp: int
+    time: str
+    level: str
+    info: str
+    attachment: Dict[str, Any]
 
 
 class CommonDetails:

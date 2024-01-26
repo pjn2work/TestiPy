@@ -1,8 +1,8 @@
 # duplicate this tag with env_name here as tag
 default:
-  url: &rp_url "http://reportportal.com"
-  token: &rp_token "ffr343-006985"
-  rp_proj: "local"
+  url: &rp_url "https://demo.reportportal.io"
+  token: &rp_token "poc-testipy_kvfX_zhDRaGHRFEpoS9RMYTMRPx7hnu2LX7LbwHWazrpAyHUStYqMofpkXaQFkHO"
+  rp_proj: "default_personal"
   default_project_name: "local"
 
 

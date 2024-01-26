@@ -1,9 +1,8 @@
 import os
 import pandas as pd
 
-from typing import Dict
+from typing import Dict, override
 
-from testipy.configs import enums_data
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
@@ -60,37 +59,48 @@ class ReporterExcel(ReportInterface):
         # save file
         self.writer.close()
 
+    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
+    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    @override
+    def _startup_(self, selected_tests: Dict):
         df = self.rm.get_selected_tests_as_df()
         df.to_excel(self.writer, index=False, header=True, sheet_name='#SelectedTests')
 
-    def __teardown__(self, end_state):
+    @override
+    def _teardown_(self, end_state):
         self._create_summarys(self.rm.get_df())
 
+    @override
     def start_package(self, pd: PackageDetails):
         pass
 
+    @override
     def end_package(self, pd: PackageDetails):
         pass
 
+    @override
     def start_suite(self, sd: SuiteDetails):
         pass
 
+    @override
     def end_suite(self, sd: SuiteDetails):
         pass
 
+    @override
     def start_test(self, current_test: TestDetails):
         pass
 
+    @override
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
+    @override
     def test_step(self,
                   current_test: TestDetails,
                   state: str,
@@ -102,6 +112,7 @@ class ReporterExcel(ReportInterface):
         pass
 
     # this will serve the purpose only for testSteps, because for tests is done on teardown
+    @override
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         # gather info for DataFrame
         package_name = current_test.suite.package.get_name()
@@ -129,11 +140,14 @@ class ReporterExcel(ReportInterface):
                 lap.total_seconds, step_start, lap.timed_all_end
             ]
 
+    @override
     def show_status(self, message: str):
         pass
 
+    @override
     def show_alert_message(self, message: str):
         pass
 
+    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass

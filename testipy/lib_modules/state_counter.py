@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-import os.path
 from datetime import datetime
-from typing import Union, List, Tuple, Dict
-from collections import namedtuple
+from typing import Union, List, Tuple, Dict, NamedTuple
 
 from testipy.configs.enums_data import SEVERITY_STATES_ORDER
 
 
-LAP = namedtuple("LAP", "state qty total_seconds reason_of_state description exc_value timed_all_end")
+class LAP(NamedTuple):
+    state: str
+    qty: int
+    total_seconds: float
+    reason_of_state: str
+    description: str
+    exc_value: Union[BaseException, None]
+    timed_all_end: datetime
 
 
 class StateCounter:
