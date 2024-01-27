@@ -75,7 +75,10 @@ class Runner:
         for rep in range(1, self.sa.repetitions + 1):
             self.execution_log("INFO", f"--- Execution #{rep} ---")
             try:
-                total_fails += run_selected_tests(self.execution_log, self.sa, self.selected_tests, self.report_manager)
+                total_fails += run_selected_tests(self.execution_log, self.sa,
+                                                  self.selected_tests,
+                                                  self.report_manager,
+                                                  self.ap.has_flag_or_option("--debug-testipy"))
             except Exception as ex:
                 total_fails += 1
                 self.execution_log("ERROR", f"Execution #{rep} - {ex}")
@@ -160,7 +163,7 @@ def run_testipy(args=None) -> int:
     except Exception as ex:
         print(ex, file=sys.stderr)
         # remove comment for debug purpose
-        # raise ex
+        raise ex
 
     return fails
 

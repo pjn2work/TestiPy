@@ -208,7 +208,7 @@ class ReporterWeb(ReportInterface):
 
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         package_name = current_test.suite.package.get_name()
-        suite_name = current_test.get_name()
+        suite_name = current_test.suite.get_name()
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()
         test_name = current_test.get_name()

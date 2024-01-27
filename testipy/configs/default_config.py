@@ -27,7 +27,7 @@ separator_and_join_tags = "&"
 # execute_tests.py
 if_no_test_started_mark_as = enums_data.STATE_PASSED
 count_as_failed_states = [enums_data.STATE_FAILED]
-suite_threads = 4
+suite_threads = 1
 
 # report_base.py
 separator_package_suite_test = "/"

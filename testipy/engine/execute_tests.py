@@ -47,11 +47,12 @@ class ExecutionProgress:
 
 class Executer:
 
-    def __init__(self, execution_log, full_path_tests_scripts_foldername):
+    def __init__(self, execution_log, full_path_tests_scripts_foldername, debug_testipy: bool = False):
         self.execution_log = execution_log
         self._current_method_execution_id = 0
         self._total_failed_skipped = 0
         cm.TESTS_ROOT_FOLDER = full_path_tests_scripts_foldername
+        self._debug_testipy = debug_testipy
 
     def get_total_failed_skipped(self):
         return self._total_failed_skipped
@@ -184,6 +185,8 @@ class Executer:
             rm.testSkipped(rm.startTest(method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
         elif _error:
             rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=f"Init suite failed: {_error}", exc_value=_error)
+            if self._debug_testipy:
+                raise _error
         elif nok := _get_nok_on_success_or_on_failure(sd, method_attr):
             # get @ON_FAILURE or @ON_SUCCESS dependency
             rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
@@ -258,8 +261,8 @@ def _get_stacktrace_string_for_tests(ex: Exception) -> str:
     return tb
 
 
-def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List[Dict], rm: ReportManager) -> int:
-    runner = Executer(execution_log, sa.full_path_tests_scripts_foldername)
+def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List[Dict], rm: ReportManager, debug_testipy: bool) -> int:
+    runner = Executer(execution_log, sa.full_path_tests_scripts_foldername, debug_testipy)
 
     runner.execute(rm, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce, sa.suite_threads)
 
