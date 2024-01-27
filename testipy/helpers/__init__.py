@@ -3,7 +3,6 @@ import sys
 import subprocess
 import json
 import yaml
-import copy
 
 from typing import Union, Dict, Tuple
 

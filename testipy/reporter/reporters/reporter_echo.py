@@ -1,4 +1,4 @@
-from typing import Dict, override
+from typing import Dict
 from tabulate import tabulate
 
 from testipy.configs import enums_data
@@ -23,15 +23,12 @@ class ReporterEcho(ReportInterface):
         self.rm = rm
         self.sa = sa
 
-    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    @override
     def _startup_(self, selected_tests: Dict):
         print("\n"*2)
         print("#"*_line_size)
@@ -40,9 +37,7 @@ class ReporterEcho(ReportInterface):
         print(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="simple"))
         print("\n"*2)
 
-    @override
     def _teardown_(self, end_state: str):
-
         # get results DataFrame
         df = self.rm.get_df()
 
@@ -67,36 +62,29 @@ class ReporterEcho(ReportInterface):
         print(textdecor.color_line(tabulate(dfm.reduce_datetime(dfm.get_suite_state_summary(df)), headers='keys', tablefmt='simple', showindex=False)))
         print("#"*_line_size)
 
-    @override
     def start_package(self, pd: PackageDetails):
         pass
 
-    @override
     def end_package(self, pd: PackageDetails):
         pass
 
-    @override
     def start_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def end_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def start_test(self, current_test: TestDetails):
         print("\n"*5)
         print("-"*_line_size)
         print(f"> Starting test: {current_test} <".center(_line_size, "-"))
 
-    @override
     def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):
         full_name = current_test.get_full_name(with_cycle_number=True)
         usecase = current_test.get_usecase()
 
         print(f"{level} {full_name}: {prettify(info)}")
 
-    @override
     def test_step(self,
                   current_test: TestDetails,
                   state: str,
@@ -107,7 +95,6 @@ class ReporterEcho(ReportInterface):
                   exc_value: BaseException = None):
         pass
 
-    @override
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
         test_duration = current_test.get_duration()
@@ -123,16 +110,11 @@ class ReporterEcho(ReportInterface):
         print(f"> {test_full_name} - {end_state} - took {format_duration(test_duration)} - reason: {end_reason} <".center(_line_size + len(end_state) - len(ending_state), "-"))
         print("-"*_line_size)
 
-    @override
     def show_status(self, message: str):
         pass
 
-    @override
     def show_alert_message(self, message: str):
         pass
 
-    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
-
-

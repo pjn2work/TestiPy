@@ -1,6 +1,6 @@
 import os
 
-from typing import Dict, override
+from typing import Dict
 
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list
@@ -27,49 +27,38 @@ class ReporterJUnitXML(ReportInterface):
         with open(self.fpn, "w"):
             pass
 
-    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    @override
     def _startup_(self, selected_tests: Dict):
         pass
 
-    @override
     def _teardown_(self, end_state: str):
         with open(self.fpn, "w") as xml_file:
             xml_file.write(HEADER)
             self._generate_tag_testsuites(xml_file)
 
-    @override
     def start_package(self, pd: PackageDetails):
         pass
 
-    @override
     def end_package(self, pd: PackageDetails):
         pass
 
-    @override
     def start_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def end_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def start_test(self, current_test: TestDetails):
         pass
 
-    @override
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    @override
     def test_step(self,
                   current_test: TestDetails,
                   state: str,
@@ -80,19 +69,15 @@ class ReporterJUnitXML(ReportInterface):
                   exc_value: BaseException = None):
         pass
 
-    @override
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         pass
 
-    @override
     def show_status(self, message: str):
         pass
 
-    @override
     def show_alert_message(self, message: str):
         pass
 
-    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 

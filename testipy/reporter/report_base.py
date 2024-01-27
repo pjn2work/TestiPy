@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from typing import Dict, override
+from typing import Dict
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
@@ -45,19 +45,16 @@ class ReportBase(ReportInterface):
     # </editor-fold>
 
     # <editor-fold desc="--- Common functions starts here ---">
-    @override
+
     def save_file(self, current_test: TestDetails, data, filename: str) -> Dict:
         return self.create_attachment(filename, data)
 
-    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data) -> Dict:
         return self.create_attachment(dest_filename, data)
 
-    @override
     def _startup_(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
 
-    @override
     def _teardown_(self, end_state):
         totals = self.pm.state_counter
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
@@ -66,22 +63,18 @@ class ReportBase(ReportInterface):
     def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
         return self.pm.startPackage(package_name, package_attr)
 
-    @override
     def start_package(self, pd: PackageDetails):
         pass
 
-    @override
     def end_package(self, pd: PackageDetails):
         pd.endPackage()
 
     def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict) -> SuiteDetails:
         return pd.startSuite(suite_name, suite_attr)
 
-    @override
     def start_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def end_suite(self, sd: SuiteDetails):
         sd.endSuite()
 
@@ -104,19 +97,15 @@ class ReportBase(ReportInterface):
 
         raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
 
-    @override
     def start_test(self, current_test: TestDetails):
         pass
 
-    @override
     def test_info(self, current_test, info, level, attachment=None):
         current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
 
-    @override
     def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         current_test.test_step(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)
 
-    @override
     def end_test(self, current_test: TestDetails, state: str, reason_of_state: str, exc_value: BaseException = None):
         # finish current test
         current_test.endTest(state, reason_of_state, exc_value)
@@ -155,15 +144,12 @@ class ReportBase(ReportInterface):
 
         return self
 
-    @override
     def show_status(self, message: str):
         pass
 
-    @override
     def show_alert_message(self, message: str):
         pass
 
-    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 

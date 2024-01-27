@@ -3,7 +3,7 @@ import traceback
 import json
 
 from time import time
-from typing import Dict, override
+from typing import Dict
 from reportportal_client import create_client, ClientType
 
 from testipy.configs import enums_data
@@ -67,33 +67,26 @@ class ReporterPortalIO(ReportInterface):
         self.rm = rm
         self._all_parent_tests_by_name = dict()
 
-    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    @override
     def _startup_(self, selected_tests: Dict):
         pass
 
-    @override
     def _teardown_(self, end_state: str):
         self._service.finish_launch(end_time=timestamp(), status=enums_data.STATE_PASSED)
         self._service.terminate()
 
-    @override
     def start_package(self, pd: PackageDetails):
         pd.reportportal_package_id = self._service.start_test_item(
             name=pd.get_name(), description="Package", start_time=timestamp(), item_type="SUITE")
 
-    @override
     def end_package(self, pd: PackageDetails):
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=pd.reportportal_package_id)
 
-    @override
     def start_suite(self, sd: SuiteDetails):
         attr = sd.get_attr()
         tags = {"TAG": " ".join(attr[enums_data.TAG_TAG]), "LEVEL": attr[enums_data.TAG_LEVEL]}
@@ -106,12 +99,10 @@ class ReporterPortalIO(ReportInterface):
             parent_item_id=sd.package.reportportal_package_id)
         self._all_parent_tests_by_name = dict()
 
-    @override
     def end_suite(self, sd: SuiteDetails):
         self.__close_parent_tests(sd)
         self._service.finish_test_item(end_time=timestamp(), status=None, item_id=sd.reportportal_suite_id)
 
-    @override
     def start_test(self, current_test: TestDetails):
         test_name = current_test.get_name()
         if test_name in self._all_parent_tests_by_name:
@@ -135,27 +126,21 @@ class ReporterPortalIO(ReportInterface):
 
                 self._all_parent_tests_by_name[test_name] = {"parent_item_id": parent_item_id, "tests": [current_test], "end_state": enums_data.STATE_PASSED}
 
-    @override
     def test_info(self, current_test, info, level, attachment=None):
         pass
 
-    @override
     def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         pass
 
-    @override
     def show_status(self, message: str):
         pass
 
-    @override
     def show_alert_message(self, message: str):
         pass
 
-    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    @override
     def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name(False)
 

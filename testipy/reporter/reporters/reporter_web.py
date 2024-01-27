@@ -4,7 +4,7 @@ import html
 import base64
 import os
 
-from typing import List, Dict, override
+from typing import List, Dict
 from threading import Thread
 from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
@@ -130,15 +130,12 @@ class ReporterWeb(ReportInterface):
 
         Thread(target=_run_flask_in_thread).start()
 
-    @override
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    @override
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    @override
     def _startup_(self, selected_tests: Dict):
         try:
             webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
@@ -146,7 +143,6 @@ class ReporterWeb(ReportInterface):
             pass
         _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
 
-    @override
     def _teardown_(self, end_state: str):
         global WAIT_FOR_FIRST_CLIENT
 
@@ -168,26 +164,21 @@ class ReporterWeb(ReportInterface):
         except Exception as e:
             self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
 
-    @override
     def start_package(self, pd: PackageDetails):
         _delete_from_cache("start_suite")
         _delete_from_cache("start_test")
         self._notify_clients("start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()})
 
-    @override
     def end_package(self, pd: PackageDetails):
         pass
 
-    @override
     def start_suite(self, sd: SuiteDetails):
         _delete_from_cache("start_test")
         self._notify_clients("start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()})
 
-    @override
     def end_suite(self, sd: SuiteDetails):
         pass
 
-    @override
     def start_test(self, current_test: TestDetails):
         _delete_from_cache("start_test")
         test_details = {"name": current_test.get_name(),
@@ -200,13 +191,11 @@ class ReporterWeb(ReportInterface):
 
         self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
 
-    @override
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
         msg = {"test_id": current_test.get_test_id(), "data": data}
         self._notify_clients("test_info", msg)
 
-    @override
     def test_step(self,
                   current_test: TestDetails,
                   state: str,
@@ -217,7 +206,6 @@ class ReporterWeb(ReportInterface):
                   exc_value: BaseException = None):
         self.show_status(f"{state} || {reason_of_state} || {description}")
 
-    @override
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         package_name = current_test.suite.package.get_name()
         suite_name = current_test.get_name()
@@ -238,15 +226,12 @@ class ReporterWeb(ReportInterface):
                 "status_class": STATUS_TO_CLASS.get(ending_state)}
         self._notify_clients('end_test', data)
 
-    @override
     def show_status(self, message: str):
         self._notify_clients('show_status', message, save_to_cache=False)
 
-    @override
     def show_alert_message(self, message: str):
         self._notify_clients('show_alert_message', message, save_to_cache=False)
 
-    @override
     def input_prompt_message(self, message: str, default_value: str = ""):
         global response; response = None
         timer = Timer(25)
@@ -286,18 +271,15 @@ class ReporterWeb(ReportInterface):
             if DEBUG_MODE_SOCKET_IO:
                 print(f"--> Notify {event} - {client_sid}")
 
-
 def _client_connected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> connected {request.sid}")
     clients_connected.append(request.sid)
 
-
 def _client_disconnected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> disconnected {request.sid}")
     clients_connected.remove(request.sid)
-
 
 def _get_clients_connected():
     return clients_connected

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 
-from typing import override, Dict, Tuple, Any
+from typing import Dict, Tuple, Any
 
 from testipy.configs import enums_data
 from testipy.helpers import format_duration
@@ -28,7 +28,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
 
     # <editor-fold desc="--- Common functions starts here ---">
     @synchronized
-    @override
+
     def save_file(self, current_test: TestDetails, data, filename: str) -> Dict:
         filename = self.generate_filename(current_test, filename)
 
@@ -40,7 +40,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return attachment
 
     @synchronized
-    @override
+
     def copy_file(self, current_test, orig_filename="screenshot.png", dest_filename=None, data=None, delete_source=True):
         if not dest_filename:
             dest_filename = orig_filename
@@ -69,7 +69,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
 
         return attachment
 
-    @override
+
     def _startup_(self, selected_tests: Dict):
         super()._startup_(selected_tests)
         for reporter_name, reporter in self._reporters_list.items():
@@ -80,7 +80,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                 if self.is_debugcode():
                     raise
 
-    @override
+
     def _teardown_(self, end_state: str):
         super()._teardown_(end_state)
         end_state = self.end_state
@@ -102,13 +102,13 @@ class ReportManager(ReportBase, ReportManagerAddons):
         self._execution_log("INFO", f"{color_state(end_state)} All took {format_duration(self.pm.get_duration()):>10} [{self.pm.state_counter}]")
 
     @synchronized
-    @override
+
     def startPackage(self, name: str, package_attr: Dict) -> PackageDetails:
         pd = super().startPackage(name, package_attr)
         self.start_package(pd)
         return pd
 
-    @override
+
     def start_package(self, pd: PackageDetails):
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -119,13 +119,13 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def startSuite(self, pd: PackageDetails, name: str, suite_attr: Dict) -> SuiteDetails:
         sd = super().startSuite(pd, name, suite_attr)
         self.start_suite(sd)
         return sd
 
-    @override
+
     def start_suite(self, sd: SuiteDetails):
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -137,13 +137,13 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return sd
 
     @synchronized
-    @override
+
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         td = super().startTest(method_attr, test_name, usecase, description)
         self.start_test(td)
         return td
 
-    @override
+
     def start_test(self, current_test: TestDetails):
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -154,7 +154,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def test_info(self, current_test: TestDetails, info: str, level: str = "DEBUG", attachment: Dict = None) -> ReportManager:
         super().test_info(current_test, info, level, attachment)
         for reporter_name, reporter in self._reporters_list.items():
@@ -168,7 +168,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return self
 
     @synchronized
-    @override
+
     def test_step(self, current_test: TestDetails, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None) -> ReportManager:
         super().test_step(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
 
@@ -203,7 +203,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
         self.end_test(current_test, enums_data.STATE_FAILED, reason_of_state, exc_value)
 
     @synchronized
-    @override
+
     def end_test(self, current_test: TestDetails, state: str = enums_data.STATE_PASSED, reason_of_state="", exc_value: BaseException = None):
         super().end_test(current_test, state, reason_of_state, exc_value)
         for reporter_name, reporter in self._reporters_list.items():
@@ -215,7 +215,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def end_suite(self, sd: SuiteDetails):
         super().end_suite(sd)
         for reporter_name, reporter in self._reporters_list.items():
@@ -227,7 +227,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def end_package(self, pd: PackageDetails):
         super().end_package(pd)
         for reporter_name, reporter in self._reporters_list.items():
@@ -239,7 +239,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def show_status(self, message: str):
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -250,7 +250,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def show_alert_message(self, message: str):
         for reporter_name, reporter in self._reporters_list.items():
             try:
@@ -261,7 +261,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    @override
+
     def input_prompt_message(self, message: str, default_value: str = "") -> str:
         result = None
         for reporter_name, reporter in self._reporters_list.items():
