@@ -17,6 +17,16 @@ class RunMode(Enum):
     SCENARIO__USECASES_AS_TESTS = 2
     USECASES_AS_TESTS = 3
 
+    @staticmethod
+    def decode(value: Union[int, str, RunMode]) -> RunMode:
+        if isinstance(value, RunMode):
+            return value
+        if isinstance(value, int):
+            return RunMode(value)
+        if isinstance(value, str):
+            return RunMode[value]
+        raise TypeError(f"Unknown RunMode: {type(value)} - {value}")
+
 
 class ExecutionToolbox(ABC):
     @abstractmethod
@@ -168,7 +178,7 @@ class DataReader:
         result = OrderedDict()
 
         # get run_mode if defined at the tag level
-        run_mode = RunMode(base.get("_run_mode_", RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS))
+        run_mode = RunMode.decode(base.get("_run_mode_", RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS))
 
         # extract env or no_env
         if "_env_" in base or "_no_env_" in base:

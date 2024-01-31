@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from typing import Dict
+from typing import Dict, List
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
@@ -29,6 +29,7 @@ class ReportBase(ReportInterface):
 
         # results stored in da Pandas Dataframe
         self._df = pd.DataFrame(columns=self._df_columns)
+        self._test_result_row_per_suite: Dict[str: List] = dict()
 
     # <editor-fold desc="--- Gets ---">
     def get_selected_tests_as_df(self) -> pd.DataFrame:
@@ -77,6 +78,17 @@ class ReportBase(ReportInterface):
 
     def end_suite(self, sd: SuiteDetails):
         sd.endSuite()
+
+        # update DataFrame with all ended tests for this suite
+        df_size = self._df.shape[0]
+        new_rows = pd.DataFrame(self._test_result_row_per_suite[sd.name],
+                                columns=self._df_columns,
+                                index=range(df_size, df_size + len(self._test_result_row_per_suite[sd.name])))
+        self._df = new_rows if df_size == 0 else pd.concat(
+            [self._df, new_rows], axis=0, join="outer", ignore_index=True, verify_integrity=False, copy=False)
+
+        # clear added tests to DataFrame
+        del self._test_result_row_per_suite[sd.name]
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         if method_attr and isinstance(method_attr, Dict):
@@ -136,13 +148,16 @@ class ReportBase(ReportInterface):
         test_comment = current_test.get_comment()
         test_id = current_test.get_test_id()
 
-        # append DataFrame
-        self._df.loc[test_id] = [package_name, package_cycle, suite_name, suite_cycle, test_name, test_cycle,
-                                       test_level, test_state, test_usecase, test_end_reason, test_number_test_steps,
-                                       test_duration, test_start, test_end, test_tags, test_parameters,
-                                       test_prio, test_features, test_number, test_comment, test_id]
+        # new row to append to DataFrame
+        row = [package_name, package_cycle, suite_name, suite_cycle, test_name, test_cycle,
+               test_level, test_state, test_usecase, test_end_reason, test_number_test_steps,
+               test_duration, test_start, test_end, test_tags, test_parameters,
+               test_prio, test_features, test_number, test_comment, test_id]
 
-        return self
+        # row will be appended once the suite ends
+        if suite_name not in self._test_result_row_per_suite:
+            self._test_result_row_per_suite[suite_name] = []
+        self._test_result_row_per_suite[suite_name].append(row)
 
     def show_status(self, message: str):
         pass

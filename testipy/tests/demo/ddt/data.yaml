@@ -1,7 +1,7 @@
 
 CASE1:
 
-  _run_mode_: 1
+  _run_mode_: SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS
 
   _no_env_:
     _scenarios_:
