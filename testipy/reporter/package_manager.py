@@ -74,6 +74,7 @@ class SuiteDetails(CommonDetails):
 
         self.package = parent
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
+        self.rb_test_result_rows = []
         self.test_manager = TestManager(self)
 
     def endSuite(self):

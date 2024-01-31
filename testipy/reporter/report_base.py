@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from typing import Dict, List
+from typing import Dict
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
@@ -29,7 +29,6 @@ class ReportBase(ReportInterface):
 
         # results stored in da Pandas Dataframe
         self._df = pd.DataFrame(columns=self._df_columns)
-        self._test_result_row_per_suite: Dict[str: List] = dict()
 
     # <editor-fold desc="--- Gets ---">
     def get_selected_tests_as_df(self) -> pd.DataFrame:
@@ -81,14 +80,14 @@ class ReportBase(ReportInterface):
 
         # update DataFrame with all ended tests for this suite
         df_size = self._df.shape[0]
-        new_rows = pd.DataFrame(self._test_result_row_per_suite[sd.name],
+        new_rows = pd.DataFrame(sd.rb_test_result_rows,
                                 columns=self._df_columns,
-                                index=range(df_size, df_size + len(self._test_result_row_per_suite[sd.name])))
+                                index=range(df_size, df_size + len(sd.rb_test_result_rows)))
         self._df = new_rows if df_size == 0 else pd.concat(
             [self._df, new_rows], axis=0, join="outer", ignore_index=True, verify_integrity=False, copy=False)
 
-        # clear added tests to DataFrame
-        del self._test_result_row_per_suite[sd.name]
+        # clear list since they were added to DataFrame
+        sd.rb_test_result_rows.clear()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         if method_attr and isinstance(method_attr, Dict):
@@ -155,9 +154,7 @@ class ReportBase(ReportInterface):
                test_prio, test_features, test_number, test_comment, test_id]
 
         # row will be appended once the suite ends
-        if suite_name not in self._test_result_row_per_suite:
-            self._test_result_row_per_suite[suite_name] = []
-        self._test_result_row_per_suite[suite_name].append(row)
+        current_test.suite.rb_test_result_rows.append(row)
 
     def show_status(self, message: str):
         pass
