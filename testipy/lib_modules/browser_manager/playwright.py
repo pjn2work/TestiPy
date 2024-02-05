@@ -4,6 +4,7 @@ import base64
 from time import sleep
 from playwright.sync_api import sync_playwright, Browser, Page, Locator, BrowserContext
 
+from testipy import get_exec_logger
 
 SAFE_BROWSER = {
     "browser_name": "chrome",
@@ -133,7 +134,7 @@ class PlaywrightController:
 
             # start new context
             self.new_context(device)
-            self.rm._execution_log("DEBUG", f"{self.name} - Created new browser {browser_name} {is_custom=} {method_args}")
+            _exec_logger.debug(f"{self.name} - Created new browser {browser_name} {is_custom=} {method_args}")
 
     def get_browser_in_use(self) -> Browser:
         if self.browser_name is None or self.browsers[self.browser_name] is None:
@@ -149,12 +150,12 @@ class PlaywrightController:
         try:
             if self.default_browser_settings and self.default_browser_settings["browser_name"]:
                 self.setup_webdriver(**self.default_browser_settings)
-                self.rm._execution_log("DEBUG", f"{self.name} - Started 'Default' {self.browser_name}")
+                _exec_logger.debug(f"{self.name} - Started 'Default' {self.browser_name}")
             else:
                 raise ValueError("No default browser set!")
         except:
             self.setup_webdriver(**SAFE_BROWSER)
-            self.rm._execution_log("DEBUG", f"{self.name} - Started 'Safe' {self.browser_name}")
+            _exec_logger.debug(f"{self.name} - Started 'Safe' {self.browser_name}")
 
         return self
 

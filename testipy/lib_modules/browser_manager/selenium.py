@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
+from testipy import get_exec_logger
 from testipy.helpers import Timer
 
 
@@ -80,12 +81,12 @@ class SeleniumController:
         try:
             if self.default_browser_settings and self.default_browser_settings["browser_name"]:
                 self.setup_webdriver(**self.default_browser_settings)
-                self.rm.__execution_log("DEBUG", f"Started 'Default' {self}")
+                _exec_logger.debug(f"Started 'Default' {self}")
             else:
                 raise ValueError("No default browser set!")
         except:
             self.setup_webdriver(**SAFE_BROWSER)
-            self.rm.__execution_log("DEBUG", f"Started 'Safe' {self}")
+            _exec_logger.debug(f"Started 'Safe' {self}")
         return self
 
     def close(self):

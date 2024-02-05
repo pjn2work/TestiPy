@@ -4,21 +4,25 @@ import json
 
 from time import time
 from typing import Dict
-from reportportal_client import ReportPortalService
+from reportportal_client import create_client, ClientType
 
-from testipy.lib_modules import common_methods as mc
-from testipy.reporter import ReportManager, ReportInterface
+from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.lib_modules.common_methods import dict_without_keys
 from testipy.lib_modules.start_arguments import StartArguments
+from testipy.helpers import load_config
+from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
 
 # to show or not stacktrace
 DEBUGCODE = False
 SETTINGS_FILE = "reporter_portalio.yaml"
 
+_exec_logger = get_exec_logger()
+
 
 def get_credentials(project_name, env_name):
-    settings = mc.load_config(SETTINGS_FILE, __file__)
+    settings = load_config(SETTINGS_FILE, __file__)
     settings = settings[env_name] if env_name in settings else settings["default"]
 
     launch_name = project_name if project_name else settings["default_project_name"]
@@ -31,9 +35,11 @@ def timestamp():
 
 
 def my_error_handler(exc_info):
+    _exec_logger.error(str(exc_info[1]))
     if DEBUGCODE:
-        print(f">> ReportPortalIO Error: {exc_info[1]}")
-        traceback.print_exception(*exc_info)
+        _exec_logger.error(str(exc_info))
+        #print(f">> ReportPortalIO Error: {exc_info[1]}")
+        #traceback.print_exception(*exc_info)
 
 
 class ReporterPortalIO(ReportInterface):
@@ -43,91 +49,87 @@ class ReporterPortalIO(ReportInterface):
 
         global DEBUGCODE; DEBUGCODE = rm.is_debugcode()
 
-        endpoint, rp_project, launch_name, token = get_credentials(rm.get_project_name(), rm.get_environment_name())
-        description = mc.dict_without_keys(sa.as_dict(), ("ap", "results_folder_base", "foldername_runtime"))
+        endpoint, rp_project, launch_name, api_key = get_credentials(rm.get_project_name(), rm.get_environment_name())
+        description = dict_without_keys(sa.as_dict(), ("ap", "results_folder_base", "foldername_runtime"))
         description["valid_reporters"] = list(sa.valid_reporters)
         #description.update(param["ap"].get_dict())
         description = json.dumps(description, indent=2, sort_keys=False)
 
         # start ReportPortal
-        self._service = ReportPortalService(endpoint=endpoint,
-                                            project=rp_project,
-                                            token=token,
-                                            error_handler=my_error_handler)
+        self._service = create_client(
+            client_type=ClientType.ASYNC,
+            endpoint=endpoint,
+            project=rp_project,
+            api_key=api_key,
+            error_handler=my_error_handler)
 
         # launch Tests on ReportPortal
-        self._launch_id = self._service.start_launch(name=launch_name,
-                                                     start_time=timestamp(),
-                                                     description=str(description))
+        self._launch_id = self._service.start_launch(
+            name=launch_name,
+            start_time=timestamp(),
+            description=str(description))
 
         self.rm = rm
-        self._package_id = None
-        self._suite_id = None
         self._all_parent_tests_by_name = dict()
 
-    def get_report_manager_base(self):
-        return self.rm.get_report_manager_base()
-
-    def save_file(self, current_test, data, filename):
-        # since was stored on reporter_base, it will be done on end_test()
+    def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test, orig_filename, dest_filename, data):
-        # since was stored on reporter_base, it will be done on end_test()
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         pass
 
-    def __teardown__(self, end_state):
+    def _teardown_(self, end_state: str):
         self._service.finish_launch(end_time=timestamp(), status=enums_data.STATE_PASSED)
         self._service.terminate()
 
-    def start_package(self, package_name: str, package_attr: Dict):
-        self._package_id = self._service.start_test_item(name=package_name,
-                                                         description="Package",
-                                                         start_time=timestamp(),
-                                                         item_type="SUITE")
+    def start_package(self, pd: PackageDetails):
+        pd.reportportal_package_id = self._service.start_test_item(
+            name=pd.get_name(), description="Package", start_time=timestamp(), item_type="SUITE")
 
-    def end_package(self, package_name: str, package_attr: Dict):
-        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._package_id)
+    def end_package(self, pd: PackageDetails):
+        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=pd.reportportal_package_id)
 
-    def start_suite(self, suite_name: str, suite_attr: Dict):
-        tags = {"TAG": " ".join(suite_attr[enums_data.TAG_TAG]), "LEVEL": suite_attr[enums_data.TAG_LEVEL]}
-        self._suite_id = self._service.start_test_item(name=suite_name,
-                                                       description="Suite",
-                                                       start_time=timestamp(),
-                                                       item_type="STORY",
-                                                       attributes=tags,
-                                                       parent_item_id=self._package_id)
+    def start_suite(self, sd: SuiteDetails):
+        attr = sd.get_attr()
+        tags = {"TAG": " ".join(attr[enums_data.TAG_TAG]), "LEVEL": attr[enums_data.TAG_LEVEL]}
+        sd.reportportal_suite_id = self._service.start_test_item(
+            name=sd.get_name(),
+            description="Suite",
+            start_time=timestamp(),
+            item_type="STORY",
+            attributes=tags,
+            parent_item_id=sd.package.reportportal_package_id)
         self._all_parent_tests_by_name = dict()
 
-    def end_suite(self, suite_name: str, suite_attr: Dict):
-        self.__close_parent_tests()
-        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=self._suite_id)
+    def end_suite(self, sd: SuiteDetails):
+        self.__close_parent_tests(sd)
+        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=sd.reportportal_suite_id)
 
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = ""):
-        current_test = self.rm.get_current_test()
-
-        if usecase and test_name not in self._all_parent_tests_by_name:
-            tags = {"TAG": " ".join(current_test.get_attr()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attr()[
-                enums_data.TAG_LEVEL]}
-            tags = {k: v for k, v in tags.items() if v}
-            parameters = current_test.get_attr()["param"] if isinstance(current_test.get_attr()["param"], dict) and len(current_test.get_attr()["param"]) > 0 else {"param": str(current_test.get_attr()["param"])}
-            start_time = str(int(current_test.get_starttime().timestamp() * 1000))
-
-            parent_item_id = self._service.start_test_item(name=test_name,
-                                                      start_time=start_time,
-                                                      item_type="TEST",
-                                                      description="Test",
-                                                      attributes=tags,
-                                                      parameters=parameters,
-                                                      parent_item_id=self._suite_id)
-
-            self._all_parent_tests_by_name[test_name] = {"parent_item_id": parent_item_id, "tests": [current_test], "end_state": enums_data.STATE_PASSED}
+    def start_test(self, current_test: TestDetails):
+        test_name = current_test.get_name()
+        if test_name in self._all_parent_tests_by_name:
+            self._all_parent_tests_by_name[test_name]["tests"].append(current_test)
         else:
-            if test_name in self._all_parent_tests_by_name:
-                self._all_parent_tests_by_name[test_name]["tests"].append(current_test)
+            if current_test.get_usecase():
+                tags = {"TAG": " ".join(current_test.get_attr()[enums_data.TAG_TAG]), "LEVEL": current_test.get_attr()[
+                    enums_data.TAG_LEVEL]}
+                tags = {k: v for k, v in tags.items() if v}
+                parameters = current_test.get_attr()["param"] if isinstance(current_test.get_attr()["param"], dict) and len(current_test.get_attr()["param"]) > 0 else {"param": str(current_test.get_attr()["param"])}
+                start_time = str(int(current_test.get_starttime().timestamp() * 1000))
+
+                parent_item_id = self._service.start_test_item(
+                    name=test_name,
+                    start_time=start_time,
+                    item_type="TEST",
+                    description="Test",
+                    attributes=tags,
+                    parameters=parameters,
+                    parent_item_id=self._suite_id)
+
+                self._all_parent_tests_by_name[test_name] = {"parent_item_id": parent_item_id, "tests": [current_test], "end_state": enums_data.STATE_PASSED}
 
     def test_info(self, current_test, info, level, attachment=None):
         pass

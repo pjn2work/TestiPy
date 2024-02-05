@@ -1,14 +1,31 @@
 from __future__ import annotations
 
-from typing import Union, Dict, List
 from abc import abstractmethod, ABC
 from collections import OrderedDict
+from enum import Enum
+from typing import Union, Dict, List, Tuple
 
 from testipy.configs import enums_data
 from testipy.reporter.report_base import TestDetails
 from testipy.reporter.report_manager import ReportManager
 from testipy.helpers import get_traceback_tabulate, load_config, left_update_dict, prettify
 from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
+
+
+class RunMode(Enum):
+    SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS = 1
+    SCENARIO__USECASES_AS_TESTS = 2
+    USECASES_AS_TESTS = 3
+
+    @staticmethod
+    def decode(value: Union[int, str, RunMode]) -> RunMode:
+        if isinstance(value, RunMode):
+            return value
+        if isinstance(value, int):
+            return RunMode(value)
+        if isinstance(value, str):
+            return RunMode[value]
+        raise TypeError(f"Unknown RunMode: {type(value)} - {value}")
 
 
 class ExecutionToolbox(ABC):
@@ -22,24 +39,132 @@ class ExecutionToolbox(ABC):
 
 
 class DataReader:
+    """
+    TAG_NAME_1:
+
+        _usecases_:
+
+            my_test_1:
+              _exec_method_: create_user
+              _description_: Enter my test description here
+              save_name: my_var_1
+              params:
+                data:
+                  name: John
+                  age: 41
+
+            my_test_2:
+              _exec_method_: create_user
+              _description_: Enter my test description here
+              save_name: my_var_2
+              params:
+                data:
+                  name: Peter
+                  age: Ten
+              control:
+                expected_status_code: 400
+              expected_response:
+                error: Invalid age
+                code: 100
+
+    TAG_NAME_2:
+        _run_mode_: 1  #SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS
+
+        _no_env_:
+            _scenarios_:
+
+                my_test_1:
+                    _description_: Enter my test description here
+
+                    my_test_step_1:
+                      _exec_method_: create_user
+                      save_name: my_var_1
+                      params:
+                        data:
+                          name: John
+                          age: 41
+
+                    my_test_step_2:
+                      _exec_method_: get_user
+                      save_name: my_var_2
+                      params:
+                        data:
+                          name: Peter
+                          age: Ten
+                      control:
+                        expected_status_code: 400
+                      expected_response:
+                        error: Invalid age
+                        code: 100
+
+
+                my_test_2:
+                    _description_: Enter my test description here - will be overridden when env = qa
+
+                    my_test_step_1:
+                      _exec_method_: create_user
+                      save_name: my_var_1
+                      params:
+                        data:
+                          name: John
+                          age: 41
+
+                    my_test_step_2:
+                      _exec_method_: create_user
+                      save_name: my_var_2
+                      params:
+                        data:
+                          name: Peter
+                          age: 42
+
+
+        _env_:
+            qa:
+                _scenarios_:
+
+                    my_test_1:
+                        _description_: my_test_1 will be skipped when env = qa
+
+                        my_test_step_1:
+                          _skip_all_: true
+
+
+                    my_test_2:
+                        _description_: Enter my test description here - will override the _no_env_ description
+
+                        my_test_step_1:
+                          _exec_method_: create_user
+                          _description_: will override this whole step but keep the step 2 from no_env
+                          save_name: my_var_1
+                          params:
+                            data:
+                              name: Will Override Name in _no_env_ Same Scenario
+                              age: 41
+                          _known_bug_:
+                            bug_issue: JIRA-1234
+                            bug_message: User already exists
+
+
+    """
 
     def __init__(self, data: Union[str, Dict], env_name: str):
         self.env_name = env_name
-        self.data = self._compile_data(data)
+        self.__data: Dict[str, Tuple[RunMode, Dict]] = self._compile_data(data)
 
-    def get_scenarios_or_usecases(self, tag_name: str, scenario_name: str = "") -> Dict:
-        if tag_name not in self.data:
+    def get_scenarios_or_usecases(self, tag_name: str, scenario_name: str = "") -> Tuple[RunMode, Dict]:
+        if tag_name not in self.__data:
             raise AttributeError(f"{tag_name=} not found on data file")
-        res = self.data[tag_name]
+        res = self.__data[tag_name]
 
         if scenario_name:
-            if scenario_name not in res:
+            run_mode, scenarios = res
+            if scenario_name not in scenarios:
                 raise AttributeError(f"{scenario_name=} not found under {tag_name=}")
-            res = res[scenario_name]
+            res = run_mode, scenarios[scenario_name]
 
         return res
 
-    def _compile_data(self, data: Union[str, Dict]) -> Dict:
+    def _compile_data(self, data: Union[str, Dict]) -> Dict[str, Tuple[RunMode, Dict]]:
         if isinstance(data, str):
             data = load_config(data)
 
@@ -49,94 +174,11 @@ class DataReader:
         return result
 
     # Keywords = [_env_: Dict, _no_env_: Dict, _scenarios_: Dict, _usecases_: Dict, _based_on_: str]
-    def _compile_tag_data(self, base: Dict) -> Dict:
-        """
-        TAG_NAME_1:
-
-            _usecases_:
-
-                my_usecase_1:
-                  _exec_method_: create_user
-                  save_name: my_var_1
-                  params:
-                    data:
-                      name: John
-                      age: 41
-
-                my_usecase_2:
-                  _exec_method_: create_user
-                  save_name: my_var_2
-                  params:
-                    data:
-                      name: Peter
-                      age: Ten
-                  control:
-                    expected_status_code: 400
-                  expected_response:
-                    error: Invalid age
-                    code: 100
-
-        TAG_NAME_2:
-
-            _no_env_:
-                _scenarios_:
-
-                    my_scenario_1:
-
-                        my_usecase_1:
-                          _exec_method_: create_user
-                          save_name: my_var_1
-                          params:
-                            data:
-                              name: John
-                              age: 41
-
-                        my_usecase_2:
-                          _exec_method_: create_user
-                          save_name: my_var_2
-                          params:
-                            data:
-                              name: Peter
-                              age: Ten
-                          control:
-                            expected_status_code: 400
-                          expected_response:
-                            error: Invalid age
-                            code: 100
-
-
-                    my_scenario_2:
-
-                        my_usecase_3:
-                          _exec_method_: create_user
-                          save_name: my_var_1
-                          params:
-                            data:
-                              name: John
-                              age: 41
-
-
-            _env_:
-                qa:
-                    _scenarios_:
-
-                        my_scenario_1:
-
-                            my_usecase_1:
-                              _exec_method_: create_user
-                              save_name: my_var_1
-                              params:
-                                data:
-                                  name: Will Override Name in _no_env_ Same Scenario
-                                  age: 41
-                              _known_bug_:
-                                bug_issue: JIRA-1234
-                                bug_message: User already exists
-
-
-        """
-
+    def _compile_tag_data(self, base: Dict) -> Tuple[RunMode, Dict]:
         result = OrderedDict()
+
+        # get run_mode if defined at the tag level
+        run_mode = RunMode.decode(base.get("_run_mode_", RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS))
 
         # extract env or no_env
         if "_env_" in base or "_no_env_" in base:
@@ -156,14 +198,15 @@ class DataReader:
             if res_no_env:
                 res_1, res_2 = res_no_env, None
             else:
-                return base
+                return 0, base
 
-        # extract scenarios (and useCases)
+        # scenarios are tests
+        # use-cases are test-steps
         if isinstance(res_1, dict) and "_scenarios_" in res_1:
             res_1 = res_1["_scenarios_"]
             res_2 = res_2["_scenarios_"] if res_2 else None
 
-            # update result with all usecases from res_1
+            # update result with all scenarios from res_1
             result.update(res_1)
 
             # check for scenarios with same name under no_env and env and merge them
@@ -179,12 +222,15 @@ class DataReader:
             # update useCases, from all scenarios, upon _based_on_ option
             for scenario in result.values():
                 for usecase_name, usecase in scenario.items():
-                    usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
+                    if usecase_name != "_description_":
+                        usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
 
-            return result
+            return run_mode, result
 
-        # extract only useCases
+        # use-cases are tests -> no test-steps
         if isinstance(res_1, dict) and "_usecases_" in res_1:
+            run_mode = RunMode.USECASES_AS_TESTS
+
             res_1 = res_1["_usecases_"]
             res_2 = res_2["_usecases_"] if res_2 else None
 
@@ -197,11 +243,12 @@ class DataReader:
 
             # update useCases upon _based_on_ option
             for usecase_name, usecase in result.items():
-                usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
+                if usecase_name != "_description_":
+                    usecase.update(get_usecase_fields_based_on_another_usecase(result, usecase))
 
-            return result
+            return run_mode, result
 
-        return res_1
+        return 0, res_1
 
 
 class SafeTry:
@@ -330,54 +377,95 @@ class DDTMethods(DataReader):
         self.exec_toolbox = exec_toolbox
 
     """
+    tag keywords:
+        _run_mode_: int     = 1 (default) SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or 2 USECASES_AS_TESTS
+        _no_env_: dict      = _scenarios_ or _usecases_
+        _env_: dict         = env_name: dict (example, dev: qa:)
+    scenario keywords:
+        _description_: str  = if _run_mode_ == 1
     usecase keywords:
-        _no_skip_: bool = execute useCase even if previous failed (used for _run_all_usecases_as_teststeps)
-        _skip_all_: str = reason of skipping all useCases
-        _description_: str = string with test description
-        _exec_method_: str = method name to be executed
+        _no_skip_: bool     = execute useCase even if previous failed (used for _run_all_usecases_as_teststeps)
+        _skip_all_: str     = reason of skipping all useCases
+        _description_: str  = string with test or teststep description
+        _exec_method_: str  = method name to be executed
         _known_bug_: 
-          bug_issue: str = JIRA-XXXX
-          bug_message: str = Division by zero
+          bug_issue: str    = JIRA-XXXX
+          bug_message: str  = Division by zero
     """
 
+    # generic call with auto-detect run_mode
+    def run(self, ma: Dict, rm: ReportManager, tag_name: str, scenario_name: str = "", run_mode: RunMode = None):
+        if scenario_name:
+            if run_mode is None:
+                run_mode, _ = self.get_scenarios_or_usecases(tag_name=tag_name)
+
+            if run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS:
+                self.run_scenario_as_test__usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+            elif run_mode is RunMode.SCENARIO__USECASES_AS_TESTS:
+                self.run_scenario__usecases_as_tests(ma=ma, rm=rm, tag_name=tag_name, scenario_name=scenario_name)
+            else:
+                raise ValueError(f"{run_mode=} invalid for {tag_name=} {scenario_name=}")
+        else:
+            if (run_mode is None or
+                    run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or
+                    run_mode is RunMode.USECASES_AS_TESTS):
+                self.run_tag(ma=ma, rm=rm, tag_name=tag_name, run_mode=run_mode)
+            else:
+                raise ValueError(f"{run_mode=} invalid for {tag_name=}! Missing scenario_name")
+
     # under that tag, run all scenarios as a test, and the usesCases are testSteps
-    def run_all_scenarios_as_tests_usecases_as_teststeps_under_tag_name(self, ma: Dict, rm: ReportManager,
-                                                                        tag_name: str):
-        for scenario_name in self.get_scenarios_or_usecases(tag_name=tag_name):
-            self.run_single_scenario_as_test_usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+    def run_tag(self, ma: Dict, rm: ReportManager, tag_name: str, run_mode: RunMode = None):
+        _run_mode, scenarios = self.get_scenarios_or_usecases(tag_name=tag_name)
+        _run_mode = run_mode or _run_mode
+        if _run_mode is RunMode.USECASES_AS_TESTS:
+            self.run_usecases_as_tests__without_scenario(ma=ma, rm=rm, tag_name=tag_name)
+        else:
+            for scenario_name in scenarios:
+                if _run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS:
+                    self.run_scenario_as_test__usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+                elif _run_mode is RunMode.SCENARIO__USECASES_AS_TESTS:
+                    self.run_scenario__usecases_as_tests(ma, rm, tag_name=tag_name, scenario_name=scenario_name)
+                else:
+                    raise ValueError(f"{_run_mode=} invalid for {tag_name=} {scenario_name=}")
 
     # create a single test for that scenario, so the usesCases will be testSteps
-    def run_single_scenario_as_test_usecases_as_teststeps(self, ma: Dict, rm: ReportManager,
-                                                          tag_name: str,
-                                                          scenario_name: str,
-                                                          bug: Union[str, Dict, List] = "",
-                                                          description: str = "",
-                                                          add_test_usecase: bool = True):
+    def run_scenario_as_test__usecases_as_teststeps(self, ma: Dict, rm: ReportManager,
+                                                    tag_name: str,
+                                                    scenario_name: str,
+                                                    bug: Union[str, Dict, List] = "",
+                                                    description: str = "",
+                                                    add_test_usecase: bool = True):
 
         usecase_name = scenario_name if add_test_usecase else ""
+        _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
+        description = description or usecases.get("_description_", "")
         current_test = rm.startTest(ma, usecase=usecase_name, description=description)
         
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
         else:
-            usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
             rm.test_info(current_test, f"{tag_name=} {scenario_name=} TEST_STEPS:\n{prettify(usecases, as_yaml=True)}", "DEBUG")
 
-            _, failed_usecase = self._run_all_usecases_as_teststeps(rm, current_test, usecases)
+            _, failed_usecase = self._run_usecases_as_teststeps(rm, current_test, usecases)
             endTest(rm, current_test, bug=bug)
 
     # create a test for each useCase under a scenario
-    def run_all_usecases_as_tests(self, ma: Dict, rm: ReportManager,
-                                  tag: str,
-                                  scenario_name: str):        
-        for usecase_name, usecase in self.get_scenarios_or_usecases(tag_name=tag, scenario_name=scenario_name).items():
-            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("description"))
+    def run_scenario__usecases_as_tests(self, ma: Dict, rm: ReportManager,
+                                        tag_name: str,
+                                        scenario_name: str):
+        _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
+        for usecase_name, usecase in usecases.items():
+            # just as safeguard
+            if usecase_name == "_description_":
+                continue
+
+            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("_description_", ""))
 
             end_reason = ""
             if rm.has_ap_flag("--norun"):
                 rm.testSkipped(current_test, "--norun")
             else:
-                rm.test_info(current_test, f"{tag=} {scenario_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
+                rm.test_info(current_test, f"{tag_name=} {scenario_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
 
                 if usecase.get("_skip_all_"):
                     rm.test_step(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
@@ -396,11 +484,15 @@ class DDTMethods(DataReader):
 
                 endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("_known_bug_", ""))
 
-    def _run_all_usecases_as_teststeps(self, rm, current_test, usecases: Dict):
+    def _run_usecases_as_teststeps(self, rm, current_test, usecases: Dict):
         failed_usecase = ""
         for usecase_name, usecase in usecases.items():
-            if usecase.get("_skip_all_"):
-                rm.test_step(current_test, enums_data.STATE_SKIPPED, usecase.get("_skip_all_"), usecase_name)
+            # the scenario (test) may have as description
+            if usecase_name == "_description_":
+                continue
+
+            if skip_all_reason := usecase.get("_skip_all_"):
+                rm.test_step(current_test, enums_data.STATE_SKIPPED, skip_all_reason, usecase_name)
                 break
             else:
                 if failed_usecase == "" or usecase.get("_no_skip_"):
@@ -420,6 +512,30 @@ class DDTMethods(DataReader):
                     rm.test_step(current_test, enums_data.STATE_SKIPPED, f"Because usecase {failed_usecase} failed", usecase_name)
 
         return self.response_from_usecases, failed_usecase
+
+    def run_usecases_as_tests__without_scenario(self, ma: Dict, rm: ReportManager, tag_name: str):
+        _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name)
+
+        for usecase_name, usecase in usecases.items():
+            # the use-case (test) may have as description
+            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("_description_", ""))
+
+            if rm.has_ap_flag("--norun"):
+                rm.testSkipped(current_test, "--norun")
+            else:
+                rm.test_info(current_test, f"{tag_name=} {usecase_name=} USECASE_DATA:\n{prettify(usecase, as_yaml=True)}", "DEBUG")
+
+                with SafeTry(self.exec_toolbox, rm, current_test) as st:
+                    # Execute the useCase
+                    self.response_from_usecases[usecase_name] = self.exec_toolbox.execute(
+                        rm=rm,
+                        current_test=current_test,
+                        exec_method=usecase["_exec_method_"],
+                        usecase=usecase,
+                        usecase_name=usecase_name,
+                        st=st)
+                end_reason = st.get_ros() if st.is_success() else ""
+                endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("_known_bug_", ""))
 
 
 def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase: Union[Dict, str]) -> Dict:
@@ -448,7 +564,10 @@ def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase:
     based_on_data.update(get_usecase_fields_based_on_another_usecase(usecases, based_on_data))
 
     # copy all fields from other if not contained already in current
-    return {field_name: left_update_dict(based_on_data[field_name], current_usecase.get(field_name, dict())) if isinstance(based_on_data[field_name], dict) else based_on_data[field_name] for field_name in field_names}
+    try:
+        return {field_name: left_update_dict(based_on_data[field_name], current_usecase.get(field_name, dict())) if isinstance(based_on_data[field_name], dict) else based_on_data[field_name] for field_name in field_names}
+    except Exception as ex:
+        raise KeyError(f"Key {ex} not found in {bo_usecase_name}, only {based_on_data.keys()}")
 
 
 def get_known_bug_failure_issue(bug: Union[str, Dict, List], end_reason: str = "") -> str:
@@ -492,20 +611,20 @@ def endTest(rm: ReportManager,
     if tc.get_total() > 0:
         if tc.get_state_percentage(enums_data.STATE_PASSED) >= min_passed_percentage:
             ros, exc_value, _ = get_end_reason(enums_data.STATE_PASSED)
-            rm.testPassed(current_test, ros, exc_value)
+            rm.testPassed(current_test, reason_of_state=ros, exc_value=exc_value)
         elif tc[enums_data.STATE_FAILED] > 0:
             ros, exc_value, fer = get_end_reason(enums_data.STATE_FAILED)
             if ros == fer:
-                rm.testFailed(current_test, ros, exc_value)
+                rm.testFailed(current_test, reason_of_state=ros, exc_value=exc_value)
             else:
-                rm.testFailedKnownBug(current_test, ros, exc_value)
+                rm.testFailedKnownBug(current_test, reason_of_state=ros, exc_value=exc_value)
         elif tc[enums_data.STATE_FAILED_KNOWN_BUG] > 0:
             ros, exc_value, fer = get_end_reason(enums_data.STATE_FAILED_KNOWN_BUG)
-            rm.testFailedKnownBug(current_test, ros, exc_value)
+            rm.testFailedKnownBug(current_test, reason_of_state=ros, exc_value=exc_value)
         elif tc[enums_data.STATE_SKIPPED] > 0:
             ros, exc_value, fer = get_end_reason(enums_data.STATE_SKIPPED)
-            rm.testSkipped(current_test, ros, exc_value)
+            rm.testSkipped(current_test, reason_of_state=ros, exc_value=exc_value)
     else:
         ros, exc_value, _ = get_end_reason(enums_data.STATE_PASSED)
-        rm.testPassed(current_test, ros, exc_value)
+        rm.testPassed(current_test, reason_of_state=ros, exc_value=exc_value)
 

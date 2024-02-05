@@ -10,6 +10,7 @@ from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
 from time import sleep
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
@@ -39,6 +40,8 @@ app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_url_path="/templat
 app.use_reloader = False
 app.config["SECRET_KEY"] = "dGVzdGlweSBzZWNyZXQgZm9yIHdlYnNvY2tldHM="
 socket_io = SocketIO(app, async_mode=None, engineio_logger=DEBUG_MODE_SOCKET_IO)
+
+_exec_logger = get_exec_logger()
 
 
 def escaped_text(text):
@@ -136,14 +139,14 @@ class ReporterWeb(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         try:
             webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
         except:
             pass
         _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
 
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         global WAIT_FOR_FIRST_CLIENT
 
         msg = {"global_duration_value": "Ended within " + format_duration(self.rm.pm.get_duration())}
@@ -162,7 +165,7 @@ class ReporterWeb(ReportInterface):
         try:
             socket_io.stop()
         except Exception as e:
-            self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
+            _exec_logger.warning(f"ReporterWeb - Failed to stop socket_io {e}")
 
     def start_package(self, pd: PackageDetails):
         _delete_from_cache("start_suite")
@@ -208,7 +211,7 @@ class ReporterWeb(ReportInterface):
 
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         package_name = current_test.suite.package.get_name()
-        suite_name = current_test.get_name()
+        suite_name = current_test.suite.get_name()
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()
         test_name = current_test.get_name()
@@ -271,18 +274,15 @@ class ReporterWeb(ReportInterface):
             if DEBUG_MODE_SOCKET_IO:
                 print(f"--> Notify {event} - {client_sid}")
 
-
 def _client_connected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> connected {request.sid}")
     clients_connected.append(request.sid)
 
-
 def _client_disconnected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> disconnected {request.sid}")
     clients_connected.remove(request.sid)
-
 
 def _get_clients_connected():
     return clients_connected

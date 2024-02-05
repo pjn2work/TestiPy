@@ -45,16 +45,17 @@ class ReportBase(ReportInterface):
     # </editor-fold>
 
     # <editor-fold desc="--- Common functions starts here ---">
+
     def save_file(self, current_test: TestDetails, data, filename: str) -> Dict:
         return self.create_attachment(filename, data)
 
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data) -> Dict:
         return self.create_attachment(dest_filename, data)
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
 
-    def __teardown__(self, end_state):
+    def _teardown_(self, end_state):
         totals = self.pm.state_counter
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
         self.end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
@@ -76,6 +77,17 @@ class ReportBase(ReportInterface):
 
     def end_suite(self, sd: SuiteDetails):
         sd.endSuite()
+
+        # update DataFrame with all ended tests for this suite
+        df_size = self._df.shape[0]
+        new_rows = pd.DataFrame(sd.rb_test_result_rows,
+                                columns=self._df_columns,
+                                index=range(df_size, df_size + len(sd.rb_test_result_rows)))
+        self._df = new_rows if df_size == 0 else pd.concat(
+            [self._df, new_rows], axis=0, join="outer", ignore_index=True, verify_integrity=False, copy=False)
+
+        # clear list since they were added to DataFrame
+        sd.rb_test_result_rows.clear()
 
     def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
         if method_attr and isinstance(method_attr, Dict):
@@ -135,13 +147,14 @@ class ReportBase(ReportInterface):
         test_comment = current_test.get_comment()
         test_id = current_test.get_test_id()
 
-        # append DataFrame
-        self._df.loc[test_id] = [package_name, package_cycle, suite_name, suite_cycle, test_name, test_cycle,
-                                       test_level, test_state, test_usecase, test_end_reason, test_number_test_steps,
-                                       test_duration, test_start, test_end, test_tags, test_parameters,
-                                       test_prio, test_features, test_number, test_comment, test_id]
+        # new row to append to DataFrame
+        row = [package_name, package_cycle, suite_name, suite_cycle, test_name, test_cycle,
+               test_level, test_state, test_usecase, test_end_reason, test_number_test_steps,
+               test_duration, test_start, test_end, test_tags, test_parameters,
+               test_prio, test_features, test_number, test_comment, test_id]
 
-        return self
+        # row will be appended once the suite ends
+        current_test.suite.rb_test_result_rows.append(row)
 
     def show_status(self, message: str):
         pass

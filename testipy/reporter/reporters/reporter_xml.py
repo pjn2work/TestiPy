@@ -2,7 +2,8 @@ import os
 
 from typing import Dict
 
-from testipy.configs import enums_data, default_config
+from testipy import get_exec_logger
+from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.start_arguments import StartArguments
@@ -33,10 +34,10 @@ class ReporterJUnitXML(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         pass
 
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         with open(self.fpn, "w") as xml_file:
             xml_file.write(HEADER)
             self._generate_tag_testsuites(xml_file)
@@ -85,9 +86,9 @@ class ReporterJUnitXML(ReportInterface):
         try:
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name, exist_ok=True)
-                self.rm._execution_log("INFO", f"Created folder {folder_name}")
+                _exec_logger.info(f"Created folder {folder_name}")
         except:
-            self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
+            _exec_logger.critical(f"Could not create folder {folder_name}")
 
     def _generate_tag_testsuites(self, xml_file):
         # all tests counter

@@ -6,6 +6,7 @@ import sys
 
 from typing import Union, List, Tuple, Dict, Any
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import py_inspector, common_methods as cm
 from testipy.lib_modules.args_parser import ArgsParser
@@ -15,6 +16,8 @@ from testipy.helpers import load_config
 AUTO_INCLUDED_TESTS = 0
 TYPE_DOC = Dict[str, Any]
 TYPE_SELECTED_TESTS_LIST = List[Dict]
+
+_exec_logger = get_exec_logger()
 
 
 # returns dict of doc from class or method
@@ -154,7 +157,7 @@ def is_valid_level(doc: TYPE_DOC, level_filter: Tuple[List, List, List, List] = 
 
 
 # show test list
-def show_test_structure(execution_log, selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST):
+def show_test_structure(selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST):
     str_res = ""
     for package_attr in selected_packages_suites_methods_list:
         str_res += "\n{}\n".format(cm.dict_without_keys(package_attr, "suite_list"))
@@ -165,7 +168,7 @@ def show_test_structure(execution_log, selected_packages_suites_methods_list: TY
             for method_attr in suite_attr["test_list"]:
                 str_res += "\t\t{}\n".format(cm.dict_without_keys(method_attr, "test_obj"))
 
-    execution_log("INFO", "TestStructure:" + str_res[:-1])
+    _exec_logger.info("TestStructure:" + str_res[:-1])
 
 
 def sort_test_structure(selected_packages_suites_methods_list: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
@@ -395,7 +398,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
 
 
 # get value from a list of dict
-def get_dict_by_value(value_obj, my_list_of_dict: List[Dict], key_name, execution_log, make_copy: bool = False) -> Union[Dict, None]:
+def get_dict_by_value(value_obj, my_list_of_dict: List[Dict], key_name, make_copy: bool = False) -> Union[Dict, None]:
     if not isinstance(key_name, (list, tuple, set)):
         key_name = [key_name]
 
@@ -407,11 +410,11 @@ def get_dict_by_value(value_obj, my_list_of_dict: List[Dict], key_name, executio
                 return current_dict
 
     if make_copy:
-        execution_log("WARNING", f"{key_name}={value_obj} excluded, because not found in list of {len(my_list_of_dict)} objects!")
+        _exec_logger.warning(f"{key_name}={value_obj} excluded, because not found in list of {len(my_list_of_dict)} objects!")
     return None
 
 
-def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], all_tests: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
+def filter_tests_by_storyboard(storyboard_json_files: List[str], all_tests: TYPE_SELECTED_TESTS_LIST) -> TYPE_SELECTED_TESTS_LIST:
     selected_tests = []
 
     for sb_json_file in storyboard_json_files:
@@ -419,7 +422,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
 
         for sb_package in storyboard["package_list"]:
             # get cloned package dict, based on package_of_storyboard, from all tests
-            current_package = get_dict_by_value(sb_package["package_name"], all_tests, "package_name", execution_log, make_copy=True)
+            current_package = get_dict_by_value(sb_package["package_name"], all_tests, "package_name", make_copy=True)
 
             if current_package:
                 suite_list = list()
@@ -430,7 +433,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
 
                 for sb_suite in sb_package["suite_list"]:
                     # get cloned suite dict, based on suite_of_storyboard, from all_tests->current_package
-                    current_suite = get_dict_by_value(sb_suite["suite_name"], current_package["suite_list"], ["suite_name", enums_data.TAG_NAME], execution_log, make_copy=True)
+                    current_suite = get_dict_by_value(sb_suite["suite_name"], current_package["suite_list"], ["suite_name", enums_data.TAG_NAME], make_copy=True)
                     if current_suite:
                         test_methods_list = list()
 
@@ -445,7 +448,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
 
                         # filter tests based on storyboard
                         for sb_test in sb_suite["test_list"]:
-                            current_method_attr = get_dict_by_value(sb_test["test_name"], current_suite["test_list"], ["method_name", enums_data.TAG_NAME], execution_log, make_copy=True)
+                            current_method_attr = get_dict_by_value(sb_test["test_name"], current_suite["test_list"], ["method_name", enums_data.TAG_NAME], make_copy=True)
                             if current_method_attr:
                                 # add storyboard test attributes, override values such as ncycle and param
                                 for k, v in sb_test.items():
@@ -477,7 +480,7 @@ def filter_tests_by_storyboard(execution_log, storyboard_json_files: List[str], 
     return selected_tests
 
 
-def read_files_to_get_selected_tests(execution_log, ap: ArgsParser, storyboard_json_files: List[str], full_path_tests_scripts_foldername: str, verbose=False):
+def read_files_to_get_selected_tests(ap: ArgsParser, storyboard_json_files: List[str], full_path_tests_scripts_foldername: str, verbose=False):
     cm.TESTS_ROOT_FOLDER = full_path_tests_scripts_foldername
     all_tests = get_selected_tests(full_path_tests_scripts_foldername=full_path_tests_scripts_foldername,
                                    include_package=ap.get_options_arguments("-ip"), exclude_package=ap.get_options_arguments("-ep"),
@@ -488,9 +491,9 @@ def read_files_to_get_selected_tests(execution_log, ap: ArgsParser, storyboard_j
                                    include_testnumber=ap.get_options_arguments("-itn"), exclude_testnumber=ap.get_options_arguments("-etn"))
 
     if storyboard_json_files:
-        all_tests = filter_tests_by_storyboard(execution_log, storyboard_json_files, all_tests)
+        all_tests = filter_tests_by_storyboard(storyboard_json_files, all_tests)
 
     if verbose and all_tests:
-        show_test_structure(execution_log, all_tests)
+        show_test_structure(all_tests)
 
     return all_tests

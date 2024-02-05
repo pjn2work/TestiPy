@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
-from collections import namedtuple
+from typing import Dict, List, Set, NamedTuple, Any
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
@@ -9,7 +8,12 @@ from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
 
-TestInfo = namedtuple("TEST_INFO", "timestamp time level info attachment")
+class TestInfo(NamedTuple):
+    timestamp: int
+    time: str
+    level: str
+    info: str
+    attachment: Dict[str, Any]
 
 
 class CommonDetails:
@@ -70,6 +74,7 @@ class SuiteDetails(CommonDetails):
 
         self.package = parent
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
+        self.rb_test_result_rows = []
         self.test_manager = TestManager(self)
 
     def endSuite(self):

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-
 import os
 import traceback
 import concurrent.futures
 
 from typing import List, Dict
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data, default_config
 from testipy.lib_modules import common_methods as cm
 from testipy.lib_modules.common_methods import synchronized
@@ -18,10 +18,12 @@ from testipy.reporter.report_manager import ReportManager
 from testipy.reporter.package_manager import SuiteDetails
 
 
+_exec_logger = get_exec_logger()
+
+
 class ExecutionProgress:
 
-    def __init__(self, execution_log, total_methods_to_call):
-        self.execution_log = execution_log
+    def __init__(self, total_methods_to_call):
         self.total_methods_to_call = total_methods_to_call
         self.percent_completed = 0.0
         self.method_seq = 0
@@ -34,8 +36,8 @@ class ExecutionProgress:
         return self.method_seq * 100 / self.total_methods_to_call
 
     @synchronized
-    def print_progress_when_method_ends(self, state: str, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
-        self.execution_log("INFO", "{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
+    def method_progress(self, state: str, duration: float, total_failed: int, total: int, package_attr: Dict, suite_attr: Dict, method_attr: Dict, ros: str):
+        _exec_logger.info("{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
             color_state(state),
             self.get_percent_completed(),
             format_duration(duration).rjust(10),
@@ -47,17 +49,17 @@ class ExecutionProgress:
 
 class Executer:
 
-    def __init__(self, execution_log, full_path_tests_scripts_foldername):
-        self.execution_log = execution_log
+    def __init__(self, full_path_tests_scripts_foldername, debug_testipy: bool = False):
         self._current_method_execution_id = 0
         self._total_failed_skipped = 0
         cm.TESTS_ROOT_FOLDER = full_path_tests_scripts_foldername
+        self._debug_testipy = debug_testipy
 
     def get_total_failed_skipped(self):
         return self._total_failed_skipped
 
     def _execute_parallel(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False, suite_threads=1):
-        ep = ExecutionProgress(self.execution_log, _get_total_runs_of_selected_methods(selected_tests))
+        ep = ExecutionProgress(_get_total_runs_of_selected_methods(selected_tests))
 
         def _process_suite(suite_attr):
             for _ in range(1 if onlyonce else suite_attr.get("ncycles", 1)):
@@ -92,7 +94,7 @@ class Executer:
                 rm.end_package(pd)
 
     def _execute_sequential(self, rm: ReportManager, selected_tests: List[Dict], dryrun_mode=True, debug_code=False, onlyonce=False):
-        ep = ExecutionProgress(self.execution_log, _get_total_runs_of_selected_methods(selected_tests))
+        ep = ExecutionProgress(_get_total_runs_of_selected_methods(selected_tests))
 
         for package_attr in selected_tests:
             for _ in range(1 if onlyonce else package_attr.get("ncycles", 1)):
@@ -173,7 +175,7 @@ class Executer:
         duration = results.get_sum_time_laps()
         method_state, method_ros = results.get_state_by_severity()
 
-        ep.print_progress_when_method_ends(method_state, duration, total_failed, total, package_attr, suite_attr, method_attr, method_ros or "!")
+        ep.method_progress(method_state, duration, total_failed, total, package_attr, suite_attr, method_attr, method_ros or "!")
 
     def _call_test_method(self, package_attr, suite_attr, method_attr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, ep: ExecutionProgress, _error):
         had_exception = None
@@ -184,6 +186,8 @@ class Executer:
             rm.testSkipped(rm.startTest(method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
         elif _error:
             rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=f"Init suite failed: {_error}", exc_value=_error)
+            if self._debug_testipy:
+                raise _error
         elif nok := _get_nok_on_success_or_on_failure(sd, method_attr):
             # get @ON_FAILURE or @ON_SUCCESS dependency
             rm.testSkipped(rm.startTest(method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
@@ -208,7 +212,7 @@ class Executer:
 
                     # if "--debug_code" was passed, then will stop all execution
                     if debug_code:
-                        self.execution_log("CRITICAL", "- {}/{} - {}.{}({}) needs review because: {}\n{}".format(
+                        _exec_logger.critical("- {}/{} - {}.{}({}) needs review because: {}\n{}".format(
                             package_attr["package_name"], suite_attr["filename"],
                             suite_attr["suite_name"], ma["method_name"], ma["method_id"],
                             str(ex), _get_stacktrace_string_for_tests(ex)))
@@ -220,7 +224,7 @@ class Executer:
     def _change_cwd_to_package(self, package_name):
         package_name = package_name.replace(default_config.separator_package, os.path.sep)
         os.chdir(os.path.join(cm.TESTS_ROOT_FOLDER, package_name))
-        self.execution_log("DEBUG", f"Current folder {os.getcwd()}")
+        _exec_logger.debug(f"Current folder {os.getcwd()}")
 
     def _inc_failed(self, qty=1):
         self._total_failed_skipped += qty
@@ -258,8 +262,8 @@ def _get_stacktrace_string_for_tests(ex: Exception) -> str:
     return tb
 
 
-def run_selected_tests(execution_log, sa: StartArguments, selected_tests: List[Dict], rm: ReportManager) -> int:
-    runner = Executer(execution_log, sa.full_path_tests_scripts_foldername)
+def run_selected_tests(sa: StartArguments, selected_tests: List[Dict], rm: ReportManager, debug_testipy: bool) -> int:
+    runner = Executer(sa.full_path_tests_scripts_foldername, debug_testipy)
 
     runner.execute(rm, selected_tests, sa.dryrun, sa.debugcode, sa.onlyonce, sa.suite_threads)
 

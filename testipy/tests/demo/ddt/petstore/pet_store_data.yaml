@@ -17,7 +17,61 @@ CONST_ER1: &ER1
 
 
 
+STORY1:
+  _run_mode_: 1
+
+  _scenarios_:
+
+    crud_pet:
+
+      step_post_pet:
+        _exec_method_: post_pet
+        control:
+          expected_status_code: 200
+        param: *ER1
+        expected_response: *ER1
+
+      step_put_pet:
+        _based_on_: ["crud_pet/step_post_pet", ["param", "expected_response"]]
+        _exec_method_: put_pet
+        control:
+          expected_status_code: 200
+        param:
+          category:
+            name: SmallDogs
+        expected_response:
+          category:
+            name: SmallDogs
+
+      step_get_pet:
+        _based_on_: ["crud_pet/step_post_pet", ["expected_response"]]
+        _exec_method_: get_pet
+        control:
+          expected_status_code: 200
+        param: 1
+        expected_response:
+          category:
+            name: SmallDogs
+
+      step_delete_pet:
+        _exec_method_: delete_pet
+        control:
+          expected_status_code: 200
+        param: 1
+        expected_response: "Pet deleted"
+
+      step_get_deleted_pet:
+        _exec_method_: get_pet
+        control:
+          expected_status_code: 404
+        param: 1
+        expected_response: "Pet not found"
+
+
+
 SINGLE:
+  _run_mode_: 2
+
   _scenarios_:
 
     valid:
@@ -66,53 +120,5 @@ SINGLE:
           bug_issue: JIRA-123
           bug_message: "Unexpected status_code 404, expected 204"
 
-
-STORY1:
-  _scenarios_:
-
-    crud_pet:
-
-      step_post_pet:
-        _exec_method_: post_pet
-        control:
-          expected_status_code: 200
-        param: *ER1
-        expected_response: *ER1
-
-      step_put_pet:
-        _based_on_: ["crud_pet/step_post_pet", ["param", "expected_response"]]
-        _exec_method_: put_pet
-        control:
-          expected_status_code: 200
-        param:
-          category:
-            name: SmallDogs
-        expected_response:
-          category:
-            name: SmallDogs
-
-      step_get_pet:
-        _based_on_: ["crud_pet/step_post_pet", ["expected_response"]]
-        _exec_method_: get_pet
-        control:
-          expected_status_code: 200
-        param: 1
-        expected_response:
-          category:
-            name: SmallDogs
-
-      step_delete_pet:
-        _exec_method_: delete_pet
-        control:
-          expected_status_code: 200
-        param: 1
-        expected_response: "Pet deleted"
-
-      step_get_deleted_pet:
-        _exec_method_: get_pet
-        control:
-          expected_status_code: 404
-        param: 1
-        expected_response: "Pet not found"
 
 ...

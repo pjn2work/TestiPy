@@ -1,7 +1,7 @@
 from typing import Dict
 from tabulate import tabulate
 
-from testipy.configs import default_config, enums_data
+from testipy.configs import enums_data
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
@@ -29,7 +29,7 @@ class ReporterEcho(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         print("\n"*2)
         print("#"*_line_size)
         print(" Selected tests to run ".center(_line_size, "#"))
@@ -37,8 +37,7 @@ class ReporterEcho(ReportInterface):
         print(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="simple"))
         print("\n"*2)
 
-    def __teardown__(self, end_state: str):
-
+    def _teardown_(self, end_state: str):
         # get results DataFrame
         df = self.rm.get_df()
 
@@ -119,5 +118,3 @@ class ReporterEcho(ReportInterface):
 
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
-
-

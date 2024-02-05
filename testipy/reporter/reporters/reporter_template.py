@@ -17,10 +17,10 @@ class ReporterTemplate(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         pass
 
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         pass
 
     def start_package(self, pd: PackageDetails):
@@ -41,7 +41,7 @@ class ReporterTemplate(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self, 
+    def test_step(self,
                   current_test: TestDetails, 
                   state: str, 
                   reason_of_state: str = "", 

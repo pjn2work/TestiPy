@@ -3,10 +3,13 @@ import pandas as pd
 
 from typing import Dict
 
-from testipy.configs import enums_data
+from testipy import get_exec_logger
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+
+
+_exec_logger = get_exec_logger()
 
 
 class ReporterExcel(ReportInterface):
@@ -33,9 +36,9 @@ class ReporterExcel(ReportInterface):
         try:
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name, exist_ok=True)
-                self.rm._execution_log("INFO", f"Created folder {folder_name}")
+                _exec_logger.info(f"Created folder {folder_name}")
         except:
-            self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
+            _exec_logger.critical(f"Could not create folder {folder_name}", "ERROR")
 
     def _create_summarys(self, df):
         # write summarys
@@ -66,11 +69,11 @@ class ReporterExcel(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         df = self.rm.get_selected_tests_as_df()
         df.to_excel(self.writer, index=False, header=True, sheet_name='#SelectedTests')
 
-    def __teardown__(self, end_state):
+    def _teardown_(self, end_state):
         self._create_summarys(self.rm.get_df())
 
     def start_package(self, pd: PackageDetails):
@@ -102,6 +105,7 @@ class ReporterExcel(ReportInterface):
         pass
 
     # this will serve the purpose only for testSteps, because for tests is done on teardown
+
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
         # gather info for DataFrame
         package_name = current_test.suite.package.get_name()

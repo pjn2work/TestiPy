@@ -4,6 +4,7 @@ import os
 from typing import Union, List, Dict
 from abc import abstractmethod, ABC
 
+from testipy import get_exec_logger
 from testipy.configs import default_config
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
@@ -12,17 +13,20 @@ from testipy.lib_modules import webhook_http_listener as HL
 from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
 
 
+_exec_logger = get_exec_logger()
+
+
 class ReportInterface(ABC):
 
     def __init__(self, name: str = ""):
         self.name = name
 
     @abstractmethod
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         pass
 
     @abstractmethod
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         pass
 
     @abstractmethod
@@ -80,8 +84,7 @@ class ReportInterface(ABC):
 
 class ReportManagerAddons:
 
-    def __init__(self, execution_log, ap: ArgsParser, sa: StartArguments):
-        self._execution_log = execution_log
+    def __init__(self, ap: ArgsParser, sa: StartArguments):
         self._ap = ap
         self._sa = sa
 
@@ -202,7 +205,7 @@ class ReportManagerAddons:
                                                  device=device,
                                                  is_custom=is_custom)
         except Exception as ex:
-            self._execution_log("ERROR", f"RM Failed {self.get_bm().browser_name}: {ex}")
+            _exec_logger.error(f"RM Failed {self.get_bm().browser_name}: {ex}")
             self.browser_manager.setup_webdriver()
 
         return self.browser_manager.get_webdriver()

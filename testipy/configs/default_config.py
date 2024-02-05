@@ -10,7 +10,6 @@ default_foldername_separator = "_"
 tests_build_filename = "build.json"
 execution_log_filename = "testipy_exe.log"
 execution_prof_filename = "testipy_exe.prof"
-default_log_format = "%(asctime)s %(levelname)s [%(funcName)s@%(threadName)s] - %(message)s"
 
 # read_tests.py
 my_app_path = os.path.dirname(os.path.dirname(__file__))
@@ -27,7 +26,7 @@ separator_and_join_tags = "&"
 # execute_tests.py
 if_no_test_started_mark_as = enums_data.STATE_PASSED
 count_as_failed_states = [enums_data.STATE_FAILED]
-suite_threads = 4
+suite_threads = 1
 
 # report_base.py
 separator_package_suite_test = "/"

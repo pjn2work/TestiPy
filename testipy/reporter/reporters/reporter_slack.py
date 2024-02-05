@@ -4,6 +4,7 @@ from typing import Dict
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
@@ -23,6 +24,8 @@ emojis = {
     enums_data.STATE_SKIPPED: ":arrow_right_hook:"
 }
 
+_exec_logger = get_exec_logger()
+
 
 class ReporterSlack(ReportInterface):
 
@@ -41,12 +44,12 @@ class ReporterSlack(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def __startup__(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: Dict):
         __app__, __version__, _ = get_app_version()
         response = self._send_message(threadts=False, text=f":arrow_forward: {__app__} {__version__}b{self.build} Starting tests for {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})")
         self.TS = response.get("ts") if response else None
 
-    def __teardown__(self, end_state: str):
+    def _teardown_(self, end_state: str):
         flag = emojis.get(end_state, f":{end_state}:")
 
         self._send_message(reply_broadcast=True, text=f"{flag} {self.rm.pm.state_counter}")
@@ -109,4 +112,4 @@ class ReporterSlack(ReportInterface):
             except SlackApiError as e:
                 self.timer.set_timer_for(RATE_WAIT_SEC)
                 if retry == 0:
-                    self.rm._execution_log("ERROR", f"ReporterSlack: {e}")
+                    _exec_logger.error(f"ReporterSlack: {e}")
