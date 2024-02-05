@@ -6,6 +6,7 @@ from time import time
 from typing import Dict
 from reportportal_client import create_client, ClientType
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.lib_modules.common_methods import dict_without_keys
 from testipy.lib_modules.start_arguments import StartArguments
@@ -16,6 +17,8 @@ from testipy.reporter import ReportManager, ReportInterface, PackageDetails, Sui
 # to show or not stacktrace
 DEBUGCODE = False
 SETTINGS_FILE = "reporter_portalio.yaml"
+
+_exec_logger = get_exec_logger()
 
 
 def get_credentials(project_name, env_name):
@@ -32,9 +35,11 @@ def timestamp():
 
 
 def my_error_handler(exc_info):
+    _exec_logger.error(str(exc_info[1]))
     if DEBUGCODE:
-        print(f">> ReportPortalIO Error: {exc_info[1]}")
-        traceback.print_exception(*exc_info)
+        _exec_logger.error(str(exc_info))
+        #print(f">> ReportPortalIO Error: {exc_info[1]}")
+        #traceback.print_exception(*exc_info)
 
 
 class ReporterPortalIO(ReportInterface):

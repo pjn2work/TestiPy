@@ -1,0 +1,41 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  screen:
+    (): testipy.engine.mylogger.MyScreenFormatter
+    fmt_keys:
+      level: levelname
+      message: message
+      timestamp: timestamp
+      logger: name
+  log:
+    (): testipy.engine.mylogger.MyFileFormatter
+    fmt_keys:
+      level: levelname
+      message: message
+      timestamp: timestamp
+      logger: name
+      module: module
+      function: funcName
+      line: lineno
+      thread_name: threadName
+handlers:
+  stdout:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: screen
+    stream: ext://sys.stdout
+  file_log:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: log
+    filename: to_be_overwritten
+    maxBytes: 20000000
+    backupCount: 5
+loggers:
+  testipy:
+    level: DEBUG
+    propagate: true
+    handlers:
+      - stdout
+      - file_log

@@ -5,14 +5,17 @@ from typing import Dict
 from tabulate import tabulate
 from mss import mss
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list, prettify, format_duration
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
+
 log_format = "%(asctime)s %(levelname)s - %(message)s"
 table_format = "github"
+_exec_logger = get_exec_logger()
 
 
 class ReporterLog(ReportInterface):
@@ -156,7 +159,7 @@ class ReporterLog(ReportInterface):
             f_handler = logging.FileHandler(fpn, mode="w", encoding="utf-8")
             f_handler.setFormatter(logging.Formatter(format))
 
-            self._logger = logging.getLogger("reporter_log")
+            self._logger = logging.getLogger("testipy_reporter_log")
             self._logger.addHandler(f_handler)
             self._logger.setLevel(level)
 
@@ -166,7 +169,7 @@ class ReporterLog(ReportInterface):
         try:
             self.__get_logger().log(logging.getLevelName(level), info)
         except Exception as e:
-            self.rm._execution_log("CRITICAL", info)
+            _exec_logger.critical(info)
 
     def __create_folder(self, folder_name):
         try:
@@ -199,5 +202,5 @@ class ReporterLog(ReportInterface):
                 handler.close()
         except Exception as ex:
             error_message = f"Cannot close {self.filename}! {ex}"
-            self.rm._execution_log("CRITICAL", error_message)
+            _exec_logger.critical(error_message)
         self._logger = None

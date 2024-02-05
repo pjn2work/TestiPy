@@ -12,17 +12,19 @@ TESTIPY_ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 if TESTIPY_ROOT_FOLDER not in sys.path:
     sys.path.insert(0, TESTIPY_ROOT_FOLDER)
 
+from testipy import get_exec_logger
 from testipy.configs import default_config, enums_data
 from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
 from testipy.reporter.report_manager import build_report_manager_with_reporters
 from testipy.helpers import get_traceback_list, format_duration, prettify
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.common_methods import get_app_version
-from testipy.lib_modules.execution_logger import ExecutionLogger
+from testipy.engine.execution_logger import ExecutionLogger
 from testipy.lib_modules.start_arguments import ParseStartArguments, StartArguments
 
 
 __app__, __version__, __app_full__ = get_app_version()
+_exec_logger = get_exec_logger()
 
 
 # <editor-fold desc="--- Just for fun ---">
@@ -41,15 +43,14 @@ def show_intro():
 
 
 class Runner:
-    def __init__(self, ap: ArgsParser, sa: StartArguments, execution_log):
+    def __init__(self, ap: ArgsParser, sa: StartArguments):
         # configurations and logging
         self.ap = ap
         self.sa = sa
-        self.execution_log = execution_log
 
         # Log running parameters
         p = tabulate([(k, v) for k, v in self.sa.as_dict().items()], headers=("Parameter", "Value"), tablefmt="simple")
-        self.execution_log("DEBUG", "Runtime Parameters:\n" + p)
+        _exec_logger.debug("Runtime Parameters:\n" + p)
 
         # Change working directory to tests directory and added to sys.path
         os.chdir(self.sa.full_path_tests_scripts_foldername)
@@ -57,7 +58,6 @@ class Runner:
 
         # Select tests to run based on args filters
         self.selected_tests = read_files_to_get_selected_tests(
-            execution_log=execution_log,
             ap=ap,
             storyboard_json_files=sa.storyboard,
             full_path_tests_scripts_foldername=sa.full_path_tests_scripts_foldername,
@@ -66,22 +66,22 @@ class Runner:
             raise FileNotFoundError(f"Found no tests under {sa.full_path_tests_scripts_foldername}")
 
         # Reporter Manager, with all reporters
-        self.report_manager = build_report_manager_with_reporters(execution_log, ap, sa)
+        self.report_manager = build_report_manager_with_reporters(ap, sa)
 
     # Execute Tests
     def run(self) -> int:
         total_fails = 0
 
         for rep in range(1, self.sa.repetitions + 1):
-            self.execution_log("INFO", f"--- Execution #{rep} ---")
+            _exec_logger.info(f"--- Execution #{rep} ---")
             try:
-                total_fails += run_selected_tests(self.execution_log, self.sa,
+                total_fails += run_selected_tests(self.sa,
                                                   self.selected_tests,
                                                   self.report_manager,
                                                   self.ap.has_flag_or_option("--debug-testipy"))
             except Exception as ex:
                 total_fails += 1
-                self.execution_log("ERROR", f"Execution #{rep} - {ex}")
+                _exec_logger.error(f"Execution #{rep} - {ex}")
 
                 if self.ap.has_flag_or_option("--debug-testipy"):
                     raise ex
@@ -96,7 +96,7 @@ class Runner:
         self.report_manager._teardown_(None)
 
         if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
-            self.execution_log("ERROR", prettify(get_traceback_list(exc_val)))
+            _exec_logger.error(prettify(get_traceback_list(exc_val)))
 
         # export the overall results
         f = os.path.join(self.sa.full_path_results_folder_runtime, "results.yaml")
@@ -150,8 +150,8 @@ def run_testipy(args=None) -> int:
         ap = ArgsParser.from_str(args) if args else ArgsParser.from_sys()
         sa = ParseStartArguments(ap).get_start_arguments()
 
-        with ExecutionLogger(sa.full_path_results_folder_runtime) as log:
-            with Runner(ap, sa, log.execution_log) as runner:
+        with ExecutionLogger(sa.full_path_results_folder_runtime) as exec_logger:
+            with Runner(ap, sa) as runner:
                 if ap.has_flag_or_option("--prof"):
                     with cProfile.Profile() as prof:
                         fails = runner.run()
@@ -159,7 +159,7 @@ def run_testipy(args=None) -> int:
                 else:
                     fails = runner.run()
 
-            print(f"exitcode={fails} | Results at {sa.full_path_results_folder_runtime}")
+            exec_logger.log_info(f"exitcode={fails} | Results at {sa.full_path_results_folder_runtime}")
     except Exception as ex:
         print(ex, file=sys.stderr)
         # remove comment for debug purpose

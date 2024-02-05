@@ -10,6 +10,7 @@ from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
 from time import sleep
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
@@ -39,6 +40,8 @@ app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_url_path="/templat
 app.use_reloader = False
 app.config["SECRET_KEY"] = "dGVzdGlweSBzZWNyZXQgZm9yIHdlYnNvY2tldHM="
 socket_io = SocketIO(app, async_mode=None, engineio_logger=DEBUG_MODE_SOCKET_IO)
+
+_exec_logger = get_exec_logger()
 
 
 def escaped_text(text):
@@ -162,7 +165,7 @@ class ReporterWeb(ReportInterface):
         try:
             socket_io.stop()
         except Exception as e:
-            self.rm._execution_log("WARNING", f"ReporterWeb - Failed to stop socket_io {e}")
+            _exec_logger.warning(f"ReporterWeb - Failed to stop socket_io {e}")
 
     def start_package(self, pd: PackageDetails):
         _delete_from_cache("start_suite")

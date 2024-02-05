@@ -2,6 +2,7 @@ import os
 
 from typing import Dict
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
@@ -85,9 +86,9 @@ class ReporterJUnitXML(ReportInterface):
         try:
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name, exist_ok=True)
-                self.rm._execution_log("INFO", f"Created folder {folder_name}")
+                _exec_logger.info(f"Created folder {folder_name}")
         except:
-            self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
+            _exec_logger.critical(f"Could not create folder {folder_name}")
 
     def _generate_tag_testsuites(self, xml_file):
         # all tests counter

@@ -4,6 +4,7 @@ from typing import Dict
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
@@ -22,6 +23,8 @@ emojis = {
     enums_data.STATE_FAILED_KNOWN_BUG: ":negative_squared_cross_mark:",
     enums_data.STATE_SKIPPED: ":arrow_right_hook:"
 }
+
+_exec_logger = get_exec_logger()
 
 
 class ReporterSlack(ReportInterface):
@@ -109,4 +112,4 @@ class ReporterSlack(ReportInterface):
             except SlackApiError as e:
                 self.timer.set_timer_for(RATE_WAIT_SEC)
                 if retry == 0:
-                    self.rm._execution_log("ERROR", f"ReporterSlack: {e}")
+                    _exec_logger.error(f"ReporterSlack: {e}")

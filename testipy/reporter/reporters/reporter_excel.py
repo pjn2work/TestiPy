@@ -3,9 +3,13 @@ import pandas as pd
 
 from typing import Dict
 
+from testipy import get_exec_logger
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+
+
+_exec_logger = get_exec_logger()
 
 
 class ReporterExcel(ReportInterface):
@@ -32,9 +36,9 @@ class ReporterExcel(ReportInterface):
         try:
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name, exist_ok=True)
-                self.rm._execution_log("INFO", f"Created folder {folder_name}")
+                _exec_logger.info(f"Created folder {folder_name}")
         except:
-            self.rm._execution_log("CRITICAL", f"Could not create folder {folder_name}", "ERROR")
+            _exec_logger.critical(f"Could not create folder {folder_name}", "ERROR")
 
     def _create_summarys(self, df):
         # write summarys
