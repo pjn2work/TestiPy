@@ -11,4 +11,4 @@ __author_email__ = "pjn2work@google.com"
 
 
 def get_exec_logger():
-    return logging.getLogger("testipy.execution")
+    return logging.getLogger("testipy")

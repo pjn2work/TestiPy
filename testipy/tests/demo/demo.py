@@ -12,7 +12,11 @@ class SuiteDemo_01:
     @LEVEL 1
     """
 
-    def test_00_cannot_run(self, ma, rm, ncycles=2, ntimes=5, param=dict()):
+    def test_06_will_run(self, ma, rm: ReportManager, ncycles=1, param=None):
+        current_test = rm.startTest(ma)
+        rm.testPassed(current_test, "test without doc tags")
+
+    def test_00_cannot_run(self, ma, rm, ncycles=2, param=dict()):
         """
         @TAG DEMO no_run
         @LEVEL 0
@@ -105,6 +109,7 @@ class SuiteDemo_02:
 class SuiteDemo_03:
     """
     @LEVEL 1
+    @TAG DEMO
     """
 
     def wont_run_test_without_prefix(self, ma, rm, ncycles=4, param=dict()):
@@ -122,7 +127,7 @@ class SuiteDemo_03:
 class SuiteDemo_04:
     """
     @LEVEL 1
-    @TAG DEPENDENCIES
+    @TAG DEPENDENCIES DEMO
     """
 
     def test_will_pass1(self, ma: dict, rm: ReportManager, ncycles=1, param=dict()):
