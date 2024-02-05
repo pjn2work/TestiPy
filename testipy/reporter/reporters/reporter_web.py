@@ -140,10 +140,11 @@ class ReporterWeb(ReportInterface):
         pass
 
     def _startup_(self, selected_tests: Dict):
+        url = f"http://127.0.0.1:{PORT}/?namespace={self.namespace}"
         try:
-            webbrowser.open(f"http://127.0.0.1:{PORT}/?namespace={self.namespace}", new=2)
+            webbrowser.open(url, new=2)
         except:
-            pass
+            print(f"Open your browser to view the results\n{url}")
         _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
 
     def _teardown_(self, end_state: str):
