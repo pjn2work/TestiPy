@@ -3,11 +3,6 @@ import setuptools
 from testipy import __app__, __version__, __author__, __author_email__
 
 
-app_path = os.path.dirname(os.path.abspath(__file__))
-os.chdir(app_path)
-print(f"installing from {app_path}")
-
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
