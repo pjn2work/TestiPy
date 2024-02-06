@@ -1,8 +1,10 @@
+import os
 import setuptools
 from testipy import __app__, __version__, __author__, __author_email__
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-with open("readme.md", "r") as fh:
+with open("README.md", "rt") as fh:
     long_description = fh.read()
 
 
