@@ -16,7 +16,7 @@ class MyScreenFormatter(logging.Formatter):
 
 
 class MyFileFormatter(logging.Formatter):
-    def __init__(self, *, fmt_keys: dict[str, str] | None = None):
+    def __init__(self, *, fmt_keys: Union[Dict[str, str], None] = None):
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
 
