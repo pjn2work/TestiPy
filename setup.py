@@ -8,13 +8,13 @@ os.chdir(app_path)
 print(f"installing from {app_path}")
 
 
-with open("README.md", "rt") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
 with open("testipy/requirements.txt", "r") as fr:
     install_requires = str(fr.read()).split("\n")
-print("requires:", install_requires)
+print("requires -", install_requires)
 
 
 setuptools.setup(
