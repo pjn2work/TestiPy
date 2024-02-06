@@ -16,6 +16,8 @@ SAFE_BROWSER = {
     "option_preferences": {}
 }
 
+_exec_logger = get_exec_logger()
+
 
 class PlaywrightController:
 
