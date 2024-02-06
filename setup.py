@@ -8,8 +8,16 @@ curr_path = os.path.dirname(os.path.abspath(__file__))
 
 readme = os.path.join(curr_path, "README.md")
 print(f"Reading {readme}")
-with open(readme, "r") as fh:
-    long_description = fh.read()
+try:
+    with open(readme, "r") as fh:
+        long_description = fh.read()
+except:
+    long_description = """
+    Testing tool for python with:
+      - Test selection/execution
+      - Test management
+      - Test reporting
+    """
 
 requirements = os.path.join(curr_path, "testipy", "requirements.txt")
 print(f"Installing {requirements}")
