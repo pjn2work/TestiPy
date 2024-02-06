@@ -20,7 +20,7 @@ class Toolbox(ExecutionToolbox):
         handle_http_response.body = handle_http_response.raw = ""
 
     # --- Execution Methods --------------------------------------------------------------------------------------------
-    def post_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, st: SafeTry, **kwargs):
+    def post_pet(self, rm: ReportManager, current_test: TestDetails, usecase: Dict, usecase_name: str, **kwargs):
         url = f"https://petstore3.swagger.io/api/v3/pet"
         try:
             response = _post_as_dict(url, usecase["param"], **usecase["control"], expected_response=usecase.get("expected_response"))

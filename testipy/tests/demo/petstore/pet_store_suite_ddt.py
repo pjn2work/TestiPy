@@ -3,10 +3,10 @@ from typing import Dict
 from testipy.reporter import ReportManager
 from testipy.helpers.data_driven_testing import DDTMethods, RunMode
 
-from pet_store import Toolbox
+from pet_store_toolbox import Toolbox
 
 
-class SuitePetStore:
+class SuitePetStoreDDT:
     """
     @LEVEL 1
     @TAG DDT PETSTORE
