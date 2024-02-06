@@ -3,4 +3,5 @@ include testipy/reporter/reporters/templates/*.css
 include testipy/reporter/reporters/templates/*.html
 include testipy/reporter/reporters/reporter_portalio.yaml
 include testipy/engine/execution_logger_config.yaml
-include testipy/readme.md
+include testipy/requirements.txt
+include README.md
