@@ -27,7 +27,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pjn2work/testipy",
     setup_requires=["wheel"],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_namespace_packages(include=("*",)),
     include_package_data=True,
     install_requires=install_requires,
     entry_points={"console_scripts": ["testipy = testipy.__main__:run_testipy"]},
