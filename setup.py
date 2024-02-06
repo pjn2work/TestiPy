@@ -3,18 +3,18 @@ import setuptools
 from testipy import __app__, __version__, __author__, __author_email__
 
 
-app_path = os.path.dirname(os.path.abspath(__file__))
-os.chdir(app_path)
-print(f"installing from {app_path}")
+curr_path = os.path.dirname(os.path.abspath(__file__))
 
 
-with open("README.md", "r") as fh:
+readme = os.path.join(curr_path, "README.md")
+print(f"Reading {readme}")
+with open(readme, "r") as fh:
     long_description = fh.read()
 
-
-with open("testipy/requirements.txt", "r") as fr:
+requirements = os.path.join(curr_path, "testipy", "requirements.txt")
+print(f"Installing {requirements}")
+with open(requirements, "r") as fr:
     install_requires = str(fr.read()).split("\n")
-print("requires -", install_requires)
 
 
 setuptools.setup(
