@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import inspect
 import json
 import yaml
 
@@ -104,3 +105,13 @@ def exec_cmd(cmd: str, timeout: int = 2, change_to_path: str = "") -> Tuple[int,
         os.chdir(cwd)
 
     return result
+
+
+def where_am_i() -> str:
+    frame = inspect.currentframe().f_back
+
+    filename = frame.f_code.co_filename
+    function_name = frame.f_code.co_name
+    line_number = frame.f_lineno
+
+    return f"File: {filename}, Function: {function_name}, Line: {line_number}"

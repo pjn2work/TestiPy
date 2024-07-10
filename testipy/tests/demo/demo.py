@@ -101,8 +101,8 @@ class SuiteDemo_02:
         @TAG DEMO no_run
         @LEVEL 5
         @PRIO 30
+        @DEPENDS 10
         """
-        rm.startTest(ma)
         assert 1 == 0, "Why (1 != 0) ?"
 
 

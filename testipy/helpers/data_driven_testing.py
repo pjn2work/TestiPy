@@ -16,6 +16,7 @@ class RunMode(Enum):
     SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS = 1
     SCENARIO__USECASES_AS_TESTS = 2
     USECASES_AS_TESTS = 3
+    USECASES_AS_TESTSTEPS = 4
 
     @staticmethod
     def decode(value: Union[int, str, RunMode]) -> RunMode:
@@ -151,6 +152,9 @@ class DataReader:
         self.env_name = env_name
         self.__data: Dict[str, Tuple[RunMode, Dict]] = self._compile_data(data)
 
+    def get_data(self) -> Dict[str, Tuple[RunMode, Dict]]:
+        return self.__data
+
     def get_scenarios_or_usecases(self, tag_name: str, scenario_name: str = "") -> Tuple[RunMode, Dict]:
         if tag_name not in self.__data:
             raise AttributeError(f"{tag_name=} not found on data file")
@@ -229,7 +233,7 @@ class DataReader:
 
         # use-cases are tests -> no test-steps
         if isinstance(res_1, dict) and "_usecases_" in res_1:
-            run_mode = RunMode.USECASES_AS_TESTS
+            run_mode = run_mode if run_mode > 2 else RunMode.USECASES_AS_TESTS
 
             res_1 = res_1["_usecases_"]
             res_2 = res_2["_usecases_"] if res_2 else None
@@ -378,7 +382,7 @@ class DDTMethods(DataReader):
 
     """
     tag keywords:
-        _run_mode_: int     = 1 (default) SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or 2 USECASES_AS_TESTS
+        _run_mode_: int     = 1 (default) SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or [2, 3, 4]
         _no_env_: dict      = _scenarios_ or _usecases_
         _env_: dict         = env_name: dict (example, dev: qa:)
     scenario keywords:
@@ -408,7 +412,8 @@ class DDTMethods(DataReader):
         else:
             if (run_mode is None or
                     run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or
-                    run_mode is RunMode.USECASES_AS_TESTS):
+                    run_mode is RunMode.USECASES_AS_TESTS or
+                    run_mode is RunMode.USECASES_AS_TESTSTEPS):
                 self.run_tag(ma=ma, rm=rm, tag_name=tag_name, run_mode=run_mode)
             else:
                 raise ValueError(f"{run_mode=} invalid for {tag_name=}! Missing scenario_name")
@@ -419,6 +424,8 @@ class DDTMethods(DataReader):
         _run_mode = run_mode or _run_mode
         if _run_mode is RunMode.USECASES_AS_TESTS:
             self.run_usecases_as_tests__without_scenario(ma=ma, rm=rm, tag_name=tag_name)
+        elif _run_mode is RunMode.USECASES_AS_TESTSTEPS:
+            self.run_usecases_as_teststeps__without_scenario(ma=ma, rm=rm, tag_name=tag_name)
         else:
             for scenario_name in scenarios:
                 if _run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS:
@@ -536,6 +543,17 @@ class DDTMethods(DataReader):
                         st=st)
                 end_reason = st.get_ros() if st.is_success() else ""
                 endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("_known_bug_", ""))
+
+    def run_usecases_as_teststeps__without_scenario(self, ma: Dict, rm: ReportManager, tag_name: str):
+        _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name)
+
+        # the use-case (test) may have as description
+        current_test = rm.startTest(ma, usecase=tag_name, description=usecases.get("_description_", ""))
+        if rm.has_ap_flag("--norun"):
+            rm.testSkipped(current_test, "--norun")
+        else:
+            _, failed_usecase = self._run_usecases_as_teststeps(rm, current_test, usecases)
+            endTest(rm, current_test, bug=usecases.get("_known_bug_", ""))
 
 
 def get_usecase_fields_based_on_another_usecase(usecases: Dict, current_usecase: Union[Dict, str]) -> Dict:

@@ -142,7 +142,8 @@ class ReporterWeb(ReportInterface):
     def _startup_(self, selected_tests: Dict):
         url = f"http://127.0.0.1:{PORT}/?namespace={self.namespace}"
         try:
-            webbrowser.open(url, new=2)
+            if not webbrowser.open(url, new=2):
+                raise PermissionError("Cannot open browser!")
         except:
             print(f"Open your browser to view the results\n{url}")
         _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
