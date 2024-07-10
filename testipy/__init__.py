@@ -3,7 +3,7 @@
 import logging
 
 
-__version__ = "0.9.6.1"
+__version__ = "0.9.6.2"
 __app__ = "TestiPy"
 __app_full__ = "Python Test Tool"
 __author__ = "Pedro Nunes"
