@@ -233,7 +233,7 @@ class DataReader:
 
         # use-cases are tests -> no test-steps
         if isinstance(res_1, dict) and "_usecases_" in res_1:
-            run_mode = run_mode if run_mode > 2 else RunMode.USECASES_AS_TESTS
+            run_mode = run_mode if run_mode.value > 2 else RunMode.USECASES_AS_TESTS
 
             res_1 = res_1["_usecases_"]
             res_2 = res_2["_usecases_"] if res_2 else None
