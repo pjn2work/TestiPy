@@ -145,7 +145,7 @@ class ReporterWeb(ReportInterface):
             if not webbrowser.open(url, new=2):
                 raise PermissionError("Cannot open browser!")
         except:
-            print(f"Open your browser to view the results\n{url}")
+            print(f"Open your browser to view the results at: {url}")
         _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
 
     def _teardown_(self, end_state: str):
