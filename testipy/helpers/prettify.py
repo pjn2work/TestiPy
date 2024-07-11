@@ -28,6 +28,8 @@ def prettify(json_obj, as_yaml: bool = False, indent: int = 3) -> str:
             return json.dumps(json_obj, indent=indent).replace("\\n", "\n")
     except:
         pass
+    if isinstance(json_obj, (str, int, float)):
+        return str(json_obj)
     return _dict2pstr(json_obj, indent=indent)
 
 
