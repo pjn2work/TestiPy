@@ -12,3 +12,4 @@ package_list:
           - test_name: test_create_test_with_usecase
             ncycles: 2
           - test_name: test_create_test_without_name
+          - test_name: test_create_test_with_usecase

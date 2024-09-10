@@ -26,6 +26,7 @@ class StartArguments:
 
     dryrun: bool
     debugcode: bool
+    debug_testipy: bool
     onlyonce: bool
     repetitions: int
     suite_threads: int
@@ -100,6 +101,9 @@ class ParseStartArguments:
     def _is_debugcode(self) -> bool:
         return self.ap.has_flag_or_option("--debugcode")
 
+    def _is_debug_testipy(self) -> bool:
+        return self.ap.has_flag_or_option("--debug-testipy")
+
     # returns bool, if its only to run all tests only once
     def _is_onlyonce(self) -> bool:
         return self.ap.has_flag_or_option("--1")
@@ -146,6 +150,7 @@ class ParseStartArguments:
 
             dryrun=self._is_dryrun(),
             debugcode=self._is_debugcode(),
+            debug_testipy=self._is_debug_testipy(),
             onlyonce=self._is_onlyonce(),
             repetitions=self._get_repetitions(),
             suite_threads=self.get_suite_threads(),
