@@ -4,6 +4,7 @@ from typing import Dict, List, Set, NamedTuple, Any
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
+from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
@@ -17,10 +18,8 @@ class TestInfo(NamedTuple):
 
 
 class CommonDetails:
-    def __init__(self, name: str, attr: Dict):
+    def __init__(self, name: str):
         self.name: str = name
-        self.attr: Dict = attr
-
         self.cycle_number: int = 1
         self.state_counter = StateCounter()
         self.start_time = get_datetime_now()
@@ -43,24 +42,22 @@ class CommonDetails:
     def get_name(self, with_cycle_number=False) -> str:
         return f"{self.name}{default_config.separator_cycle}{self.get_cycle()}" if with_cycle_number else self.name
 
-    def get_attr(self):
-        return self.attr
-
     def get_counters(self) -> StateCounter:
         return self.state_counter
 
 
 class PackageDetails(CommonDetails):
-    def __init__(self, parent: PackageManager, package_name: str, package_attr: Dict):
-        super(PackageDetails, self).__init__(package_name or package_attr["@NAME"], package_attr)
+    def __init__(self, parent: PackageManager, package_name: str, package_attr: PackageAttr):
+        super(PackageDetails, self).__init__(package_name or package_attr.package_name)
 
         self.parent = parent
+        self.package_attr: PackageAttr = package_attr
         self.suite_manager: SuiteManager = SuiteManager(self)
 
     def endPackage(self):
         self.parent.end_time = self.end_time = get_datetime_now()
 
-    def startSuite(self, suite_name: str, suite_attr: Dict) -> SuiteDetails:
+    def startSuite(self, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
         return self.suite_manager.startSuite(suite_name, suite_attr)
 
     def update_package_suite_counters(self, state: str, reason_of_state: str):
@@ -69,10 +66,11 @@ class PackageDetails(CommonDetails):
 
 
 class SuiteDetails(CommonDetails):
-    def __init__(self, parent: PackageDetails, suite_name: str, suite_attr: Dict):
-        super(SuiteDetails, self).__init__(suite_name or suite_attr["@NAME"], suite_attr)
+    def __init__(self, parent: PackageDetails, suite_name: str, suite_attr: SuiteAttr):
+        super(SuiteDetails, self).__init__(suite_name or suite_attr.name)
 
         self.package = parent
+        self.suite_attr: SuiteAttr = suite_attr
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
         self.rb_test_result_rows = []
         self.test_manager = TestManager(self)
@@ -80,7 +78,7 @@ class SuiteDetails(CommonDetails):
     def endSuite(self):
         self.end_time = get_datetime_now()
 
-    def startTest(self, test_name: str, test_attr: Dict) -> TestDetails:
+    def startTest(self, test_name: str, test_attr: TestMethodAttr) -> TestDetails:
         current_test = self.test_manager.startTest(test_name, test_attr)
         return current_test
 
@@ -109,10 +107,16 @@ class SuiteDetails(CommonDetails):
 
 
 class TestDetails(CommonDetails):
-    def __init__(self, parent: SuiteDetails, test_name: str, test_attr: Dict):
-        super(TestDetails, self).__init__(test_name or test_attr["test_name"], test_attr)
+    def __init__(self, parent: SuiteDetails, test_name: str, test_method_attr: TestMethodAttr):
+        super(TestDetails, self).__init__(test_name or test_method_attr.name)
 
         self.suite = parent
+        self.test_method_attr: TestMethodAttr = test_method_attr
+
+        self.test_id: int = 0
+        self.test_usecase: str = ""
+        self.test_comment: str = test_method_attr.comment
+
         self._info = list()
         self._test_step = StateCounter()
 
@@ -134,36 +138,34 @@ class TestDetails(CommonDetails):
         ).rstrip(sep)
 
     def get_usecase(self) -> str:
-        return self.attr["test_usecase"]
+        return self.test_usecase
 
     def get_method_id(self) -> int:
-        return self.attr["method_id"]
+        return self.test_method_attr.method_id
 
     def get_test_id(self) -> int:
-        return self.attr["test_id"]
+        return self.test_id
 
     def get_comment(self) -> str:
-        return self.attr.get("test_comment", "")
+        return self.test_comment
 
     def get_test_param_parameter(self):
-        return self.attr.get("param")
+        return self.test_method_attr.param
 
     def get_test_number(self) -> str:
-        return self.attr.get(enums_data.TAG_TESTNUMBER, "")
+        return self.test_method_attr.test_number
 
     def get_tags(self) -> List:
-        if enums_data.TAG_TAG not in self.attr:
-            return []
-        return list(self.attr[enums_data.TAG_TAG])
+        return self.test_method_attr.tags
 
     def get_level(self) -> int:
-        return self.attr.get(enums_data.TAG_LEVEL, 0)
+        return self.test_method_attr.level
 
     def get_prio(self) -> int:
-        return self.attr.get(enums_data.TAG_PRIO, 999)
+        return self.test_method_attr.prio
 
     def get_features(self) -> str:
-        return self.attr.get(enums_data.TAG_FEATURES, "")
+        return self.test_method_attr.features
 
     def add_info(self, ts: int, current_time: str, level: str, info: str, attachment: Dict):
         self._info.append(TestInfo(ts, current_time, str(level).upper(), info, attachment))
@@ -233,11 +235,11 @@ class PackageManager:
         self._package_by_name_started: Dict[str, int] = dict()
         self.all_packages: List[PackageDetails] = []
 
-    def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
+    def startPackage(self, package_name: str, package_attr: PackageAttr) -> PackageDetails:
         if self.start_time is None:
             self.start_time = get_datetime_now()
 
-        package_name = package_name if package_name else package_attr["package_name"]
+        package_name = package_name if package_name else package_attr.package_name
         current_package = PackageDetails(self, package_name, package_attr)
         self.all_packages.append(current_package)
 
@@ -265,8 +267,8 @@ class SuiteManager:
         self._suite_by_name_started: Dict[str, int] = dict()
         self.all_suites: List[SuiteDetails] = []
 
-    def startSuite(self, suite_name: str, suite_attr: Dict) -> SuiteDetails:
-        suite_name = suite_name if suite_name else suite_attr["suite_name"]
+    def startSuite(self, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
+        suite_name = suite_name if suite_name else suite_attr.name
         current_suite = SuiteDetails(self.parent, suite_name, suite_attr)
         self.all_suites.append(current_suite)
 
@@ -288,8 +290,8 @@ class TestManager:
         self._tests_running_by_meid: Dict[int, List[TestDetails]] = dict()
         self.all_tests: List[TestDetails] = []
 
-    def startTest(self, test_name: str, test_attr: Dict):
-        test_name = test_name if test_name else test_attr["test_name"]
+    def startTest(self, test_name: str, test_attr: TestMethodAttr) -> TestDetails:
+        test_name = test_name if test_name else test_attr.name
         current_test = TestDetails(self.parent, test_name, test_attr)
         self.all_tests.append(current_test)
 

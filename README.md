@@ -146,12 +146,12 @@ class SuitePetStore:
         self.toolbox = Toolbox()
 
     # Create a new pet
-    def test_create_pet_valid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_create_pet_valid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 5
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 200},
@@ -167,13 +167,13 @@ class SuitePetStore:
             rm.testPassed(current_test, reason_of_state="pet created")
 
     # Get the pet created before
-    def test_get_pet_valid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_get_pet_valid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 10
         @ON_SUCCESS 5
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 200},

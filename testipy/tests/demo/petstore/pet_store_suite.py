@@ -1,7 +1,8 @@
 from typing import Dict
 
 from testipy.helpers.handle_assertions import ExpectedError
-from testipy.reporter import ReportManager
+from testipy.engine.models import TestMethodAttr
+from testipy.reporter import ReportManager, SuiteDetails
 
 from pet_store_toolbox import Toolbox
 
@@ -39,12 +40,12 @@ class SuitePetStore:
         self.toolbox = Toolbox()
 
     # Create a new pet
-    def test_create_pet_valid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_create_pet_valid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 5
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 200},
@@ -60,13 +61,13 @@ class SuitePetStore:
             rm.testPassed(current_test, reason_of_state="pet created")
 
     # Get the pet created before
-    def test_get_pet_valid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_get_pet_valid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 10
         @ON_SUCCESS 5
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 200},
@@ -82,12 +83,12 @@ class SuitePetStore:
             rm.testPassed(current_test, reason_of_state="pet fetched")
 
     # Create a new pet without ID
-    def test_create_pet_invalid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_create_pet_invalid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 15
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 500},
@@ -105,12 +106,12 @@ class SuitePetStore:
             rm.testFailed(current_test, reason_of_state="this should never pass!")
 
     # Buy an invalid pet
-    def test_buy_pet_invalid(self, ma: Dict, rm: ReportManager, ncycles=1, param=None):
+    def test_buy_pet_invalid(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 20
         """
-        current_test = rm.startTest(ma)
+        current_test = rm.startTest(sd, ma)
 
         data = {
             "control": {"expected_status_code": 204},

@@ -5,6 +5,7 @@ from typing import Dict, Tuple, Any
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.helpers import format_duration
 from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.textdecor import color_state
@@ -102,7 +103,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
         _exec_logger.info(f"{color_state(end_state)} All took {format_duration(self.pm.get_duration()):>10} [{self.pm.state_counter}]")
 
     @synchronized
-    def startPackage(self, name: str, package_attr: Dict) -> PackageDetails:
+    def startPackage(self, name: str, package_attr: PackageAttr) -> PackageDetails:
         pd = super().startPackage(name, package_attr)
         self.start_package(pd)
         return pd
@@ -117,7 +118,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    def startSuite(self, pd: PackageDetails, name: str, suite_attr: Dict) -> SuiteDetails:
+    def startSuite(self, pd: PackageDetails, name: str, suite_attr: SuiteAttr) -> SuiteDetails:
         sd = super().startSuite(pd, name, suite_attr)
         self.start_suite(sd)
         return sd
@@ -133,8 +134,8 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return sd
 
     @synchronized
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
-        td = super().startTest(method_attr, test_name, usecase, description)
+    def startTest(self, sd: SuiteDetails, method_attr: TestMethodAttr, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+        td = super().startTest(sd, method_attr, test_name, usecase, description)
         self.start_test(td)
         return td
 

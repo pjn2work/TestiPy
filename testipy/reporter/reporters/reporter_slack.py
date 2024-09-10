@@ -1,11 +1,12 @@
 import os
 
-from typing import Dict
+from typing import List
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
@@ -44,7 +45,7 @@ class ReporterSlack(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         __app__, __version__, _ = get_app_version()
         response = self._send_message(threadts=False, text=f":arrow_forward: {__app__} {__version__}b{self.build} Starting tests for {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})")
         self.TS = response.get("ts") if response else None

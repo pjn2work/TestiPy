@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from typing import Dict
+from typing import Dict, List
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
+from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.reporter.report_interfaces import ReportInterface
 from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp
 from testipy.reporter.package_manager import PackageManager, PackageDetails, SuiteDetails, TestDetails
@@ -18,7 +19,9 @@ class ReportBase(ReportInterface):
     def __init__(self, reporter_name):
         super().__init__(reporter_name)
 
-        self._selected_tests: pd.DataFrame = None
+        self._selected_tests: List[PackageAttr] = None
+        self._selected_tests_as_df: pd.DataFrame = None
+        self._selected_tests_as_dict: Dict = None
         self.end_state: str = None
 
         # manage counters for packages/suites/tests
@@ -31,8 +34,14 @@ class ReportBase(ReportInterface):
         self._df = pd.DataFrame(columns=self._df_columns)
 
     # <editor-fold desc="--- Gets ---">
-    def get_selected_tests_as_df(self) -> pd.DataFrame:
+    def get_selected_tests(self) -> List[PackageAttr]:
         return self._selected_tests
+
+    def get_selected_tests_as_df(self) -> pd.DataFrame:
+        return self._selected_tests_as_df
+
+    def get_selected_tests_as_dict(self) -> Dict[str, List]:
+        return self._selected_tests_as_dict
 
     def get_df(self) -> pd.DataFrame:
         return self._df.copy()
@@ -52,15 +61,17 @@ class ReportBase(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data) -> Dict:
         return self.create_attachment(dest_filename, data)
 
-    def _startup_(self, selected_tests: Dict):
-        self._selected_tests = pd.DataFrame(selected_tests["data"], columns=selected_tests["headers"])
+    def _startup_(self, selected_tests: List[PackageAttr]):
+        self._selected_tests = selected_tests
+        self._selected_tests_as_dict = format_test_structure_for_reporters(selected_tests)
+        self._selected_tests_as_df = pd.DataFrame(self._selected_tests_as_dict["data"], columns=self._selected_tests_as_dict["headers"])
 
     def _teardown_(self, end_state):
         totals = self.pm.state_counter
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
         self.end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
 
-    def startPackage(self, package_name: str, package_attr: Dict) -> PackageDetails:
+    def startPackage(self, package_name: str, package_attr: PackageAttr) -> PackageDetails:
         return self.pm.startPackage(package_name, package_attr)
 
     def start_package(self, pd: PackageDetails):
@@ -69,7 +80,7 @@ class ReportBase(ReportInterface):
     def end_package(self, pd: PackageDetails):
         pd.endPackage()
 
-    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: Dict) -> SuiteDetails:
+    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
         return pd.startSuite(suite_name, suite_attr)
 
     def start_suite(self, sd: SuiteDetails):
@@ -89,24 +100,21 @@ class ReportBase(ReportInterface):
         # clear list since they were added to DataFrame
         sd.rb_test_result_rows.clear()
 
-    def startTest(self, method_attr: Dict, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
-        if method_attr and isinstance(method_attr, Dict):
+    def startTest(self, sd: SuiteDetails, method_attr: TestMethodAttr, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+        if sd is None:
+            raise ValueError("When starting a new test you must have SuiteDetails, received as the first parameter on your test method.")
+
+        if method_attr and isinstance(method_attr, TestMethodAttr):
             self._test_id_counter += 1
 
-            test_attr = dict(method_attr)
-            test_attr["test_id"] = self._test_id_counter
-            test_attr["test_name"] = test_name or test_attr["@NAME"]
-            test_attr["test_comment"] = str(description) if description else test_attr.get("test_comment", "")
-            test_attr["test_usecase"] = str(usecase)
+            current_test = sd.startTest(test_name, method_attr)
+            current_test.test_id = self._test_id_counter
+            current_test.test_usecase = str(usecase)
+            current_test.test_comment = str(description) if description else method_attr.comment
 
-            sd: SuiteDetails = test_attr.get("suite_details")
-            if sd is None:
-                raise ValueError("When starting a new test, you must have in your MethodAttributes (dict) 'suite_details'." + str(test_attr))
+            return current_test
 
-            del test_attr["suite_details"]
-            return sd.startTest(test_name, test_attr)
-
-        raise ValueError("When starting a new test, you must pass your MethodAttributes (dict), received as the first parameter on your test method.")
+        raise ValueError("When starting a new test, you must pass your TestMethodAttr, received as the second parameter on your test method.")
 
     def start_test(self, current_test: TestDetails):
         pass
@@ -166,3 +174,33 @@ class ReportBase(ReportInterface):
         pass
 
     # </editor-fold>
+
+
+def format_test_structure_for_reporters(selected_tests: List[PackageAttr]) -> Dict:
+    formatted_test_list = []
+
+    for package_attr in selected_tests:
+        package_name = package_attr.package_name
+
+        for suite_attr in package_attr.suite_list:
+            suite_name = suite_attr.name
+            suite_prio = suite_attr.prio
+
+            for test_method in suite_attr.test_methods_list:
+                method_id = test_method.method_id
+                test_name = test_method.name
+                test_prio = test_method.prio
+                test_level = test_method.level
+                test_tags = " ".join(test_method.tags)
+                test_features = test_method.features
+                test_number = test_method.test_number
+                test_comment = test_method.comment
+
+                formatted_test_list.append(
+                    [method_id, package_name, suite_prio, suite_name, test_prio, test_name, test_level, test_tags,
+                     test_features, test_number, test_comment])
+
+    return dict(
+        headers=["meid", "Package", "Sp", "Suite", "Tp", "Test", "Level", "TAGs", "Features", "Number", "Description"],
+        data=formatted_test_list
+    )

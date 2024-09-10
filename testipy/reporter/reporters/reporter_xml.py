@@ -1,15 +1,18 @@
 import os
 
-from typing import Dict
+from typing import List
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
+
+_exec_logger = get_exec_logger()
 
 
 class ReporterJUnitXML(ReportInterface):
@@ -34,7 +37,7 @@ class ReporterJUnitXML(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         pass
 
     def _teardown_(self, end_state: str):

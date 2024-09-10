@@ -4,8 +4,9 @@ import os
 import sys
 import cProfile, pstats
 
-from typing import Dict
+from typing import Dict, List
 from tabulate import tabulate
+
 
 # allow root folder to be available for imports
 TESTIPY_ROOT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,6 +16,7 @@ if TESTIPY_ROOT_FOLDER not in sys.path:
 from testipy import get_exec_logger
 from testipy.configs import default_config, enums_data
 from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
+from testipy.engine.models import PackageAttr
 from testipy.reporter.report_manager import build_report_manager_with_reporters
 from testipy.helpers import get_traceback_list, format_duration, prettify
 from testipy.lib_modules.args_parser import ArgsParser
@@ -57,11 +59,12 @@ class Runner:
         sys.path.insert(0, self.sa.full_path_tests_scripts_foldername)
 
         # Select tests to run based on args filters
-        self.selected_tests = read_files_to_get_selected_tests(
+        self.selected_tests: List[PackageAttr] = read_files_to_get_selected_tests(
             ap=ap,
             storyboard_json_files=sa.storyboard,
             full_path_tests_scripts_foldername=sa.full_path_tests_scripts_foldername,
-            verbose=ap.has_flag_or_option("--debug-testipy"))
+            verbose=sa.debug_testipy
+        )
         if len(self.selected_tests) == 0:
             raise FileNotFoundError(f"Found no tests under {sa.full_path_tests_scripts_foldername}")
 
@@ -75,28 +78,30 @@ class Runner:
         for rep in range(1, self.sa.repetitions + 1):
             _exec_logger.info(f"--- Execution #{rep} ---")
             try:
-                total_fails += run_selected_tests(self.sa,
-                                                  self.selected_tests,
-                                                  self.report_manager,
-                                                  self.ap.has_flag_or_option("--debug-testipy"))
+                total_fails += run_selected_tests(
+                    sa=self.sa,
+                    selected_tests=self.selected_tests,
+                    rm=self.report_manager
+                )
             except Exception as ex:
                 total_fails += 1
                 _exec_logger.error(f"Execution #{rep} - {ex}")
 
-                if self.ap.has_flag_or_option("--debug-testipy"):
+                if self.sa.debug_testipy:
                     raise ex
 
         return total_fails
 
     def __enter__(self):
-        self.report_manager._startup_(self._format_test_structure_for_reporters())
+        self.report_manager._startup_(self.selected_tests)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.report_manager._teardown_(None)
 
-        if exc_val and self.ap.has_flag_or_option("--debug-testipy"):
+        if exc_val and self.sa.debug_testipy:
             _exec_logger.error(prettify(get_traceback_list(exc_val)))
+            raise exc_val
 
         # export the overall results
         f = os.path.join(self.sa.full_path_results_folder_runtime, "results.yaml")
@@ -107,31 +112,6 @@ class Runner:
     @property
     def duration(self) -> str:
         return format_duration(self.report_manager.get_reporter_duration())
-
-    def _format_test_structure_for_reporters(self) -> Dict:
-        formatted_test_list = []
-
-        for package_attr in self.selected_tests:
-            package_name = package_attr["package_name"]
-
-            for suite_attr in package_attr["suite_list"]:
-                suite_name = suite_attr[enums_data.TAG_NAME]
-                suite_prio = suite_attr[enums_data.TAG_PRIO]
-
-                for test_method in suite_attr["test_list"]:
-                    method_id = test_method["method_id"]
-                    test_name = test_method[enums_data.TAG_NAME]
-                    test_prio = test_method[enums_data.TAG_PRIO]
-                    test_level = test_method[enums_data.TAG_LEVEL]
-                    test_tags = " ".join(test_method[enums_data.TAG_TAG])
-                    test_features = test_method[enums_data.TAG_FEATURES]
-                    test_number = test_method[enums_data.TAG_TESTNUMBER]
-                    test_comment = test_method["test_comment"]
-
-                    formatted_test_list.append([method_id, package_name, suite_prio, suite_name, test_prio, test_name, test_level, test_tags, test_features, test_number, test_comment])
-
-        return dict(headers=["meid", "Package", "Sp", "Suite", "Tp", "Test", "Level", "TAGs", "Features", "Number", "Description"],
-                    data=formatted_test_list)
 
 
 def save_stats(folder: str, prof):
@@ -150,7 +130,7 @@ def run_testipy(args=None) -> int:
         ap = ArgsParser.from_str(args) if args else ArgsParser.from_sys()
         sa = ParseStartArguments(ap).get_start_arguments()
 
-        with ExecutionLogger(sa.full_path_results_folder_runtime) as exec_logger:
+        with ExecutionLogger(sa.full_path_results_folder_runtime, sa.debug_testipy) as exec_logger:
             with Runner(ap, sa) as runner:
                 if ap.has_flag_or_option("--prof"):
                     with cProfile.Profile() as prof:
