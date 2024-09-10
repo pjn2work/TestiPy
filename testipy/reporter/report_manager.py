@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 
-from typing import Dict, Tuple, Any
+from typing import Dict, List, Tuple, Any
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
@@ -72,7 +72,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
 
         return attachment
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         super()._startup_(selected_tests)
         for reporter_name, reporter in self._reporters_list.items():
             try:
