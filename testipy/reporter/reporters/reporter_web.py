@@ -250,7 +250,8 @@ class ReporterWeb(ReportInterface):
         return response
 
     def _format_info(self, current_test: TestDetails):
-        str_res = "<strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
+        str_res = "<h2>Test Attributes:</h2>"
+        str_res += f"<p>{escaped_text(prettify(current_test.get_attr(), as_yaml=True))}</p><HR>"
         str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {current_test.get_full_name(with_cycle_number=True)} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
         str_res += f"{current_test.get_counters().get_begin_time()} - {current_test.get_counters().get_end_time()} took {format_duration(current_test.get_duration())}"
 

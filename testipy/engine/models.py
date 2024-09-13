@@ -73,11 +73,11 @@ class TestMethodAttr:
             level=self.level,
             features=self.features,
             test_number=self.test_number,
-            tags = self.tags,
+            tags=list(self.tags),
 
-            depends=self.depends,
-            on_success=self.on_success,
-            on_failure=self.on_failure
+            depends=list(self.depends),
+            on_success=list(self.on_success),
+            on_failure=list(self.on_failure)
         )
 
     def __repr__(self):

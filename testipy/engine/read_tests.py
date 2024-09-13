@@ -46,8 +46,13 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                 (not exclude_package and cm.validate_begins_with(package_name, include_package)) or
                 (cm.validate_begins_with(package_name, include_package) and not cm.validate_begins_with(package_name, exclude_package)))
 
-    def __is_valid_suite(obj, doc: TYPE_DOC, suite_name: str) -> bool:
-        return inspect.isclass(obj) and is_valid_tag(suite_name, default_config.prefix_suite, doc, include_suite_tag, exclude_suite_tag)
+    def __is_valid_suite(obj, doc: TYPE_DOC, suite_name: str, filename: str) -> bool:
+        is_in_include_suite_tag = filename.split(".")[0] in include_suite_tag
+        is_not_in_exclude_suite_tag = filename.split(".")[0] not in exclude_suite_tag
+        return inspect.isclass(obj) and (
+            (is_in_include_suite_tag and is_not_in_exclude_suite_tag) or
+            is_valid_tag(suite_name, default_config.prefix_suite, doc, include_suite_tag, exclude_suite_tag)
+        )
 
     def __is_valid_test_method(obj, doc: TYPE_DOC, method_name: str) -> bool:
         return inspect.isfunction(obj) and is_valid_level(doc, level_filter) and (is_auto_include_test_tag(doc) or (
@@ -130,7 +135,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
             if suite_name.startswith(default_config.prefix_suite) and suite_name not in ["SuiteDetails"]:
                 sname = suite_name[len(default_config.prefix_suite):] if default_config.trim_prefix_suite else suite_name
                 doc = get_doc_dict(obj, sname)
-                if __is_valid_suite(obj, doc, suite_name):
+                if __is_valid_suite(obj, doc, suite_name, filename):
                     # Create a Suite object
                     suite_attr = SuiteAttr(
                         package_attr=package,
