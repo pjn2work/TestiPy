@@ -134,8 +134,8 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return sd
 
     @synchronized
-    def startTest(self, sd: SuiteDetails, method_attr: TestMethodAttr, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
-        td = super().startTest(sd, method_attr, test_name, usecase, description)
+    def startTest(self, sd: SuiteDetails, test_method_attr: TestMethodAttr = None, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+        td = super().startTest(sd, test_method_attr, test_name, usecase, description)
         self.start_test(td)
         return td
 

@@ -184,7 +184,7 @@ class ReporterLog(ReportInterface):
     def __create_folder(self, folder_name):
         try:
             os.makedirs(folder_name, exist_ok=True)
-            self.__log(f"Created results folder {folder_name}", level="DEBUG")
+            self.__log(f"Created results folder = {folder_name}", level="DEBUG")
         except:
             self.__log(f"Could not create results folder {folder_name}", "ERROR")
 

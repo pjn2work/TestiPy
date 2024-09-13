@@ -35,8 +35,8 @@ class ExecutionProgress:
         return self.method_seq * 100 / self.total_methods_to_call
 
     @synchronized
-    def method_progress(self, state: str, duration: float, total_failed: int, total: int, method_attr: TestMethodAttr, ros: str):
-        suite_attr: SuiteAttr = method_attr.suite
+    def method_progress(self, state: str, duration: float, total_failed: int, total: int, test_method_attr: TestMethodAttr, ros: str):
+        suite_attr: SuiteAttr = test_method_attr.suite_attr
         package_attr: PackageAttr = suite_attr.package
         _exec_logger.info("{:<26} {:3.0f}% {} ({}/{}) {}/{} - {}({}) | {}".format(
             color_state(state),
@@ -44,7 +44,7 @@ class ExecutionProgress:
             format_duration(duration).rjust(10),
             total_failed, total,
             package_attr.package_name, suite_attr.filename,
-            method_attr.method_name[len(default_config.prefix_tests):], method_attr.method_id,
+            test_method_attr.method_name[len(default_config.prefix_tests):], test_method_attr.method_id,
             ros[:70]))
 
 
@@ -73,9 +73,9 @@ class Executer:
                 except Exception as ex:
                     _error = ex
 
-                for method_attr in suite_attr.test_methods_list:
+                for test_method_attr in suite_attr.test_method_attr_list:
                     ep.inc()
-                    self._call_test_method(method_attr, sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
+                    self._call_test_method(test_method_attr, sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
 
                 suite_attr.app = None
 
@@ -88,7 +88,7 @@ class Executer:
                 pd = rm.startPackage(package_attr.package_name, package_attr)
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=suite_threads) as executor:
-                    tasks = {executor.submit(_process_suite, suite_attr): suite_attr for suite_attr in package_attr.suite_list}
+                    tasks = {executor.submit(_process_suite, suite_attr): suite_attr for suite_attr in package_attr.suite_attr_list}
                     concurrent.futures.wait(tasks)
 
                 rm.end_package(pd)
@@ -102,7 +102,7 @@ class Executer:
                 self._change_cwd_to_package(package_attr.package_name)
                 pd = rm.startPackage(package_attr.package_name, package_attr)
 
-                for suite_attr in package_attr.suite_list:
+                for suite_attr in package_attr.suite_attr_list:
                     for _ in range(1 if onlyonce else suite_attr.ncycles):
 
                         sd = rm.startSuite(pd, suite_attr.name, suite_attr)
@@ -114,9 +114,9 @@ class Executer:
                         except Exception as ex:
                             _error = ex
 
-                        for method_attr in suite_attr.test_methods_list:
+                        for test_method_attr in suite_attr.test_method_attr_list:
                             ep.inc()
-                            self._call_test_method(method_attr, sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
+                            self._call_test_method(test_method_attr, sd, rm, dryrun_mode, debug_code, onlyonce, ep, _error)
 
                         suite_attr.app = None
 
@@ -141,26 +141,22 @@ class Executer:
                 rm.testFailed(current_test, reason_of_state=str(had_exception), exc_value=had_exception)
         else:
             tc_state, tc_ros = current_test.get_test_step_counters().get_state_by_severity()
-            rm.end_test(current_test, state=tc_state, reason_of_state=tc_ros or "!", exc_value=None)
+            rm.end_test(current_test, state=tc_state or enums_data.STATE_PASSED, reason_of_state=tc_ros or "!", exc_value=None)
 
-    def _auto_close_all_open_tests_for_that_method(self, rm: ReportManager, sd: SuiteDetails, method_attr: TestMethodAttr, had_exception: Exception = None):
-        for current_test in list(sd.get_tests_running_by_meid(method_attr.method_id)):
+    def _auto_close_all_open_tests_for_that_method(self, rm: ReportManager, sd: SuiteDetails, test_method_attr: TestMethodAttr, number_tests_created_before_call: int, had_exception: Exception = None):
+        # if no test was created before method call, create new one
+        if number_tests_created_before_call == sd.get_total_tests_by_meid(test_method_attr.method_id):
+            _ = rm.startTest(sd, test_method_attr, usecase="AUTO-CREATED")
+
+        for current_test in list(sd.get_tests_running_by_meid(test_method_attr.method_id)):
             self._auto_close_single_test(rm, current_test, had_exception)
 
-    def _calculate_state_for_all_tests_under_this_method(self, rm: ReportManager, sd: SuiteDetails, method_attr: TestMethodAttr, had_exception: Exception, ep: ExecutionProgress):
-        # End not properly ended tests - this should never happen here
-        self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, method_attr=method_attr, had_exception=had_exception)
-
+    def _calculate_state_for_all_tests_under_this_method(self, sd: SuiteDetails, test_method_attr: TestMethodAttr, had_exception: Exception, ep: ExecutionProgress):
         # sum all tests counter for this method, for all ncycle
         results = StateCounter()
-        all_tests = sd.get_tests_by_meid(method_attr.method_id)
-        if all_tests:
-            for current_test in all_tests:
-                results.inc_states(current_test.get_counters())
-        else:
-            # no test created by the method call, impossible to get here - just a safeguard
-            current_test = rm.startTest(sd, method_attr, usecase="AUTO-CREATED")
-            rm.end_test(current_test, state=default_config.if_no_test_started_mark_as, reason_of_state=f"No test started by {method_attr.method_name}", exc_value=had_exception)
+        all_tests = sd.get_tests_by_meid(test_method_attr.method_id)
+        for current_test in all_tests:
+            results.inc_states(current_test.get_counters())
 
         # increment global failed (skipped, bug)
         total_failed = sum([results[state] for state in default_config.count_as_failed_states])
@@ -174,52 +170,53 @@ class Executer:
         duration = results.get_sum_time_laps()
         method_state, method_ros = results.get_state_by_severity()
 
-        ep.method_progress(method_state, duration, total_failed, total, method_attr, method_ros or "!")
+        ep.method_progress(method_state, duration, total_failed, total, test_method_attr, method_ros or "!")
 
-    def _call_test_method(self, method_attr: TestMethodAttr, sd: SuiteDetails, rm: ReportManager, dryrun_mode, debug_code, onlyonce, ep: ExecutionProgress, _error):
+    def _call_test_method(self, test_method_attr: TestMethodAttr, sd: SuiteDetails, rm: ReportManager, dryrun_mode: bool, debug_code: bool, onlyonce: bool, ep: ExecutionProgress, _error: Exception):
         had_exception = None
 
         if dryrun_mode:
             # if "--dryrun" was passed then will skip all tests execution
-            rm.testSkipped(rm.startTest(sd, method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
+            rm.testSkipped(rm.startTest(sd, test_method_attr, usecase="dryrun"), reason_of_state="DRYRUN")
         elif _error:
-            rm.testSkipped(rm.startTest(sd, method_attr, usecase="AUTO-CREATED"), reason_of_state=f"Init suite failed: {_error}", exc_value=_error)
+            rm.testSkipped(rm.startTest(sd, test_method_attr, usecase="AUTO-CREATED"), reason_of_state=f"Init suite failed: {_error}", exc_value=_error)
             if self._debug_testipy:
                 raise _error
-        elif nok := _get_nok_on_success_or_on_failure(sd, method_attr):
+        elif nok := _get_nok_on_success_or_on_failure(sd, test_method_attr):
             # get @ON_FAILURE or @ON_SUCCESS dependency
-            rm.testSkipped(rm.startTest(sd, method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
+            rm.testSkipped(rm.startTest(sd, test_method_attr, usecase="AUTO-CREATED"), reason_of_state=nok)
         else:
-            for attempt in range(1 if onlyonce else method_attr.ncycles):
+            for attempt in range(1 if onlyonce else test_method_attr.ncycles):
+                number_tests_created_before_call = sd.get_total_tests_by_meid(test_method_attr.method_id)
+                sd.set_current_test_method_attr(test_method_attr)
                 try:
                     # -->> call the test method <<--
-                    _ = getattr(sd.suite_attr.app, method_attr.method_name)(sd, method_attr, rm, ncycles=method_attr.ncycles, param=method_attr.param)
+                    _ = getattr(sd.suite_attr.app, test_method_attr.method_name)(sd, rm, ncycles=test_method_attr.ncycles, param=test_method_attr.param)
 
-                    # no test started by the method call, create one and close it
-                    if len(sd.get_tests_by_meid(method_attr.method_id)) == 0:
-                        rm.end_test(rm.startTest(sd, method_attr, usecase="AUTO-CREATED"), state=default_config.if_no_test_started_mark_as, reason_of_state="!", exc_value=None)
-
-                    self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, method_attr=method_attr)
+                    self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, test_method_attr=test_method_attr, number_tests_created_before_call=number_tests_created_before_call)
+                except ExpectedError as ex:
+                    self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, test_method_attr=test_method_attr, number_tests_created_before_call=number_tests_created_before_call, had_exception=ex)
                 except Exception as ex:
-                    # no test started by the method call, create one
-                    if len(sd.get_tests_by_meid(method_attr.method_id)) == 0:
-                        _ = rm.startTest(sd, method_attr, usecase="AUTO-CREATED")
+                    self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, test_method_attr=test_method_attr, number_tests_created_before_call=number_tests_created_before_call, had_exception=ex)
 
-                    self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, method_attr=method_attr, had_exception=ex)
-
-                    # if "--debug_code" was passed, then will stop all execution
+                    # if "--debug_code" was given, then will stop all execution
                     if debug_code:
                         package_name = sd.package.name
                         suite_filename = sd.suite_attr.filename
                         suite_name = sd.suite_attr.suite_name
-                        test_method_name = method_attr.method_name
-                        test_method_id = method_attr.method_id
+                        test_method_name = test_method_attr.method_name
+                        test_method_id = test_method_attr.method_id
                         stack_trace = _get_stacktrace_string_for_tests(ex)
+
                         _exec_logger.critical(f"- {package_name}/{suite_filename} - {suite_name}.{test_method_name}({test_method_id}) needs review because: {ex}\n{stack_trace}")
                         raise ex
-                    had_exception = ex
 
-        self._calculate_state_for_all_tests_under_this_method(rm, sd, method_attr, had_exception, ep)
+                    if had_exception is None:
+                        had_exception = ex
+
+        sd.set_current_test_method_attr(None)
+
+        self._calculate_state_for_all_tests_under_this_method(sd, test_method_attr, had_exception, ep)
 
     def _change_cwd_to_package(self, package_name):
         package_name = package_name.replace(default_config.separator_package, os.path.sep)
@@ -230,14 +227,14 @@ class Executer:
         self._total_failed_skipped += qty
 
 
-def _get_nok_on_success_or_on_failure(sd: SuiteDetails, method_attr: TestMethodAttr) -> str:
+def _get_nok_on_success_or_on_failure(sd: SuiteDetails, test_method_attr: TestMethodAttr) -> str:
     # at least one test, under same suite, with that prio has passed
-    for prio in method_attr.on_success:
+    for prio in test_method_attr.on_success:
         if enums_data.STATE_PASSED not in sd.get_test_state_by_prio(prio):
             return f"NO SUCCESS on {prio=}"
 
     # at least one test, under same suite, with that prio has failed
-    for prio in method_attr.on_failure:
+    for prio in test_method_attr.on_failure:
         if (enums_data.STATE_FAILED not in sd.get_test_state_by_prio(prio) and
                 enums_data.STATE_FAILED_KNOWN_BUG not in sd.get_test_state_by_prio(prio)):
             return f"NO FAILURE on {prio=}"
@@ -248,8 +245,8 @@ def _get_nok_on_success_or_on_failure(sd: SuiteDetails, method_attr: TestMethodA
 def _get_total_runs_of_selected_methods(selected_tests: List[PackageAttr]) -> int:
     total = 0
     for package_attr in selected_tests:
-        for suite_attr in package_attr.suite_list:
-            for method_attr in suite_attr.test_methods_list:
+        for suite_attr in package_attr.suite_attr_list:
+            for test_method_attr in suite_attr.test_method_attr_list:
                 total += suite_attr.ncycles * package_attr.ncycles
     return total
 

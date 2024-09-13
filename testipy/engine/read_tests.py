@@ -56,15 +56,17 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                 is_valid_tag_testnumber(doc, include_testnumber, exclude_testnumber))
         )
 
-    def __get_test_methods_list_from_suite_obj(suite_obj, suite_doc, suite_item: SuiteAttr) -> List[TestMethodAttr]:
-        test_methods_list: List[TestMethodAttr] = []
+    def __get_test_methods_list_from_suite_obj(suite_obj, suite_doc, suite_attr: SuiteAttr):
         _test_methods: Dict[str, TestMethodAttr] = {}
         _depends_prio_tests_to_auto_include = set()
         ConfigFilters.auto_included_tests = 0
 
-        def is_test_on_list(method_attr: TestMethodAttr) -> bool:
-            for ma in test_methods_list:
-                if ma.method_name == method_attr.method_name:
+        _dummy_package_attr = PackageAttr("dummy")
+        _dummy_suite_attr = SuiteAttr(_dummy_package_attr, "dummy", "dummy")
+
+        def is_test_on_list(test_method_attr: TestMethodAttr) -> bool:
+            for ma in suite_attr.test_method_attr_list:
+                if ma.method_name == test_method_attr.method_name:
                     return True
             return False
 
@@ -74,9 +76,16 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                 doc = get_doc_dict(obj, mname)
                 doc[enums_data.TAG_TESTNUMBER] = suite_doc[enums_data.TAG_TESTNUMBER] + doc[enums_data.TAG_TESTNUMBER]
 
+                if __is_valid_test_method(obj, doc, method_name):
+                    # update auto include tests that have dependency to other tests, based on prio
+                    _depends_prio_tests_to_auto_include.update(doc[enums_data.TAG_DEPENDS])
+                    curr_suite_attr = suite_attr
+                else:
+                    curr_suite_attr = _dummy_suite_attr
+
                 # create new test and add to test_methods
-                test_method = TestMethodAttr(
-                    suite=suite_item,
+                test_method_attr = TestMethodAttr(
+                    suite_attr=curr_suite_attr,
 
                     method_name=method_name,
                     method_obj=obj,
@@ -96,52 +105,40 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                     on_success=doc[enums_data.TAG_ON_SUCCESS],
                     on_failure=doc[enums_data.TAG_ON_FAILURE],
                 )
-                _test_methods[method_name] = test_method
-
-                # add to selected tests and add dependency to other tests
-                if __is_valid_test_method(obj, doc, method_name):
-                    test_methods_list.append(test_method)
-                    # update auto include tests that have dependency to other tests, based on prio
-                    _depends_prio_tests_to_auto_include.update(doc[enums_data.TAG_DEPENDS])
+                _test_methods[method_name] = test_method_attr
 
         # find tests (methods) that must be included because of dependency
         changes_were_made = len(_depends_prio_tests_to_auto_include) > 0
         while changes_were_made:
             changes_were_made = False
-            for method_name, test_method in _test_methods.items():
-                if test_method.prio in _depends_prio_tests_to_auto_include:
-                    if not is_test_on_list(test_method):
-                        test_methods_list.append(test_method)
-                        _depends_prio_tests_to_auto_include.update(test_method.depends)
+            for method_name, test_method_attr in _test_methods.items():
+                if test_method_attr.prio in _depends_prio_tests_to_auto_include:
+                    if not is_test_on_list(test_method_attr):
+                        test_method_attr.suite_attr = suite_attr
+                        suite_attr.test_method_attr_list.append(test_method_attr)
+                        _depends_prio_tests_to_auto_include.update(test_method_attr.depends)
 
                         ConfigFilters.inc()
                         changes_were_made = True
 
-        # order test list
-        if test_methods_list:
-            if len(test_methods_list) > ConfigFilters.auto_included_tests:
-                test_methods_list = sorted(test_methods_list, key=lambda x: (x.prio, x.method_name), reverse=False)
-            else:
-                test_methods_list = []
+        # no test was included apart from the auto-included + dependencies tests
+        if ConfigFilters.auto_included_tests == len(suite_attr.test_method_attr_list):
+            suite_attr.test_method_attr_list.clear()
 
-        return test_methods_list
-
-    def __get_suites_list_from_file_with_test_methods(fpn: str, filename: str, package: PackageAttr) -> List[SuiteAttr]:
-        suite_list = []
-
+    def __get_suites_list_from_file_with_test_methods(fpn: str, filename: str, package: PackageAttr):
         for suite_name, obj in py_inspector.get_members_from_file(fpn):
-            if suite_name.startswith(default_config.prefix_suite):
+            if suite_name.startswith(default_config.prefix_suite) and suite_name not in ["SuiteDetails"]:
                 sname = suite_name[len(default_config.prefix_suite):] if default_config.trim_prefix_suite else suite_name
                 doc = get_doc_dict(obj, sname)
                 if __is_valid_suite(obj, doc, suite_name):
                     # Create a Suite object
-                    suite = SuiteAttr(
-                        package=package,
+                    suite_attr = SuiteAttr(
+                        package_attr=package,
                         filename=filename,
                         suite_name=suite_name,
                         suite_obj=obj,
                         ncycles=1,
-                        test_methods_list=[],
+                        test_method_attr_list=[],
                         comment=py_inspector.get_comment(obj) or "",
                         name=doc[enums_data.TAG_NAME],
                         prio=doc[enums_data.TAG_PRIO],
@@ -150,12 +147,10 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                         features=doc[enums_data.TAG_FEATURES],
                         test_number=doc[enums_data.TAG_TESTNUMBER]
                     )
-                    test_methods_list = __get_test_methods_list_from_suite_obj(obj, doc, suite)
-                    if test_methods_list:
-                        suite.add_tests(test_methods_list)
-                        suite_list.append(suite)
+                    __get_test_methods_list_from_suite_obj(obj, doc, suite_attr)
 
-        return suite_list
+                    if len(suite_attr.test_method_attr_list) == 0:
+                        package.suite_attr_list.remove(suite_attr)
 
     def __get_package_suite_test_methods_list(full_path_foldername: str, package_name: str = "") -> List[PackageAttr]:
         packages_suites_methods_list: List[PackageAttr] = []
@@ -163,7 +158,7 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
         vp = __is_valid_package(package_name)
 
         if vp:
-            package = PackageAttr(package_name=package_name, suite_list=[], ncycles=1)
+            package_attr = PackageAttr(package_name=package_name, suite_attr_list=[], ncycles=1)
             # add current package to PATH
             sys.path.insert(0, full_path_foldername)
 
@@ -176,14 +171,13 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
                 )
 
             elif vp and os.path.isfile(fpn) and filename.endswith(".py"):
-                suite_list = __get_suites_list_from_file_with_test_methods(fpn, filename, package)
-                if suite_list:
-                    package.add_suites(suite_list)
+                __get_suites_list_from_file_with_test_methods(fpn, filename, package_attr)
 
-        if vp and package.suite_list:
-            packages_suites_methods_list.append(package)
+        if vp:
             # remove current package from PATH
             sys.path.remove(full_path_foldername)
+            if package_attr.suite_attr_list:
+                packages_suites_methods_list.append(package_attr)
 
         return packages_suites_methods_list
 
@@ -191,14 +185,14 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
     if not os.path.isdir(full_path_tests_scripts_foldername):
         raise NotADirectoryError(full_path_tests_scripts_foldername)
 
-    selected_tests = []
+    selected_tests: List[PackageAttr] = []
 
     for name in sorted(os.listdir(full_path_tests_scripts_foldername)):
         fpn = os.path.join(full_path_tests_scripts_foldername, name)
         if os.path.isdir(fpn):
-            package_list = __get_package_suite_test_methods_list(fpn, name)
-            if package_list:
-                selected_tests += package_list
+            package_attr_list: List[PackageAttr] = __get_package_suite_test_methods_list(fpn, name)
+            if package_attr_list:
+                selected_tests += package_attr_list
 
     selected_tests = mark_packages_suites_methods_ids(sort_test_structure(selected_tests))
 
@@ -206,44 +200,51 @@ def get_selected_tests(full_path_tests_scripts_foldername: str,
 
 
 def filter_tests_by_storyboard(storyboard_json_files: List[str], all_tests: List[PackageAttr]) -> List[PackageAttr]:
-    selected_tests = []
+    selected_tests: List[PackageAttr] = []
 
     for sb_json_file in storyboard_json_files:
-        storyboard = load_config(sb_json_file)
+        storyboard: Dict[str, Dict] = load_config(sb_json_file)
 
         for sb_package in storyboard["package_list"]:
             # get cloned package dict, based on package_of_storyboard, from all tests
-            current_package: PackageAttr = get_package_by_name(all_tests, sb_package["package_name"])
+            current_package_attr: PackageAttr = get_package_by_name(all_tests, sb_package["package_name"])
 
-            if current_package:
-                current_package = current_package.duplicate(clone_children=False)
-                suite_list: List[SuiteAttr] = []
+            if current_package_attr:
+                current_package_attr = current_package_attr.duplicate(clone_children=False)
+                selected_tests.append(current_package_attr)
+
+                # add storyboard package attributes, override values such as ncycle
+                for k, v in sb_package.items():
+                    if k == "ncycles":
+                        current_package_attr.ncycles = v
 
                 # add all suites from package if none specified on storyboard
                 if not sb_package.get("suite_list"):
-                    sb_package["suite_list"] = [{"suite_name": suite.suite_name} for suite in current_package.suite_list]
+                    sb_package["suite_list"] = [{"suite_name": suite.suite_name} for suite in current_package_attr.suite_attr_list]
 
                 for sb_suite in sb_package["suite_list"]:
                     # get cloned suite dict, based on suite_of_storyboard, from all_tests->current_package
-                    current_suite: SuiteAttr = current_package.get_suite_by_name(sb_suite["suite_name"])
-                    if current_suite:
-                        current_suite = current_suite.duplicate(current_package, clone_children=False)
-                        test_methods_list: List[TestMethodAttr] = []
+                    current_suite_attr: SuiteAttr = current_package_attr.get_suite_by_name(sb_suite["suite_name"])
+                    if current_suite_attr:
+                        current_suite_attr = current_suite_attr.duplicate(current_package_attr, clone_children=False)
 
                         # add storyboard suite attributes, override values such as ncycle
                         for k, v in sb_suite.items():
                             if k == "ncycles":
-                                current_suite.ncycles = v
+                                current_suite_attr.ncycles = v
+
+                        # add suite kwargs for suite __init__()
+                        current_suite_attr.suite_kwargs = cm.dict_without_keys(sb_suite, ["suite_name", "test_list", "ncycles"])
 
                         # add all tests from suite if none specified on storyboard
                         if not sb_suite.get("test_list"):
-                            sb_suite["test_list"] = [{"test_name": test_method["method_name"]} for test_method in current_suite.test_methods_list]
+                            sb_suite["test_list"] = [{"test_name": test_method["method_name"]} for test_method in current_suite_attr.test_method_attr_list]
 
                         # filter tests based on storyboard
                         for sb_test in sb_suite["test_list"]:
-                            current_method_attr: TestMethodAttr = current_suite.get_test_method_by_name(sb_test["test_name"])
+                            current_method_attr: TestMethodAttr = current_suite_attr.get_test_method_by_name(sb_test["test_name"])
                             if current_method_attr:
-                                current_method_attr = current_method_attr.duplicate(current_suite)
+                                current_method_attr = current_method_attr.duplicate(current_suite_attr)
                                 # add storyboard test attributes, override values such as ncycle and param
                                 for k, v in sb_test.items():
                                     if k  == "ncycles":
@@ -251,32 +252,13 @@ def filter_tests_by_storyboard(storyboard_json_files: List[str], all_tests: List
                                     elif  k== "param":
                                         current_method_attr.param = v
 
-                                test_methods_list.append(current_method_attr)
-
-                        # add to selected_tests
-                        if test_methods_list:
-                            # add suite kwargs for suite __init__()
-                            current_suite.suite_kwargs = cm.dict_without_keys(sb_suite, ["suite_name", "test_list", "ncycles"])
-
-                            # update lists
-                            current_suite.test_methods_list = test_methods_list
-                            suite_list.append(current_suite)
-
-                if suite_list:
-                    # add storyboard package attributes, override values such as ncycle
-                    for k, v in sb_package.items():
-                        if k == "ncycles":
-                            current_package.ncycles = v
-
-                    current_package.suite_list = suite_list
-                    selected_tests.append(current_package)
-
     selected_tests = mark_packages_suites_methods_ids(selected_tests)
 
     return selected_tests
 
 
 def read_files_to_get_selected_tests(ap: ArgsParser, storyboard_json_files: List[str], full_path_tests_scripts_foldername: str, verbose=False):
+    print(f"> Reading test files from {full_path_tests_scripts_foldername}")
     cm.TESTS_ROOT_FOLDER = full_path_tests_scripts_foldername
     all_tests = get_selected_tests(full_path_tests_scripts_foldername=full_path_tests_scripts_foldername,
                                    include_package=ap.get_options_arguments("-ip"), exclude_package=ap.get_options_arguments("-ep"),
@@ -291,6 +273,7 @@ def read_files_to_get_selected_tests(ap: ArgsParser, storyboard_json_files: List
 
     if verbose and all_tests:
         test_structure: str = show_test_structure(all_tests)
+        print("="*160)
         print(test_structure)
         print("="*160)
         _exec_logger.info(f"TestStructure: {test_structure}")

@@ -72,6 +72,8 @@ class ReportBase(ReportInterface):
         self.end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
 
     def startPackage(self, package_name: str, package_attr: PackageAttr) -> PackageDetails:
+        if package_attr is None:
+            package_attr = PackageAttr(package_name)
         return self.pm.startPackage(package_name, package_attr)
 
     def start_package(self, pd: PackageDetails):
@@ -81,6 +83,8 @@ class ReportBase(ReportInterface):
         pd.endPackage()
 
     def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
+        if suite_attr is None:
+            suite_attr = SuiteAttr(pd.package_attr, "auto_created", suite_name)
         return pd.startSuite(suite_name, suite_attr)
 
     def start_suite(self, sd: SuiteDetails):
@@ -100,21 +104,23 @@ class ReportBase(ReportInterface):
         # clear list since they were added to DataFrame
         sd.rb_test_result_rows.clear()
 
-    def startTest(self, sd: SuiteDetails, method_attr: TestMethodAttr, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
+    def startTest(self, sd: SuiteDetails, test_method_attr: TestMethodAttr, test_name: str, usecase: str, description: str) -> TestDetails:
         if sd is None:
             raise ValueError("When starting a new test you must have SuiteDetails, received as the first parameter on your test method.")
 
-        if method_attr and isinstance(method_attr, TestMethodAttr):
-            self._test_id_counter += 1
+        test_method_attr = test_method_attr or sd.current_test_method_attr
+        if test_method_attr is None:
+            test_method_attr = TestMethodAttr(sd.suite_attr, method_name="_none_", name=test_name)
+        sd.set_current_test_method_attr(test_method_attr)
 
-            current_test = sd.startTest(test_name, method_attr)
-            current_test.test_id = self._test_id_counter
-            current_test.test_usecase = str(usecase)
-            current_test.test_comment = str(description) if description else method_attr.comment
+        self._test_id_counter += 1
 
-            return current_test
+        current_test: TestDetails = sd.startTest(test_name)
+        current_test.test_id = self._test_id_counter
+        current_test.test_usecase = str(usecase)
+        current_test.test_comment = str(description) if description else test_method_attr.comment
 
-        raise ValueError("When starting a new test, you must pass your TestMethodAttr, received as the second parameter on your test method.")
+        return current_test
 
     def start_test(self, current_test: TestDetails):
         pass
@@ -182,11 +188,11 @@ def format_test_structure_for_reporters(selected_tests: List[PackageAttr]) -> Di
     for package_attr in selected_tests:
         package_name = package_attr.package_name
 
-        for suite_attr in package_attr.suite_list:
+        for suite_attr in package_attr.suite_attr_list:
             suite_name = suite_attr.name
             suite_prio = suite_attr.prio
 
-            for test_method in suite_attr.test_methods_list:
+            for test_method in suite_attr.test_method_attr_list:
                 method_id = test_method.method_id
                 test_name = test_method.name
                 test_prio = test_method.prio

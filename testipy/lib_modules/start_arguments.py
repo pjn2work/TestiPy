@@ -79,7 +79,7 @@ class ParseStartArguments:
         rfr = str(os.path.join(self._get_results_folder_base(), self._generate_foldername_runtime()))
         if create_folder:
             os.makedirs(rfr, exist_ok=True)
-            print("DEBUG", f"Created results folder {rfr}", file=sys.stdout)
+            print("DEBUG", f"Created results folder - {rfr}", file=sys.stdout)
         return rfr
 
     # returns str, with full path to where the tests are stored, remember that all tests must be under other folders
@@ -130,8 +130,8 @@ class ParseStartArguments:
         return st
 
     def _get_tests_scripts_build(self, full_path_tests_scripts_foldername: str) -> Dict:
+        filename = os.path.join(full_path_tests_scripts_foldername, default_config.tests_build_filename)
         try:
-            filename = os.path.join(full_path_tests_scripts_foldername, default_config.tests_build_filename)
             return load_config(filename)
         except Exception as e:
             print("WARNING", f"Failed to open {filename}, {e}", file=sys.stderr)

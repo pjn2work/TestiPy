@@ -1,7 +1,6 @@
 from time import sleep
 
 from testipy.configs import enums_data
-from testipy.engine.models import TestMethodAttr
 from testipy.helpers.handle_assertions import ExpectedError
 from testipy.reporter import ReportManager, SuiteDetails
 
@@ -13,24 +12,24 @@ class SuiteDemo_01:
     @LEVEL 1
     """
 
-    def test_06_will_run(self, sd: SuiteDetails, ma, rm: ReportManager, ncycles=1, param=None):
-        current_test = rm.startTest(sd, ma)
+    def test_06_will_run(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=None):
+        current_test = rm.startTest(sd)
         rm.testPassed(current_test, "test without doc tags")
 
-    def test_00_cannot_run(self, sd: SuiteDetails, ma, rm, ncycles=2, param=dict()):
+    def test_00_cannot_run(self, sd: SuiteDetails, rm, ncycles=2, param=dict()):
         """
         @TAG DEMO no_run
         @LEVEL 0
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
         rm.testFailed(current_test, "This test cannot run EVER!")
 
-    def test_01_show_internal_counters(self, sd: SuiteDetails, ma, rm, ncycles=2, ntimes=5, param=dict()):
+    def test_01_show_internal_counters(self, sd: SuiteDetails, rm, ncycles=2, ntimes=5, param=dict()):
         """
         @TAG DEMO no_run
         @LEVEL 1
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
 
         for current_ntime in range(1, ntimes + 1):
             sleep(0.01)
@@ -44,26 +43,26 @@ class SuiteDemo_01:
         rm.testSkipped(current_test, "Ran {} times".format(current_ntime))
 
     # despite the two FOR, it will run only once, error handled outside on engine.execute_tests
-    def test_02_division_by_zero(self, sd: SuiteDetails, ma, rm, ncycles=3, ntimes=5, param=dict(stop_at=1)):
+    def test_02_division_by_zero(self, sd: SuiteDetails, rm, ncycles=3, ntimes=5, param=dict(stop_at=1)):
         """
         @TAG DEMO no_run
         @LEVEL 2
         @TAG RAISE FAILING
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
         for current_ntime in range(1, ntimes + 1):
             if current_ntime > param["stop_at"]:
                 a = 1 / 0
         rm.testFailedKnownBug(current_test, "Impossible to pass the second time")
 
     # it will exit after 3 consecutive fails
-    def test_03_exit_after_several_fails(self, sd: SuiteDetails, ma, rm, ncycles=3, ntimes=10, param=dict()):
+    def test_03_exit_after_several_fails(self, sd: SuiteDetails, rm, ncycles=3, ntimes=10, param=dict()):
         """
         @TAG DEMO no_run FAILING
         @LEVEL 3
         @PRIO 90
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
         tc = current_test.get_test_step_counters()
 
         for current_ntime in range(1, ntimes + 1):
@@ -84,20 +83,20 @@ class SuiteDemo_02:
     """
 
     # just pass the tests with OK reason
-    def test_04_simple_pass(self, sd: SuiteDetails, ma, rm, ncycles=4, param=dict()):
+    def test_04_simple_pass(self, sd: SuiteDetails, rm, ncycles=4, param=dict()):
         """
         @NAME sameName
         @TAG DEMO no_run
         @LEVEL 4
         @PRIO 10
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
         rm.test_info(current_test, "test dict: " + str(ma), "DEBUG")
         rm.test_info(current_test, "test param: " + str(param), "DEBUG")
         rm.testPassed(current_test, "OK")
 
     # fail the test outside by raise exception from assert
-    def test_05_simple_fail(self, sd: SuiteDetails, ma, rm, ncycles=2, param=dict()):
+    def test_05_simple_fail(self, sd: SuiteDetails, rm, ncycles=2, param=dict()):
         """
         @NAME sameName
         @TAG DEMO no_run RAISE FAILING
@@ -114,13 +113,13 @@ class SuiteDemo_03:
     @TAG DEMO
     """
 
-    def wont_run_test_without_prefix(self, sd: SuiteDetails, ma, rm, ncycles=4, param=dict()):
+    def wont_run_test_without_prefix(self, sd: SuiteDetails, rm, ncycles=4, param=dict()):
         """
         @LEVEL 1
         """
-        rm.testFailed(rm.startTest(sd, ma))
+        rm.testFailed(rm.startTest(sd))
 
-    def test_pass_test_with_exception(self, sd: SuiteDetails, ma, rm, ncycles=1, param=None):
+    def test_pass_test_with_exception(self, sd: SuiteDetails, rm, ncycles=1, param=None):
         """
         @LEVEL 1
         @TAG RAISE FAILING
@@ -133,50 +132,50 @@ class SuiteDemo_04:
     @TAG DEPENDENCIES DEMO
     """
 
-    def test_will_pass1(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_pass1(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         @PRIO 2
         """
-        rm.testPassed(rm.startTest(sd, ma))
+        rm.testPassed(rm.startTest(sd))
 
-    def test_will_pass2(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_pass2(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         @PRIO 3
         """
-        rm.testPassed(rm.startTest(sd, ma))
+        rm.testPassed(rm.startTest(sd))
 
-    def test_will_fail(self, sd: SuiteDetails, ma: TestMethodAttr, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_fail(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
         """
         @LEVEL 1
         @PRIO 3
         """
-        rm.testFailedKnownBug(rm.startTest(sd, ma))
+        rm.testFailedKnownBug(rm.startTest(sd))
 
-    def test_must_run_on_success(self, sd: SuiteDetails, ma, rm, ncycles=1, param=None):
+    def test_must_run_on_success(self, sd: SuiteDetails, rm, ncycles=1, param=None):
         """
         @LEVEL 1
         @PRIO 10
         @ON_SUCCESS 2 3
         """
-        rm.testPassed(rm.startTest(sd, ma), "both prio 2 and 3 passed")
+        rm.testPassed(rm.startTest(sd), "both prio 2 and 3 passed")
 
-    def test_must_run_on_failure(self, sd: SuiteDetails, ma, rm, ncycles=1, param=None):
+    def test_must_run_on_failure(self, sd: SuiteDetails, rm, ncycles=1, param=None):
         """
         @LEVEL 1
         @PRIO 11
         @ON_FAILURE 3
         """
-        rm.testPassed(rm.startTest(sd, ma), "prio 4 failed")
+        rm.testPassed(rm.startTest(sd), "prio 4 failed")
 
-    def test_will_be_skipped_because_no_failure(self, sd: SuiteDetails, ma, rm, ncycles=1, param=None):
+    def test_will_be_skipped_because_no_failure(self, sd: SuiteDetails, rm, ncycles=1, param=None):
         """
         @LEVEL 1
         @PRIO 12
         @ON_FAILURE 2
         """
-        rm.testFailed(rm.startTest(sd, ma), "This test must be skipped!")
+        rm.testFailed(rm.startTest(sd), "This test must be skipped!")
 
 
 class SuiteDemoWeb:
@@ -185,12 +184,12 @@ class SuiteDemoWeb:
     @TAG WEB
     """
 
-    def test_search(self, sd: SuiteDetails, ma, rm, ncycles=1, param=None):
+    def test_search(self, sd: SuiteDetails, rm, ncycles=1, param=None):
         """
         @LEVEL 3
         @PRIO 50
         """
-        current_test = rm.startTest(sd, ma)
+        current_test = rm.startTest(sd)
 
         rm.get_bm().setup_webdriver("chrome")
         rm.test_step(current_test, enums_data.STATE_PASSED, "setup web browser")

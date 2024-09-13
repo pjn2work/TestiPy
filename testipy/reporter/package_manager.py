@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set, NamedTuple, Any
+from typing import Dict, List, Set, NamedTuple, Any, Union
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
@@ -71,15 +71,20 @@ class SuiteDetails(CommonDetails):
 
         self.package = parent
         self.suite_attr: SuiteAttr = suite_attr
+        self.current_test_method_attr: TestMethodAttr = None
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
         self.rb_test_result_rows = []
         self.test_manager = TestManager(self)
 
+    def set_current_test_method_attr(self, test_method_attr: Union[TestMethodAttr, None]) -> SuiteDetails:
+        self.current_test_method_attr = test_method_attr
+        return self
+
     def endSuite(self):
         self.end_time = get_datetime_now()
 
-    def startTest(self, test_name: str, test_attr: TestMethodAttr) -> TestDetails:
-        current_test = self.test_manager.startTest(test_name, test_attr)
+    def startTest(self, test_name: str) -> TestDetails:
+        current_test = self.test_manager.startTest(test_name, self.current_test_method_attr)
         return current_test
 
     def update_package_suite_counters(self, prio: int, state: str, reason_of_state: str):
@@ -95,6 +100,9 @@ class SuiteDetails(CommonDetails):
 
     def get_tests_by_meid(self, test_method_id: int) -> List[TestDetails]:
         return self.test_manager.get_tests_by_meid(test_method_id)
+
+    def get_total_tests_by_meid(self, test_method_id: int) -> int:
+        return len(self.get_tests_by_meid(test_method_id))
 
     def get_tests_running_by_meid(self, test_method_id: int) -> List[TestDetails]:
         return self.test_manager.get_tests_running_by_meid(test_method_id)
@@ -146,6 +154,9 @@ class TestDetails(CommonDetails):
     def get_test_id(self) -> int:
         return self.test_id
 
+    def get_attr(self) -> dict:
+        return self.test_method_attr.get_common_attr_as_dict()
+
     def get_comment(self) -> str:
         return self.test_comment
 
@@ -155,7 +166,7 @@ class TestDetails(CommonDetails):
     def get_test_number(self) -> str:
         return self.test_method_attr.test_number
 
-    def get_tags(self) -> List:
+    def get_tags(self) -> Set:
         return self.test_method_attr.tags
 
     def get_level(self) -> int:
@@ -290,9 +301,9 @@ class TestManager:
         self._tests_running_by_meid: Dict[int, List[TestDetails]] = dict()
         self.all_tests: List[TestDetails] = []
 
-    def startTest(self, test_name: str, test_attr: TestMethodAttr) -> TestDetails:
-        test_name = test_name if test_name else test_attr.name
-        current_test = TestDetails(self.parent, test_name, test_attr)
+    def startTest(self, test_name: str, test_method_attr: TestMethodAttr) -> TestDetails:
+        test_name = test_name or test_method_attr.name
+        current_test = TestDetails(self.parent, test_name, test_method_attr)
         self.all_tests.append(current_test)
 
         # increment cycle_number if same test_name inside same suite
