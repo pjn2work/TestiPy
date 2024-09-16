@@ -150,7 +150,7 @@ class ReporterJUnitXML(ReportInterface):
             id = string_fixer(current_test.get_full_name(with_cycle_number=True))
 
             # set name
-            name = string_fixer(f"{current_test.get_name()} - {usecase_name}")
+            name = string_fixer(" - ".join(filter(None, [current_test.get_name(), usecase_name])))
 
             # set total of duration
             time = "{:.3f}".format(current_test.get_duration())
