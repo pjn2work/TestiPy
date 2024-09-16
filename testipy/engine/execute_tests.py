@@ -64,7 +64,7 @@ class Executer:
 
         def _process_suite(suite_attr: SuiteAttr):
             for _ in range(1 if onlyonce else suite_attr.ncycles):
-                sd = rm.startSuite(pd, suite_attr.name, suite_attr)
+                sd = rm.startSuite(pd, suite_attr)
 
                 # initialize suite __init__()
                 try:
@@ -85,7 +85,7 @@ class Executer:
             for _ in range(1 if onlyonce else package_attr.ncycles):
 
                 self._change_cwd_to_package(package_attr.package_name)
-                pd = rm.startPackage(package_attr.package_name, package_attr)
+                pd = rm.startPackage(package_attr)
 
                 with concurrent.futures.ThreadPoolExecutor(max_workers=suite_threads) as executor:
                     tasks = {executor.submit(_process_suite, suite_attr): suite_attr for suite_attr in package_attr.suite_attr_list}
@@ -100,12 +100,12 @@ class Executer:
             for _ in range(1 if onlyonce else package_attr.ncycles):
 
                 self._change_cwd_to_package(package_attr.package_name)
-                pd = rm.startPackage(package_attr.package_name, package_attr)
+                pd = rm.startPackage(package_attr)
 
                 for suite_attr in package_attr.suite_attr_list:
                     for _ in range(1 if onlyonce else suite_attr.ncycles):
 
-                        sd = rm.startSuite(pd, suite_attr.name, suite_attr)
+                        sd = rm.startSuite(pd, suite_attr)
 
                         # initialize suite __init__()
                         try:

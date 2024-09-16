@@ -47,7 +47,7 @@ class CommonDetails:
 
 
 class PackageDetails(CommonDetails):
-    def __init__(self, parent: PackageManager, package_name: str, package_attr: PackageAttr):
+    def __init__(self, parent: PackageManager, package_attr: PackageAttr, package_name: str = ""):
         super(PackageDetails, self).__init__(package_name or package_attr.package_name)
 
         self.parent = parent
@@ -57,8 +57,8 @@ class PackageDetails(CommonDetails):
     def endPackage(self):
         self.parent.end_time = self.end_time = get_datetime_now()
 
-    def startSuite(self, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
-        return self.suite_manager.startSuite(suite_name, suite_attr)
+    def startSuite(self, suite_attr: SuiteAttr, suite_name: str = "") -> SuiteDetails:
+        return self.suite_manager.startSuite(suite_attr, suite_name)
 
     def update_package_suite_counters(self, state: str, reason_of_state: str):
         self.state_counter.inc_state(state, reason_of_state=reason_of_state, description="update package counters")
@@ -66,14 +66,14 @@ class PackageDetails(CommonDetails):
 
 
 class SuiteDetails(CommonDetails):
-    def __init__(self, parent: PackageDetails, suite_name: str, suite_attr: SuiteAttr):
+    def __init__(self, parent: PackageDetails, suite_attr: SuiteAttr, suite_name: str = ""):
         super(SuiteDetails, self).__init__(suite_name or suite_attr.name)
 
         self.package = parent
         self.suite_attr: SuiteAttr = suite_attr
         self.current_test_method_attr: TestMethodAttr = None
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
-        self.rb_test_result_rows = []
+        self.rb_test_result_rows: List = []
         self.test_manager = TestManager(self)
 
     def set_current_test_method_attr(self, test_method_attr: Union[TestMethodAttr, None]) -> SuiteDetails:
@@ -83,8 +83,9 @@ class SuiteDetails(CommonDetails):
     def endSuite(self):
         self.end_time = get_datetime_now()
 
-    def startTest(self, test_name: str) -> TestDetails:
-        current_test = self.test_manager.startTest(test_name, self.current_test_method_attr)
+    def startTest(self, test_name: str = "") -> TestDetails:
+        assert self.current_test_method_attr is not None, f"Must suite_details.set_current_test_method_attr(tma: TestMethodAttr) before this! {test_name=}"
+        current_test = self.test_manager.startTest(self.current_test_method_attr, test_name)
         return current_test
 
     def update_package_suite_counters(self, prio: int, state: str, reason_of_state: str):
@@ -115,7 +116,7 @@ class SuiteDetails(CommonDetails):
 
 
 class TestDetails(CommonDetails):
-    def __init__(self, parent: SuiteDetails, test_name: str, test_method_attr: TestMethodAttr):
+    def __init__(self, parent: SuiteDetails, test_method_attr: TestMethodAttr, test_name: str = ""):
         super(TestDetails, self).__init__(test_name or test_method_attr.name)
 
         self.suite = parent
@@ -246,12 +247,12 @@ class PackageManager:
         self._package_by_name_started: Dict[str, int] = dict()
         self.all_packages: List[PackageDetails] = []
 
-    def startPackage(self, package_name: str, package_attr: PackageAttr) -> PackageDetails:
+    def startPackage(self, package_attr: PackageAttr, package_name: str = "") -> PackageDetails:
         if self.start_time is None:
             self.start_time = get_datetime_now()
 
-        package_name = package_name if package_name else package_attr.package_name
-        current_package = PackageDetails(self, package_name, package_attr)
+        package_name = package_name or package_attr.package_name
+        current_package = PackageDetails(self, package_attr, package_name)
         self.all_packages.append(current_package)
 
         # increment cycle_number if same package_name
@@ -278,9 +279,9 @@ class SuiteManager:
         self._suite_by_name_started: Dict[str, int] = dict()
         self.all_suites: List[SuiteDetails] = []
 
-    def startSuite(self, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
-        suite_name = suite_name if suite_name else suite_attr.name
-        current_suite = SuiteDetails(self.parent, suite_name, suite_attr)
+    def startSuite(self, suite_attr: SuiteAttr, suite_name: str = "") -> SuiteDetails:
+        suite_name = suite_name or suite_attr.name
+        current_suite = SuiteDetails(self.parent, suite_attr, suite_name)
         self.all_suites.append(current_suite)
 
         # increment cycle_number if same suite_name inside same package
@@ -301,9 +302,9 @@ class TestManager:
         self._tests_running_by_meid: Dict[int, List[TestDetails]] = dict()
         self.all_tests: List[TestDetails] = []
 
-    def startTest(self, test_name: str, test_method_attr: TestMethodAttr) -> TestDetails:
+    def startTest(self, test_method_attr: TestMethodAttr, test_name: str = "") -> TestDetails:
         test_name = test_name or test_method_attr.name
-        current_test = TestDetails(self.parent, test_name, test_method_attr)
+        current_test = TestDetails(self.parent, test_method_attr, test_name)
         self.all_tests.append(current_test)
 
         # increment cycle_number if same test_name inside same suite

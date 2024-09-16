@@ -71,10 +71,10 @@ class ReportBase(ReportInterface):
         total_failed = sum([totals[state] for state in default_config.count_as_failed_states])
         self.end_state, _ = (enums_data.STATE_FAILED, "") if total_failed > 0 else totals.get_state_by_severity()
 
-    def startPackage(self, package_name: str, package_attr: PackageAttr) -> PackageDetails:
+    def startPackage(self, package_attr: PackageAttr, package_name: str) -> PackageDetails:
         if package_attr is None:
             package_attr = PackageAttr(package_name)
-        return self.pm.startPackage(package_name, package_attr)
+        return self.pm.startPackage(package_attr, package_name)
 
     def start_package(self, pd: PackageDetails):
         pass
@@ -82,10 +82,10 @@ class ReportBase(ReportInterface):
     def end_package(self, pd: PackageDetails):
         pd.endPackage()
 
-    def startSuite(self, pd: PackageDetails, suite_name: str, suite_attr: SuiteAttr) -> SuiteDetails:
+    def startSuite(self, pd: PackageDetails, suite_attr: SuiteAttr, suite_name: str) -> SuiteDetails:
         if suite_attr is None:
-            suite_attr = SuiteAttr(pd.package_attr, "auto_created", suite_name)
-        return pd.startSuite(suite_name, suite_attr)
+            suite_attr = SuiteAttr(pd.package_attr, "auto.created", suite_name)
+        return pd.startSuite(suite_attr, suite_name)
 
     def start_suite(self, sd: SuiteDetails):
         pass

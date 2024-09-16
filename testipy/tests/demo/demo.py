@@ -1,8 +1,10 @@
 from time import sleep
 
+from testipy.helpers.prettify import prettify
+
 from testipy.configs import enums_data
 from testipy.helpers.handle_assertions import ExpectedError
-from testipy.reporter import ReportManager, SuiteDetails
+from testipy.reporter import ReportManager, SuiteDetails, TestDetails
 
 
 class SuiteDemo_01:
@@ -16,7 +18,7 @@ class SuiteDemo_01:
         current_test = rm.startTest(sd)
         rm.testPassed(current_test, "test without doc tags")
 
-    def test_00_cannot_run(self, sd: SuiteDetails, rm, ncycles=2, param=dict()):
+    def test_00_cannot_run(self, sd: SuiteDetails, rm, ncycles=2, param={}):
         """
         @TAG DEMO no_run
         @LEVEL 0
@@ -24,7 +26,7 @@ class SuiteDemo_01:
         current_test = rm.startTest(sd)
         rm.testFailed(current_test, "This test cannot run EVER!")
 
-    def test_01_show_internal_counters(self, sd: SuiteDetails, rm, ncycles=2, ntimes=5, param=dict()):
+    def test_01_show_internal_counters(self, sd: SuiteDetails, rm, ncycles=2, ntimes=5, param={}):
         """
         @TAG DEMO no_run
         @LEVEL 1
@@ -56,7 +58,7 @@ class SuiteDemo_01:
         rm.testFailedKnownBug(current_test, "Impossible to pass the second time")
 
     # it will exit after 3 consecutive fails
-    def test_03_exit_after_several_fails(self, sd: SuiteDetails, rm, ncycles=3, ntimes=10, param=dict()):
+    def test_03_exit_after_several_fails(self, sd: SuiteDetails, rm, ncycles=3, ntimes=10, param={}):
         """
         @TAG DEMO no_run FAILING
         @LEVEL 3
@@ -83,20 +85,20 @@ class SuiteDemo_02:
     """
 
     # just pass the tests with OK reason
-    def test_04_simple_pass(self, sd: SuiteDetails, rm, ncycles=4, param=dict()):
+    def test_04_simple_pass(self, sd: SuiteDetails, rm, ncycles=4, param={}):
         """
         @NAME sameName
         @TAG DEMO no_run
         @LEVEL 4
         @PRIO 10
         """
-        current_test = rm.startTest(sd)
-        rm.test_info(current_test, "test dict: " + str(ma), "DEBUG")
+        current_test: TestDetails = rm.startTest(sd)
+        rm.test_info(current_test, "test dict: " + prettify(current_test.get_attr()), "DEBUG")
         rm.test_info(current_test, "test param: " + str(param), "DEBUG")
         rm.testPassed(current_test, "OK")
 
     # fail the test outside by raise exception from assert
-    def test_05_simple_fail(self, sd: SuiteDetails, rm, ncycles=2, param=dict()):
+    def test_05_simple_fail(self, sd: SuiteDetails, rm, ncycles=2, param={}):
         """
         @NAME sameName
         @TAG DEMO no_run RAISE FAILING
@@ -113,7 +115,7 @@ class SuiteDemo_03:
     @TAG DEMO
     """
 
-    def wont_run_test_without_prefix(self, sd: SuiteDetails, rm, ncycles=4, param=dict()):
+    def wont_run_test_without_prefix(self, sd: SuiteDetails, rm, ncycles=4, param={}):
         """
         @LEVEL 1
         """
@@ -132,21 +134,21 @@ class SuiteDemo_04:
     @TAG DEPENDENCIES DEMO
     """
 
-    def test_will_pass1(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_pass1(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param={}):
         """
         @LEVEL 1
         @PRIO 2
         """
         rm.testPassed(rm.startTest(sd))
 
-    def test_will_pass2(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_pass2(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param={}):
         """
         @LEVEL 1
         @PRIO 3
         """
         rm.testPassed(rm.startTest(sd))
 
-    def test_will_fail(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param=dict()):
+    def test_will_fail(self, sd: SuiteDetails, rm: ReportManager, ncycles=1, param={}):
         """
         @LEVEL 1
         @PRIO 3

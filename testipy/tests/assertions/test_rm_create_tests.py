@@ -144,6 +144,7 @@ class SuiteRM_CreateTests:
         """
         @LEVEL 1
         @PRIO 90
+        @TAG FAILING
         """
         errors = {
             1: HandledError("Raised on purpose"),
@@ -168,6 +169,7 @@ class SuiteRM_CreateTests:
         """
         @LEVEL 1
         @PRIO 92
+        @TAG FAILING
         """
         assert 1 == 0
 
@@ -182,5 +184,6 @@ class SuiteRM_CreateTests:
         """
         @LEVEL 1
         @PRIO 94
+        @TAG FAILING
         """
         assert 1 == 0

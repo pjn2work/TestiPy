@@ -103,8 +103,8 @@ class ReportManager(ReportBase, ReportManagerAddons):
         _exec_logger.info(f"{color_state(end_state)} All took {format_duration(self.pm.get_duration()):>10} [{self.pm.state_counter}]")
 
     @synchronized
-    def startPackage(self, name: str, package_attr: PackageAttr) -> PackageDetails:
-        pd = super().startPackage(name, package_attr)
+    def startPackage(self, package_attr: PackageAttr = None, name: str = "") -> PackageDetails:
+        pd = super().startPackage(package_attr, name)
         self.start_package(pd)
         return pd
 
@@ -118,8 +118,8 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    def startSuite(self, pd: PackageDetails, name: str, suite_attr: SuiteAttr) -> SuiteDetails:
-        sd = super().startSuite(pd, name, suite_attr)
+    def startSuite(self, pd: PackageDetails, suite_attr: SuiteAttr = None, name: str = "") -> SuiteDetails:
+        sd = super().startSuite(pd, suite_attr, name)
         self.start_suite(sd)
         return sd
 
@@ -279,7 +279,7 @@ def build_report_manager_with_reporters(ap: ArgsParser, sa: StartArguments):
 
     for rep_name in sa.valid_reporters:
         reporter_name = f"reporter_{rep_name}.py"
-        _, rep_class = _get_report_by_name_from_folder(reporter_name)
+        _, rep_class = get_reporter_by_name_from_folder(reporter_name)
         if rep_class:
             _add_reporter(rep_name, rep_class)
         else:
@@ -288,7 +288,7 @@ def build_report_manager_with_reporters(ap: ArgsParser, sa: StartArguments):
     return rm
 
 
-def _get_report_by_name_from_folder(reporter_name: str) -> Tuple[str, Any]:
+def get_reporter_by_name_from_folder(reporter_name: str) -> Tuple[str, Any]:
     reporters_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reporters")
 
     try:
