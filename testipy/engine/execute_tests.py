@@ -194,6 +194,8 @@ class Executer:
                     _ = getattr(sd.suite_attr.app, test_method_attr.method_name)(sd, rm, ncycles=test_method_attr.ncycles, param=test_method_attr.param)
 
                     self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, test_method_attr=test_method_attr, number_tests_created_before_call=number_tests_created_before_call)
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt("User stopped execution with CTRL+C")
                 except ExpectedError as ex:
                     self._auto_close_all_open_tests_for_that_method(rm=rm, sd=sd, test_method_attr=test_method_attr, number_tests_created_before_call=number_tests_created_before_call, had_exception=ex)
                 except Exception as ex:
