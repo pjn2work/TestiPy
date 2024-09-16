@@ -181,7 +181,7 @@ class PackageAttr:
 
     def get_max_suite_id(self) -> int:
         _max_rec = len(self.suite_attr_list)
-        _max_id = max([sa.suite_id for sa in self.suite_attr_list]) if _max_rec > 0 else 0
+        _max_id = max([suite_attr.suite_id for suite_attr in self.suite_attr_list]) if _max_rec > 0 else 0
         return max(_max_rec, _max_id) + 1
 
     def duplicate(self, clone_children: bool = True):
