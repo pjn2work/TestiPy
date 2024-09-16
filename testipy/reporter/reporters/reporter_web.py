@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import webbrowser
 import html
 import base64
@@ -12,10 +11,11 @@ from time import sleep
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface
-from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import PackageDetails, SuiteDetails, TestDetails
 
 from engineio.payload import Payload
 Payload.max_decode_packets = 100
@@ -139,14 +139,16 @@ class ReporterWeb(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         url = f"http://127.0.0.1:{PORT}/?namespace={self.namespace}"
+        _selected_tests = self.rm.get_selected_tests_as_dict()
+
         try:
             if not webbrowser.open(url, new=2):
                 raise PermissionError("Cannot open browser!")
         except:
             print(f"Open your browser to view the results at: {url}")
-        _push_to_cache("rm_selected_tests", {"data": selected_tests["data"]})
+        _push_to_cache("rm_selected_tests", {"data": _selected_tests["data"]})
 
     def _teardown_(self, end_state: str):
         global WAIT_FOR_FIRST_CLIENT
@@ -248,7 +250,8 @@ class ReporterWeb(ReportInterface):
         return response
 
     def _format_info(self, current_test: TestDetails):
-        str_res = "<strong>" + current_test.get_comment().replace("\n", "<br>") + "</strong><br>"
+        str_res = "<h2>Test Attributes:</h2>"
+        str_res += f"<p>{escaped_text(prettify(current_test.get_attr(), as_yaml=True))}</p><HR>"
         str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {current_test.get_full_name(with_cycle_number=True)} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
         str_res += f"{current_test.get_counters().get_begin_time()} - {current_test.get_counters().get_end_time()} took {format_duration(current_test.get_duration())}"
 

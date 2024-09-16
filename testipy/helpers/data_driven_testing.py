@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Union, Dict, List, Tuple
 
 from testipy.configs import enums_data
-from testipy.reporter.report_base import TestDetails
+from testipy.reporter.package_manager import SuiteDetails, TestDetails
 from testipy.reporter.report_manager import ReportManager
 from testipy.helpers import get_traceback_tabulate, load_config, left_update_dict, prettify
 from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
@@ -258,9 +258,9 @@ class DataReader:
 class SafeTry:
 
     def __init__(self,
-                 toolbox,
-                 rm,
-                 current_test,
+                 toolbox: ExecutionToolbox,
+                 rm: ReportManager,
+                 current_test: TestDetails,
                  step_description: str = "",
                  ros_success: str = "ok",
                  ros_failure: str = "",
@@ -398,15 +398,15 @@ class DDTMethods(DataReader):
     """
 
     # generic call with auto-detect run_mode
-    def run(self, ma: Dict, rm: ReportManager, tag_name: str, scenario_name: str = "", run_mode: RunMode = None):
+    def run(self, sd: SuiteDetails, rm: ReportManager, tag_name: str, scenario_name: str = "", run_mode: RunMode = None):
         if scenario_name:
             if run_mode is None:
                 run_mode, _ = self.get_scenarios_or_usecases(tag_name=tag_name)
 
             if run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS:
-                self.run_scenario_as_test__usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+                self.run_scenario_as_test__usecases_as_teststeps(sd=sd, rm=rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
             elif run_mode is RunMode.SCENARIO__USECASES_AS_TESTS:
-                self.run_scenario__usecases_as_tests(ma=ma, rm=rm, tag_name=tag_name, scenario_name=scenario_name)
+                self.run_scenario__usecases_as_tests(sd=sd, rm=rm, tag_name=tag_name, scenario_name=scenario_name)
             else:
                 raise ValueError(f"{run_mode=} invalid for {tag_name=} {scenario_name=}")
         else:
@@ -414,29 +414,29 @@ class DDTMethods(DataReader):
                     run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS or
                     run_mode is RunMode.USECASES_AS_TESTS or
                     run_mode is RunMode.USECASES_AS_TESTSTEPS):
-                self.run_tag(ma=ma, rm=rm, tag_name=tag_name, run_mode=run_mode)
+                self.run_tag(sd=sd, rm=rm, tag_name=tag_name, run_mode=run_mode)
             else:
                 raise ValueError(f"{run_mode=} invalid for {tag_name=}! Missing scenario_name")
 
     # under that tag, run all scenarios as a test, and the usesCases are testSteps
-    def run_tag(self, ma: Dict, rm: ReportManager, tag_name: str, run_mode: RunMode = None):
+    def run_tag(self, sd: SuiteDetails, rm: ReportManager, tag_name: str, run_mode: RunMode = None):
         _run_mode, scenarios = self.get_scenarios_or_usecases(tag_name=tag_name)
         _run_mode = run_mode or _run_mode
         if _run_mode is RunMode.USECASES_AS_TESTS:
-            self.run_usecases_as_tests__without_scenario(ma=ma, rm=rm, tag_name=tag_name)
+            self.run_usecases_as_tests__without_scenario(sd=sd, rm=rm, tag_name=tag_name)
         elif _run_mode is RunMode.USECASES_AS_TESTSTEPS:
-            self.run_usecases_as_teststeps__without_scenario(ma=ma, rm=rm, tag_name=tag_name)
+            self.run_usecases_as_teststeps__without_scenario(sd=sd, rm=rm, tag_name=tag_name)
         else:
             for scenario_name in scenarios:
                 if _run_mode is RunMode.SCENARIOS_AS_TESTS__USECASES_AS_TESTSTEPS:
-                    self.run_scenario_as_test__usecases_as_teststeps(ma, rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
+                    self.run_scenario_as_test__usecases_as_teststeps(sd=sd, rm=rm, tag_name=tag_name, scenario_name=scenario_name, add_test_usecase=True)
                 elif _run_mode is RunMode.SCENARIO__USECASES_AS_TESTS:
-                    self.run_scenario__usecases_as_tests(ma, rm, tag_name=tag_name, scenario_name=scenario_name)
+                    self.run_scenario__usecases_as_tests(sd=sd, rm=rm, tag_name=tag_name, scenario_name=scenario_name)
                 else:
                     raise ValueError(f"{_run_mode=} invalid for {tag_name=} {scenario_name=}")
 
     # create a single test for that scenario, so the usesCases will be testSteps
-    def run_scenario_as_test__usecases_as_teststeps(self, ma: Dict, rm: ReportManager,
+    def run_scenario_as_test__usecases_as_teststeps(self, sd: SuiteDetails, rm: ReportManager,
                                                     tag_name: str,
                                                     scenario_name: str,
                                                     bug: Union[str, Dict, List] = "",
@@ -446,7 +446,7 @@ class DDTMethods(DataReader):
         usecase_name = scenario_name if add_test_usecase else ""
         _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
         description = description or usecases.get("_description_", "")
-        current_test = rm.startTest(ma, usecase=usecase_name, description=description)
+        current_test = rm.startTest(sd, usecase=usecase_name, description=description)
         
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
@@ -457,7 +457,7 @@ class DDTMethods(DataReader):
             endTest(rm, current_test, bug=bug)
 
     # create a test for each useCase under a scenario
-    def run_scenario__usecases_as_tests(self, ma: Dict, rm: ReportManager,
+    def run_scenario__usecases_as_tests(self, sd: SuiteDetails, rm: ReportManager,
                                         tag_name: str,
                                         scenario_name: str):
         _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name, scenario_name=scenario_name)
@@ -466,7 +466,7 @@ class DDTMethods(DataReader):
             if usecase_name == "_description_":
                 continue
 
-            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("_description_", ""))
+            current_test = rm.startTest(sd, usecase=usecase_name, description=usecase.get("_description_", ""))
 
             end_reason = ""
             if rm.has_ap_flag("--norun"):
@@ -520,12 +520,12 @@ class DDTMethods(DataReader):
 
         return self.response_from_usecases, failed_usecase
 
-    def run_usecases_as_tests__without_scenario(self, ma: Dict, rm: ReportManager, tag_name: str):
+    def run_usecases_as_tests__without_scenario(self, sd: SuiteDetails, rm: ReportManager, tag_name: str):
         _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name)
 
         for usecase_name, usecase in usecases.items():
             # the use-case (test) may have as description
-            current_test = rm.startTest(ma, usecase=usecase_name, description=usecase.get("_description_", ""))
+            current_test = rm.startTest(sd, usecase=usecase_name, description=usecase.get("_description_", ""))
 
             if rm.has_ap_flag("--norun"):
                 rm.testSkipped(current_test, "--norun")
@@ -544,11 +544,11 @@ class DDTMethods(DataReader):
                 end_reason = st.get_ros() if st.is_success() else ""
                 endTest(rm, current_test, end_reason=end_reason, bug=usecase.get("_known_bug_", ""))
 
-    def run_usecases_as_teststeps__without_scenario(self, ma: Dict, rm: ReportManager, tag_name: str):
+    def run_usecases_as_teststeps__without_scenario(self, sd: SuiteDetails, rm: ReportManager, tag_name: str):
         _, usecases = self.get_scenarios_or_usecases(tag_name=tag_name)
 
         # the use-case (test) may have as description
-        current_test = rm.startTest(ma, usecase=tag_name, description=usecases.get("_description_", ""))
+        current_test = rm.startTest(sd, usecase=tag_name, description=usecases.get("_description_", ""))
         if rm.has_ap_flag("--norun"):
             rm.testSkipped(current_test, "--norun")
         else:
@@ -621,7 +621,9 @@ def endTest(rm: ReportManager,
         else:
             ros, exc_value = "", None
 
-        final_end_reason = end_reason or ros or "ok"
+        exc_reason1 = str(exc_val) if exc_val else ""
+        exc_reason2 = str(exc_value) if exc_value else ""
+        final_end_reason = end_reason or ros or exc_reason1 or exc_reason2 or "ok"
         jira_issue = get_known_bug_failure_issue(bug, final_end_reason)
         return f"{jira_issue} {final_end_reason}".strip(), exc_val or exc_value, final_end_reason
 

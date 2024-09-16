@@ -1,7 +1,8 @@
-from typing import Dict
+from typing import Dict, List
 from tabulate import tabulate
 
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
@@ -29,12 +30,13 @@ class ReporterEcho(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
+        _selected_tests = self.rm.get_selected_tests_as_dict()
         print("\n"*2)
         print("#"*_line_size)
         print(" Selected tests to run ".center(_line_size, "#"))
         print("#"*_line_size)
-        print(tabulate(selected_tests["data"], headers=selected_tests["headers"], tablefmt="simple"))
+        print(tabulate(_selected_tests["data"], headers=_selected_tests["headers"], tablefmt="simple"))
         print("\n"*2)
 
     def _teardown_(self, end_state: str):

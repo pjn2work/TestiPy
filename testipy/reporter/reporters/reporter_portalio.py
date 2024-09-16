@@ -1,13 +1,13 @@
 import os
-import traceback
 import json
 
 from time import time
-from typing import Dict
+from typing import List
 from reportportal_client import create_client, ClientType
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.lib_modules.common_methods import dict_without_keys
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.helpers import load_config
@@ -78,7 +78,7 @@ class ReporterPortalIO(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         pass
 
     def _teardown_(self, end_state: str):

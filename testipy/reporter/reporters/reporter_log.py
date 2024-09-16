@@ -1,12 +1,13 @@
 import os
 import logging
 
-from typing import Dict
+from typing import List
 from tabulate import tabulate
 from mss import mss
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
+from testipy.engine.models import PackageAttr
 from testipy.helpers import get_traceback_list, prettify, format_duration
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
@@ -52,12 +53,21 @@ class ReporterLog(ReportInterface):
         except Exception as e:
             self.__log(f"Could not create file {dest_filename}", "ERROR")
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         app, version, _ = get_app_version()
+        _selected_tests = self.rm.get_selected_tests_as_dict()
+
         self.__log(f"{app} {version}", "INFO")
-        self.__log("Selected Tests:\n{}".format(tabulate(selected_tests["data"],
-                                                         headers=selected_tests["headers"],
-                                                         tablefmt=table_format)), "INFO")
+        self.__log(
+            "Selected Tests:\n{}".format(
+                tabulate(
+                    _selected_tests["data"],
+                    headers=_selected_tests["headers"],
+                    tablefmt=table_format
+                )
+            ),
+            level="INFO"
+        )
 
     def _teardown_(self, end_state: str):
         sc = self.rm.pm.state_counter
@@ -174,7 +184,7 @@ class ReporterLog(ReportInterface):
     def __create_folder(self, folder_name):
         try:
             os.makedirs(folder_name, exist_ok=True)
-            self.__log(f"Created results folder {folder_name}", level="DEBUG")
+            self.__log(f"Created results folder = {folder_name}", level="DEBUG")
         except:
             self.__log(f"Could not create results folder {folder_name}", "ERROR")
 

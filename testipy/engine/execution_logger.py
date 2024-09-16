@@ -2,6 +2,8 @@ import os
 import sys
 import logging
 import logging.config
+import traceback
+
 import yaml
 
 from testipy import get_exec_logger
@@ -21,10 +23,11 @@ def setup_logging(log_filename: str) -> logging.Logger:
 
 class ExecutionLogger:
 
-    def __init__(self, results_folder_runtime: str):
+    def __init__(self, results_folder_runtime: str, verbose: bool = False) -> None:
         self._log_file_full_path = os.path.join(results_folder_runtime, execution_log_filename)
         self._create_results_folder(results_folder_runtime)
         self._logger = setup_logging(self._log_file_full_path)
+        self._verbose = verbose
 
     def _create_results_folder(self, folder_name):
         try:
@@ -42,6 +45,10 @@ class ExecutionLogger:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_val:
             self._logger.error(str(exc_val), exc_info=True)
+            if self._verbose:
+                print(traceback.format_exc())
+                self._logger.error(traceback.format_exc(), exc_info=True)
+
         self.close_logger()
         return self
 

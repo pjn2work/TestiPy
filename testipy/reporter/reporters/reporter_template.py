@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import List
 
+from testipy.engine.models import PackageAttr
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
 
@@ -17,7 +18,7 @@ class ReporterTemplate(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         pass
 
     def _teardown_(self, end_state: str):

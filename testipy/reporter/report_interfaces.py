@@ -6,6 +6,7 @@ from abc import abstractmethod, ABC
 
 from testipy import get_exec_logger
 from testipy.configs import default_config
+from testipy.engine.models import PackageAttr
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.browser_manager import BrowserManager
@@ -22,7 +23,7 @@ class ReportInterface(ABC):
         self.name = name
 
     @abstractmethod
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         pass
 
     @abstractmethod

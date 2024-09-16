@@ -26,6 +26,7 @@ class StartArguments:
 
     dryrun: bool
     debugcode: bool
+    debug_testipy: bool
     onlyonce: bool
     repetitions: int
     suite_threads: int
@@ -78,7 +79,7 @@ class ParseStartArguments:
         rfr = str(os.path.join(self._get_results_folder_base(), self._generate_foldername_runtime()))
         if create_folder:
             os.makedirs(rfr, exist_ok=True)
-            print("DEBUG", f"Created results folder {rfr}", file=sys.stdout)
+            print("DEBUG", f"Created results folder - {rfr}", file=sys.stdout)
         return rfr
 
     # returns str, with full path to where the tests are stored, remember that all tests must be under other folders
@@ -99,6 +100,9 @@ class ParseStartArguments:
     # returns bool, if its only to show tests selected - MODE = 0
     def _is_debugcode(self) -> bool:
         return self.ap.has_flag_or_option("--debugcode")
+
+    def _is_debug_testipy(self) -> bool:
+        return self.ap.has_flag_or_option("--debug-testipy")
 
     # returns bool, if its only to run all tests only once
     def _is_onlyonce(self) -> bool:
@@ -126,8 +130,8 @@ class ParseStartArguments:
         return st
 
     def _get_tests_scripts_build(self, full_path_tests_scripts_foldername: str) -> Dict:
+        filename = os.path.join(full_path_tests_scripts_foldername, default_config.tests_build_filename)
         try:
-            filename = os.path.join(full_path_tests_scripts_foldername, default_config.tests_build_filename)
             return load_config(filename)
         except Exception as e:
             print("WARNING", f"Failed to open {filename}, {e}", file=sys.stderr)
@@ -146,6 +150,7 @@ class ParseStartArguments:
 
             dryrun=self._is_dryrun(),
             debugcode=self._is_debugcode(),
+            debug_testipy=self._is_debug_testipy(),
             onlyonce=self._is_onlyonce(),
             repetitions=self._get_repetitions(),
             suite_threads=self.get_suite_threads(),

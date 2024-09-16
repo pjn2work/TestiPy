@@ -1,9 +1,10 @@
 import os
 import pandas as pd
 
-from typing import Dict
+from typing import List
 
 from testipy import get_exec_logger
+from testipy.engine.models import PackageAttr
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter.reporters import df_manager as dfm
 from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
@@ -69,7 +70,7 @@ class ReporterExcel(ReportInterface):
     def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
-    def _startup_(self, selected_tests: Dict):
+    def _startup_(self, selected_tests: List[PackageAttr]):
         df = self.rm.get_selected_tests_as_df()
         df.to_excel(self.writer, index=False, header=True, sheet_name='#SelectedTests')
 
