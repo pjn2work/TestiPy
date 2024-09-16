@@ -621,7 +621,9 @@ def endTest(rm: ReportManager,
         else:
             ros, exc_value = "", None
 
-        final_end_reason = end_reason or ros or "ok"
+        exc_reason1 = str(exc_val) if exc_val else ""
+        exc_reason2 = str(exc_value) if exc_value else ""
+        final_end_reason = end_reason or ros or exc_reason1 or exc_reason2 or "ok"
         jira_issue = get_known_bug_failure_issue(bug, final_end_reason)
         return f"{jira_issue} {final_end_reason}".strip(), exc_val or exc_value, final_end_reason
 
