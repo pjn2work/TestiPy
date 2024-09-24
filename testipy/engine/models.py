@@ -104,7 +104,7 @@ class SuiteAttr:
         self.test_method_attr_list: List[TestMethodAttr] = test_method_attr_list or []
         self.ncycles: int = ncycles
 
-        self.name: str = name or filename
+        self.name: str = name or suite_name or filename
         self.comment: str = comment
         self.prio: int = prio
         self.level: int = level
