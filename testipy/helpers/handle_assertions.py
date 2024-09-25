@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 class HandledError(AssertionError):
@@ -59,61 +59,77 @@ def assert_expected_value(expected, received, where: str = "response"):
         raise UnexpectedValueError(f"Expected {where}='{expected}', not '{received}'")
 
 
-# It only works if there is no duplicated data inside lists. lst1=expected, lst2=received
-def assert_equal_unique_lists(lst1: List, lst2: List, name_list1: str = "list1", name_list2: str = "list2", strict=True, **kwargs):
-    assert_expected_type(lst1, (list, tuple, set), where=name_list1)
-    assert_expected_type(lst2, (list, tuple, set), where=name_list2)
-    if strict:
-        assert_same_len(lst1, lst2, where=f"{name_list1} vs {name_list2}")
-
-    for x in lst1:
-        if isinstance(x, (list, tuple, set, dict)):
-            for z in lst2:      # iterate every element z from list2 and compare if equal to element x from list1
-                if isinstance(z, type(x)):
-                    try:
-                        if isinstance(x, dict):
-                            assert_data(x, z, where=name_list1)
-                        else:
-                            assert_equal_unique_lists(x, z, name_list1=name_list1, name_list2=name_list2)
-                    except:
-                        pass    # so this z is not equal, continue to next z
-                    else:
-                        break   # found z == x, continue with next x on lst1
-            else:
-                raise AssertionError(f"{type(x)} from {name_list1} not found in {name_list2}. {x}")
-        else:
-            if x not in lst2:
-                raise UnexpectedValueError(f"Value '{x}' from {name_list1} not in {name_list2}")
-
-
-# It only works if there is no duplicated data inside lists
-def assert_data(expected_values: Dict, response: Dict, where="", strict: bool = False, **kwargs):
-    if isinstance(expected_values, dict):
-        if strict and len(expected_values) != len(response):
-            raise ExpectedFieldMissingError(f"Not same amount of keys: {expected_values.keys()=} not {response.keys()=}")
-
-        for field, value in expected_values.items():
-            if field not in response:
-                raise ExpectedFieldMissingError(f"{field=} not in {where}")
-            if isinstance(value, (list, tuple, set)):
-                assert_expected_type(response[field], type(value), where=f"{where}.{field}")
-                assert_equal_unique_lists(value, response[field], f"{where}/{field}[expected]", f"{where}/{field}[response]")
-            elif isinstance(value, dict):
-                assert_expected_type(response[field], dict, where=f"{where}.{field}")
-                assert_data(value, response[field], where=f"{where}/{field}")
-            else:
-                assert_expected_value(value, response[field], where=f"{where}.{field}")
-    elif isinstance(expected_values, list):
-        assert_equal_unique_lists(expected_values, response, name_list1="expected", name_list2="received", strict=strict)
-    elif isinstance(expected_values, str):
-        assert expected_values == response, f"{where} Expected value does not meet received."
-    else:
-        if strict:
-            assert expected_values == response, f"{where} Expected value does not meet received."
-        else:
-            assert expected_values in response, f"{where} Expected value not part of received."
-
-
 def assert_status_code(expected_status_code, received_status_code):
     if expected_status_code != received_status_code:
         raise UnexpectedValueError(f"Unexpected status_code {received_status_code}, expected {expected_status_code}")
+
+
+def assert_equal_complex_object(
+    expected: Any,
+    received: Any,
+    expected_name: str = "expected",
+    received_name: str = "received",
+) -> None:
+    if isinstance(expected, dict) and isinstance(received, dict):
+        assert_equal_dicts(
+            expected, received, expected_name=expected_name, received_name=received_name
+        )
+    elif isinstance(expected, (list, tuple, set)) and isinstance(
+        received, (list, tuple, set)
+    ):
+        assert_equal_lists(
+            expected, received, expected_name=expected_name, received_name=received_name
+        )
+    else:
+        assert (
+            expected == received
+        ), f"{expected_name} = '{expected}' not equal to {received_name} = '{received}'"
+
+
+def assert_equal_dicts(
+    expected: Any,
+    received: Any,
+    expected_name: str = "expected",
+    received_name: str = "received",
+) -> None:
+    for key in expected:
+        assert key in received, f"{expected_name}.{key} is not in dict {received_name}"
+        assert_equal_complex_object(
+            expected[key],
+            received[key],
+            expected_name=f"{expected_name}.{key}",
+            received_name=f"{received_name}.{key}",
+        )
+
+
+def assert_equal_lists(
+    expected: Any,
+    received: Any,
+    expected_name: str = "expected",
+    received_name: str = "received",
+    same_len: bool = True,
+) -> None:
+    if same_len:
+        assert (
+            len(expected) == len(received)
+        ), f"{expected_name} has {len(expected)} elements != {received_name} has {len(received)} elements"
+
+    list2 = list(received)
+    for i1, v1 in enumerate(expected):
+        for i2, v2 in enumerate(list2):
+            try:
+                assert_equal_complex_object(
+                    v1,
+                    v2,
+                    expected_name=f"{expected_name}[{i1}]",
+                    received_name=f"{received_name}[{i2}]",
+                )
+            except AssertionError:
+                pass
+            else:
+                list2.remove(v2)
+                break
+        else:
+            raise AssertionError(
+                f"{expected_name}[{i1}] '{v1}' is not inside {received_name}"
+            )

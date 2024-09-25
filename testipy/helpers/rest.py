@@ -3,7 +3,7 @@ import inspect
 from requests import Response
 
 
-from testipy.helpers.handle_assertions import assert_status_code, ExpectedError, assert_data
+from testipy.helpers.handle_assertions import assert_status_code, ExpectedError, assert_equal_complex_object
 
 
 def get_response():
@@ -45,7 +45,7 @@ def handle_http_response(_func=None, *, expected_type=None):
 
                 assert isinstance(response, expected_type), f"must receive a {type(expected_type)} not a {type(response)}"
                 if expected_response:= default_kwargs.get("expected_response"):
-                    assert_data(expected_values=expected_response, response=response)
+                    assert_equal_complex_object(expected=expected_response, received=response)
 
                 return response
             else:
@@ -62,7 +62,7 @@ def handle_http_response(_func=None, *, expected_type=None):
                         else:
                             handle_http_response.body = received_response = response.text
 
-                        assert_data(expected_values=expected_response, response=received_response)
+                        assert_equal_complex_object(expected=expected_response, received=received_response)
                     else:
                         try:
                             handle_http_response.body = response.json()
