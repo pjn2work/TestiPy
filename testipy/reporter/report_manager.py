@@ -128,7 +128,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.start_suite(sd)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.startSuite on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.start_suite on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
         return sd
@@ -155,7 +155,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.test_info(current_test, info, str(level).upper(), attachment)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.testInfo on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.test_info on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -169,7 +169,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 self.get_bm().take_screenshot(current_test)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.testStep.screenshot on {self.get_bm().name}: {e}")
+                _exec_logger.critical(f"Internal error rm.test_step.screenshot on {self.get_bm().name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -177,7 +177,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.test_step(current_test, state, reason_of_state=str(reason_of_state), description=str(description), take_screenshot=take_screenshot, qty=qty, exc_value=exc_value)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.testStep on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.test_step on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -202,7 +202,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.end_test(current_test, state, reason_of_state, exc_value)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.endTest({state}) on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.end_test({state}) on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -213,7 +213,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.end_suite(sd)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.endSuite on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.end_suite on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -224,7 +224,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.end_package(pd)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.endPackage on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.end_package on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -234,7 +234,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.show_status(message)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.showStatus on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.show_status on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -244,7 +244,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
             try:
                 reporter.show_alert_message(message)
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.showMessage on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.show_alert_message on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 
@@ -257,7 +257,7 @@ class ReportManager(ReportBase, ReportManagerAddons):
                 if result is None and res:
                     result = res
             except Exception as e:
-                _exec_logger.critical(f"Internal error rm.inputMessage on {reporter_name}: {e}")
+                _exec_logger.critical(f"Internal error rm.input_prompt_message on {reporter_name}: {e}")
                 if self.is_debugcode():
                     raise
 

@@ -184,6 +184,11 @@ class PackageAttr:
         _max_id = max([suite_attr.suite_id for suite_attr in self.suite_attr_list]) if _max_rec > 0 else 0
         return max(_max_rec, _max_id) + 1
 
+    def get_max_test_method_id(self):
+        _max_rec = len(self.suite_attr_list)
+        _max_id = max([suite_attr.get_max_test_method_id() for suite_attr in self.suite_attr_list]) if _max_rec > 0 else 0
+        return max(_max_rec+1, _max_id)
+
     def duplicate(self, clone_children: bool = True):
         _new_attr = PackageAttr(
             package_name=self.package_name,
