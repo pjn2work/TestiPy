@@ -112,8 +112,8 @@ class ReporterExcel(ReportInterface):
         package_name = current_test.suite.package.get_name()
         package_cycle = current_test.suite.package.get_cycle()
 
-        suite_name = current_test.get_name()
-        suite_cycle = current_test.get_cycle()
+        suite_name = current_test.suite.get_name()
+        suite_cycle = current_test.suite.get_cycle()
 
         test_name = current_test.get_name()
         test_cycle = current_test.get_cycle()
