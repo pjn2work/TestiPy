@@ -66,13 +66,13 @@
       * **log:** shows test execution on .log file, with the same name as the project_name, errors are shown in stderr
       * **portalio:** ReportPortalIO Web REST DB and reporter:
       * **slack:** tests results are sent to Slack channel
-      * **web:** tests results can be seen in realtime on a browser
+      * **web:** tests results can be seen in realtime on a browser. use **-r-web-port PORT** to specify other than 9204
       * **xml:** test results will be saved on report.xml file
 
 
 # 2.3. Run:
   - ### options:
-    * **-rid**        RunID (ex: -rid 17, if not passed than current hour and minute will be used ex: 2359)
+    * **-rid**        RunID (ex: -rid 17, if not passed then current hour and minute will be used ex: 2359)
     * **-pn**         ProjectName (ex: -pn jules)
     * **-env**        EnvironmentName to test (ex: -env dev)
     * **-rf**         ResultsFolder (ex: -rf "/qa/test_results/"), where the tests results will be stored
