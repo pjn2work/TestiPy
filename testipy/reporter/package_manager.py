@@ -1,12 +1,14 @@
 from __future__ import annotations
-
-from typing import Dict, List, Set, NamedTuple, Any, Union
+from typing import Dict, List, Set, NamedTuple, Any, Union, TYPE_CHECKING
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
 from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
+
+if TYPE_CHECKING:
+    from testipy.reporter.report_manager import ReportManager
 
 
 class TestInfo(NamedTuple):
@@ -50,7 +52,7 @@ class PackageDetails(CommonDetails):
     def __init__(self, parent: PackageManager, package_attr: PackageAttr, package_name: str = ""):
         super(PackageDetails, self).__init__(package_name or package_attr.package_name)
 
-        self.parent = parent
+        self.parent: PackageManager = parent
         self.package_attr: PackageAttr = package_attr
         self.suite_manager: SuiteManager = SuiteManager(self)
 
@@ -69,12 +71,12 @@ class SuiteDetails(CommonDetails):
     def __init__(self, parent: PackageDetails, suite_attr: SuiteAttr, suite_name: str = ""):
         super(SuiteDetails, self).__init__(suite_name or suite_attr.name)
 
-        self.package = parent
+        self.package: PackageDetails = parent
         self.suite_attr: SuiteAttr = suite_attr
         self.current_test_method_attr: TestMethodAttr = None
         self.test_state_by_prio: Dict[int, Set] = dict()  # {2: {"PASS", "SKIP"}, 10: ...
         self.rb_test_result_rows: List = []
-        self.test_manager = TestManager(self)
+        self.test_manager: TestManager = TestManager(self)
 
     def set_current_test_method_attr(self, test_method_attr: Union[TestMethodAttr, None]) -> SuiteDetails:
         self.current_test_method_attr = test_method_attr
@@ -119,19 +121,27 @@ class TestDetails(CommonDetails):
     def __init__(self, parent: SuiteDetails, test_method_attr: TestMethodAttr, test_name: str = ""):
         super(TestDetails, self).__init__(test_name or test_method_attr.name)
 
-        self.suite = parent
+        self.suite: SuiteDetails = parent
         self.test_method_attr: TestMethodAttr = test_method_attr
+        self.rm: ReportManager = None
 
         self.test_id: int = 0
         self.test_usecase: str = ""
         self.test_comment: str = test_method_attr.comment
+        self.test_state: str = ""
+        self.test_reason_of_state: str = ""
 
-        self._info = list()
-        self._test_step = StateCounter()
+        self._info: List[TestInfo] = list()
+        self._test_step: StateCounter = StateCounter()
+
+    def get_rm(self) -> ReportManager:
+        return self.rm
 
     def endTest(self, state: str, reason_of_state: str, exc_value: BaseException = None):
         self.end_time = get_datetime_now()
         self.state_counter.inc_state(state, reason_of_state=reason_of_state, description="end test", exc_value=exc_value)
+        self.test_state = state
+        self.test_reason_of_state = reason_of_state
 
         self.suite.update_package_suite_counters(self.get_prio(), state, reason_of_state)
         self.suite.test_manager.remove_test_running(self)
@@ -216,7 +226,7 @@ class TestDetails(CommonDetails):
         return self
 
     def get_state(self):
-        return self.state_counter.get_last_state() or self._test_step.get_last_state()
+        return self.test_state or self._test_step.get_last_state()
 
     def is_passed(self):
         return self.get_state() == enums_data.STATE_PASSED
@@ -226,6 +236,9 @@ class TestDetails(CommonDetails):
 
     def is_skipped(self):
         return self.get_state() == enums_data.STATE_SKIPPED
+
+    def get_reason_of_state(self) -> str:
+        return self.test_reason_of_state or self._test_step.get_last_reason_of_state()
 
     def __str__(self):
         res = f"meid={self.get_method_id()} | teid={self.get_test_id()} | prio={self.get_prio()} | {self.get_name()}"

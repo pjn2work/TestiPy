@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, Any
 from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
-from testipy.helpers import format_duration
+from testipy.helpers import format_duration, get_traceback_tabulate
 from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.args_parser import ArgsParser
@@ -135,7 +135,8 @@ class ReportManager(ReportBase, ReportManagerAddons):
 
     @synchronized
     def startTest(self, sd: SuiteDetails, test_method_attr: TestMethodAttr = None, test_name: str = "", usecase: str = "", description: str = "") -> TestDetails:
-        td = super().startTest(sd, test_method_attr, test_name, usecase, description)
+        td: TestDetails = super().startTest(sd, test_method_attr, test_name, usecase, description)
+        td.rm = self
         self.start_test(td)
         return td
 
@@ -264,6 +265,34 @@ class ReportManager(ReportBase, ReportManagerAddons):
         return result
 
     # </editor-fold>
+
+
+class TestStep:
+    def __init__(self, td: TestDetails, description: str, reason_of_state: str = "ok", take_screenshot: bool = False):
+        self.td: TestDetails = td
+        self.description: str = description
+        self.reason_of_state: str = reason_of_state
+        self.take_screenshot = take_screenshot
+
+    def __enter__(self):
+        self.td.get_rm().show_status(f"Executing step {self.description}")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.td.get_rm().test_step(
+            current_test=self.td,
+            state=enums_data.STATE_FAILED if exc_val else enums_data.STATE_PASSED,
+            reason_of_state=str(exc_val) if exc_val else self.reason_of_state,
+            description=self.description,
+            take_screenshot=self.take_screenshot,
+            exc_value=exc_val
+        )
+        if exc_val:
+            self.td.get_rm().test_info(
+                current_test=self.td,
+                info=get_traceback_tabulate(exc_val),
+                level="ERROR",
+            )
+            raise exc_val
 
 
 def build_report_manager_with_reporters(ap: ArgsParser, sa: StartArguments):
