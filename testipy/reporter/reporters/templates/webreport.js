@@ -75,8 +75,8 @@ $(document).ready(function() {
         show_status(message);
     });
     socket.on('show_alert_message', function (message) {
-        window.alert(message);
         show_status(message);
+        window.alert(message);
     });
     socket.on('input_prompt_message', function (msg, cb) {
         let response = window.prompt(msg.message, msg.default_value);
@@ -176,6 +176,7 @@ function show_log(tid) {
 
 function show_status(message) {
     $('#status_message').text(message);
+    $('#test_output').append(message).append("<hr>");
 }
 
 

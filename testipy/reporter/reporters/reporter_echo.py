@@ -1,13 +1,18 @@
-from typing import Dict, List
+from __future__ import annotations
+from typing import Dict, List, TYPE_CHECKING
 from tabulate import tabulate
 
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
 from testipy.lib_modules.start_arguments import StartArguments
+from testipy.reporter import ReportInterface
 from testipy.reporter.reporters import df_manager as dfm
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
+
 
 _line_size = 160
 

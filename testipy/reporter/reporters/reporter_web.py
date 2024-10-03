@@ -1,9 +1,11 @@
+from __future__ import annotations
+from typing import Dict, List, TYPE_CHECKING
+
 import webbrowser
 import html
 import base64
 import os
 
-from typing import List, Dict
 from threading import Thread
 from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
@@ -11,11 +13,13 @@ from time import sleep
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface
-from testipy.reporter import PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 from engineio.payload import Payload
 Payload.max_decode_packets = 100
@@ -55,8 +59,8 @@ def get_image_from_attachment(attachment: Dict) -> str:
     return ""
 
 
-def _run_flask_in_thread():
-    socket_io.run(app, host="0.0.0.0", port=PORT, debug=False, log_output=DEBUG_MODE_SOCKET_IO, allow_unsafe_werkzeug=True)
+def _run_flask_in_thread(port: int = PORT):
+    socket_io.run(app, host="0.0.0.0", port=port, debug=False, log_output=DEBUG_MODE_SOCKET_IO, allow_unsafe_werkzeug=True)
 
 
 def _send_cached_content():
@@ -119,6 +123,7 @@ class ReporterWeb(ReportInterface):
 
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
+        self.port = int(rm.get_ap().get_option("-r-web-port", PORT))
 
         # save ReportManager
         self.rm = rm
@@ -131,7 +136,7 @@ class ReporterWeb(ReportInterface):
         self.namespace = sa.namespace
         ServerSocketIO(app, socket_io, self.namespace)
 
-        Thread(target=_run_flask_in_thread).start()
+        Thread(target=_run_flask_in_thread, args=[self.port]).start()
 
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
@@ -140,7 +145,7 @@ class ReporterWeb(ReportInterface):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
-        url = f"http://127.0.0.1:{PORT}/?namespace={self.namespace}"
+        url = f"http://127.0.0.1:{self.port}/?namespace={self.namespace}"
         _selected_tests = self.rm.get_selected_tests_as_dict()
 
         try:
@@ -148,6 +153,7 @@ class ReporterWeb(ReportInterface):
                 raise PermissionError("Cannot open browser!")
         except:
             print(f"Open your browser to view the results at: {url}")
+
         _push_to_cache("rm_selected_tests", {"data": _selected_tests["data"]})
 
     def _teardown_(self, end_state: str):
@@ -188,12 +194,14 @@ class ReporterWeb(ReportInterface):
 
     def start_test(self, current_test: TestDetails):
         _delete_from_cache("start_test")
-        test_details = {"name": current_test.get_name(),
-                        "ncycle": current_test.get_cycle(),
-                        "usecase": current_test.get_usecase(),
-                        "method_id": current_test.get_method_id(),
-                        "test_id": current_test.get_test_id(),
-                        "comment": current_test.get_comment()}
+        test_details = {
+            "name": current_test.get_name(),
+            "ncycle": current_test.get_cycle(),
+            "usecase": current_test.get_usecase(),
+            "method_id": current_test.get_method_id(),
+            "test_id": current_test.get_test_id(),
+            "comment": current_test.get_comment()
+        }
         self._notify_clients("start_test", test_details)
 
         self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
@@ -222,7 +230,7 @@ class ReporterWeb(ReportInterface):
         test_usecase = current_test.get_usecase()
         test_duration = current_test.get_duration()
 
-        info = self._format_info(current_test)
+        info = self._format_info(current_test, ending_state, end_reason)
 
         data = {"status": ending_state,
                 "method_id": test_method_id,
@@ -234,7 +242,8 @@ class ReporterWeb(ReportInterface):
         self._notify_clients('end_test', data)
 
     def show_status(self, message: str):
-        self._notify_clients('show_status', message, save_to_cache=False)
+        _delete_from_cache("show_status")
+        self._notify_clients('show_status', message, save_to_cache=True)
 
     def show_alert_message(self, message: str):
         self._notify_clients('show_alert_message', message, save_to_cache=False)
@@ -249,11 +258,23 @@ class ReporterWeb(ReportInterface):
 
         return response
 
-    def _format_info(self, current_test: TestDetails):
+    def _format_info(self, current_test: TestDetails, ending_state: str, end_reason: str):
+        test_attr = {
+            "package": current_test.suite.package.get_name(),
+            "suite": current_test.suite.get_name(),
+            "suite filename": current_test.suite.suite_attr.filename,
+            "test_id": current_test.get_test_id(),
+        }
+        test_attr.update(current_test.get_attr())
+
         str_res = "<h2>Test Attributes:</h2>"
-        str_res += f"<p>{escaped_text(prettify(current_test.get_attr(), as_yaml=True))}</p><HR>"
-        str_res += f"meid({current_test.get_method_id()}) - test_id({current_test.get_test_id()}) - {current_test.get_full_name(with_cycle_number=True)} <strong>{current_test.get_counters().get_last_state()}</strong> - {current_test.get_counters().get_last_reason_of_state()}<br>"
-        str_res += f"{current_test.get_counters().get_begin_time()} - {current_test.get_counters().get_end_time()} took {format_duration(current_test.get_duration())}"
+        str_res += f"<p>{escaped_text(prettify(test_attr, as_yaml=True))}</p><HR>"
+        str_res += f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
+        str_res += escaped_text("    Status: ") + f"<strong>{ending_state}</strong><br>"
+        str_res += escaped_text("End reason: ") + f"{end_reason}<br>"
+        str_res += escaped_text("   Started: ") + f"{current_test.get_counters().get_begin_time()}<br>"
+        str_res += escaped_text("     Ended: ") + f"{current_test.get_counters().get_end_time()}<br>"
+        str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
 
         # add test info log
         for ts, current_time, level, info, attachment in current_test.get_info():
@@ -264,7 +285,6 @@ class ReporterWeb(ReportInterface):
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
             str_res += "<hr>" + escaped_text(current_test.get_test_step_counters_tabulate()).replace("\n", "<br>")
-            str_res += "<hr>Steps Summary: " + escaped_text(str(tc.summary()))
         else:
             str_res += "<hr>Test Summary: " + escaped_text(str(current_test.get_counters().summary(verbose=False)))
 

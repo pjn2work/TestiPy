@@ -16,7 +16,7 @@ if TESTIPY_ROOT_FOLDER not in sys.path:
 from testipy import get_exec_logger
 from testipy.configs import default_config, enums_data
 from testipy.engine import read_files_to_get_selected_tests, run_selected_tests
-from testipy.engine.models import PackageAttr
+from testipy.models import PackageAttr
 from testipy.reporter.report_manager import build_report_manager_with_reporters
 from testipy.helpers import get_traceback_list, format_duration, prettify
 from testipy.lib_modules.args_parser import ArgsParser

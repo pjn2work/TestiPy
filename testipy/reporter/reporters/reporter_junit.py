@@ -1,14 +1,17 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import os
-
-from typing import List
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.helpers import get_traceback_list
 from testipy.lib_modules.state_counter import StateCounter
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 

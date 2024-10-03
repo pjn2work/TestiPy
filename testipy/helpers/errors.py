@@ -42,12 +42,15 @@ def get_traceback_list(exc_value: BaseException) -> List[Dict]:
     tbe = traceback.TracebackException.from_exception(exc_value)
 
     # get stacktrace (cascade methods calls)
-    error_lines = [{
+    error_lines = [
+        {
             "filename": frame_summary.filename,
             "method"  : frame_summary.name,
             "lineno"  : frame_summary.lineno,
             "code"    : frame_summary.line
-        } for frame_summary in tbe.stack]
+        }
+        for frame_summary in tbe.stack
+    ]
 
     # append error, by order of execution
     result.append({

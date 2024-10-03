@@ -1,17 +1,19 @@
 from __future__ import annotations
+from typing import Union, List, Dict, TYPE_CHECKING
 import os
 
-from typing import Union, List, Dict
 from abc import abstractmethod, ABC
 
 from testipy import get_exec_logger
 from testipy.configs import default_config
-from testipy.engine.models import PackageAttr
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.browser_manager import BrowserManager
 from testipy.lib_modules import webhook_http_listener as HL
-from testipy.reporter.package_manager import PackageDetails, SuiteDetails, TestDetails
+from testipy.models import PackageDetails, SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr
 
 
 _exec_logger = get_exec_logger()

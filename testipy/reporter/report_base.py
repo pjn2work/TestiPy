@@ -6,10 +6,9 @@ from typing import Dict, List
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
-from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
+from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr, PackageManager, PackageDetails, SuiteDetails, TestDetails
 from testipy.reporter.report_interfaces import ReportInterface
 from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp
-from testipy.reporter.package_manager import PackageManager, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReportBase(ReportInterface):
@@ -95,11 +94,18 @@ class ReportBase(ReportInterface):
 
         # update DataFrame with all ended tests for this suite
         df_size = self._df.shape[0]
-        new_rows = pd.DataFrame(sd.rb_test_result_rows,
-                                columns=self._df_columns,
-                                index=range(df_size, df_size + len(sd.rb_test_result_rows)))
-        self._df = new_rows if df_size == 0 else pd.concat(
-            [self._df, new_rows], axis=0, join="outer", ignore_index=True, verify_integrity=False, copy=False)
+        new_rows = pd.DataFrame(
+            sd.rb_test_result_rows,
+            columns=self._df_columns,
+            index=range(df_size, df_size + len(sd.rb_test_result_rows))
+        )
+
+        if df_size == 0:
+            self._df = new_rows
+        else:
+            df1 = self._df.dropna(axis=1, how="all")
+            df2 = new_rows.dropna(axis=1, how="all")
+            self._df = pd.concat([df1, df2], axis=0, join="outer", ignore_index=True, copy=False)
 
         # clear list since they were added to DataFrame
         sd.rb_test_result_rows.clear()

@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-
 import logging
 
 
-__version__ = "0.10.1"
+__version__ = "0.10.2"
 __app__ = "TestiPy"
 __app_full__ = "Python Test Tool"
 __author__ = "Pedro Nunes"

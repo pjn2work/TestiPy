@@ -1,16 +1,22 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import os
 
-from typing import List
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
+from testipy.models import PackageAttr
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
+
 
 SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
 DEFAULT_CHANNEL = "C06BQ1UP6KG"
