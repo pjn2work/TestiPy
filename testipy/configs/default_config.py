@@ -1,6 +1,6 @@
 import os
 
-from testipy.configs import enums_data
+from testipy.configs.enums_data import STATE_PASSED, STATE_FAILED
 
 # run.py
 default_project_name = "local"
@@ -24,8 +24,8 @@ separator_package = "."
 separator_and_join_tags = "&"
 
 # execute_tests.py
-if_no_test_started_mark_as = enums_data.STATE_PASSED
-count_as_failed_states = [enums_data.STATE_FAILED]
+if_no_test_started_mark_as = STATE_PASSED
+count_as_failed_states = [STATE_FAILED]
 suite_threads = 1
 
 # report_base.py

@@ -3,11 +3,11 @@ from typing import Dict, List, Set, NamedTuple, Any, Union, TYPE_CHECKING
 from tabulate import tabulate
 
 from testipy.configs import enums_data, default_config
-from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.lib_modules.common_methods import get_datetime_now
 from testipy.lib_modules.state_counter import StateCounter
 
 if TYPE_CHECKING:
+    from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr
     from testipy.reporter.report_manager import ReportManager
 
 

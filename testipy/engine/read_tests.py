@@ -9,8 +9,10 @@ from testipy.configs import enums_data, default_config
 from testipy.lib_modules import py_inspector, common_methods as cm
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.helpers import load_config
-from testipy.engine.models import (
-    PackageAttr, SuiteAttr, TestMethodAttr,
+from testipy.models.attr import (
+    PackageAttr,
+    SuiteAttr,
+    TestMethodAttr,
     get_package_by_name,
     mark_packages_suites_methods_ids,
     show_test_structure,

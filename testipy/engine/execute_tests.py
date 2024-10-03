@@ -1,12 +1,12 @@
+from __future__ import annotations
 import os
 import traceback
 import concurrent.futures
 
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data, default_config
-from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.lib_modules import common_methods as cm
 from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.state_counter import StateCounter
@@ -14,8 +14,11 @@ from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.helpers.prettify import format_duration
 from testipy.helpers.handle_assertions import ExpectedError
-from testipy.reporter.report_manager import ReportManager
-from testipy.reporter import SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr, SuiteDetails, TestDetails
+    from testipy.reporter.report_manager import ReportManager
+
 
 _exec_logger = get_exec_logger()
 

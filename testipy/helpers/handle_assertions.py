@@ -87,8 +87,8 @@ def assert_equal_complex_object(
 
 
 def assert_equal_dicts(
-    expected: Any,
-    received: Any,
+    expected: Dict,
+    received: Dict,
     expected_name: str = "expected",
     received_name: str = "received",
 ) -> None:
@@ -103,8 +103,8 @@ def assert_equal_dicts(
 
 
 def assert_equal_lists(
-    expected: Any,
-    received: Any,
+    expected: List,
+    received: List,
     expected_name: str = "expected",
     received_name: str = "received",
     same_len: bool = True,

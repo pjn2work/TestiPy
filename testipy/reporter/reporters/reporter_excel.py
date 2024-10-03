@@ -1,13 +1,16 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import os
 import pandas as pd
 
-from typing import List
-
 from testipy import get_exec_logger
-from testipy.engine.models import PackageAttr
 from testipy.lib_modules.start_arguments import StartArguments
+from testipy.reporter import ReportInterface
 from testipy.reporter.reporters import df_manager as dfm
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 _exec_logger = get_exec_logger()

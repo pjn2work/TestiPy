@@ -1,8 +1,12 @@
-from typing import List
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 
-from testipy.engine.models import PackageAttr
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 class ReporterTemplate(ReportInterface):

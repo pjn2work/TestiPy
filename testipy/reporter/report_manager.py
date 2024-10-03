@@ -1,20 +1,21 @@
 from __future__ import annotations
 import os
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, TYPE_CHECKING
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
 from testipy.helpers import format_duration, get_traceback_tabulate
 from testipy.lib_modules.common_methods import synchronized
 from testipy.lib_modules.textdecor import color_state
 from testipy.lib_modules.args_parser import ArgsParser
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.lib_modules.py_inspector import get_class_from_file_with_prefix
-from testipy.reporter.report_base import ReportBase, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter.report_base import ReportBase
 from testipy.reporter.report_interfaces import ReportManagerAddons
 
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr, PackageDetails, SuiteDetails, TestDetails
 
 _exec_logger = get_exec_logger()
 

@@ -1,9 +1,11 @@
+from __future__ import annotations
+from typing import Dict, List, TYPE_CHECKING
+
 import webbrowser
 import html
 import base64
 import os
 
-from typing import List, Dict
 from threading import Thread
 from flask import Flask, render_template, copy_current_request_context, request
 from flask_socketio import SocketIO, emit, disconnect
@@ -11,11 +13,13 @@ from time import sleep
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.helpers import Timer, prettify, format_duration
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface
-from testipy.reporter import PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 from engineio.payload import Payload
 Payload.max_decode_packets = 100

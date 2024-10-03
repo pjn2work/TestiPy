@@ -1,17 +1,21 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import os
 import logging
 
-from typing import List
 from tabulate import tabulate
 from mss import mss
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.helpers import get_traceback_list, prettify, format_duration
 from testipy.lib_modules.common_methods import get_app_version
 from testipy.lib_modules.start_arguments import StartArguments
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 log_format = "%(asctime)s %(levelname)s - %(message)s"

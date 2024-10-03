@@ -6,10 +6,9 @@ from typing import Dict, List
 from mimetypes import guess_type
 
 from testipy.configs import enums_data, default_config
-from testipy.engine.models import PackageAttr, SuiteAttr, TestMethodAttr
+from testipy.models import PackageAttr, SuiteAttr, TestMethodAttr, PackageManager, PackageDetails, SuiteDetails, TestDetails
 from testipy.reporter.report_interfaces import ReportInterface
 from testipy.lib_modules.common_methods import get_current_date_time_ns, get_timestamp
-from testipy.reporter.package_manager import PackageManager, PackageDetails, SuiteDetails, TestDetails
 
 
 class ReportBase(ReportInterface):

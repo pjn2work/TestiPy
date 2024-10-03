@@ -1,17 +1,21 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import os
 import json
 
 from time import time
-from typing import List
 from reportportal_client import create_client, ClientType
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.engine.models import PackageAttr
 from testipy.lib_modules.common_methods import dict_without_keys
 from testipy.lib_modules.start_arguments import StartArguments
 from testipy.helpers import load_config
-from testipy.reporter import ReportManager, ReportInterface, PackageDetails, SuiteDetails, TestDetails
+from testipy.reporter import ReportInterface
+
+if TYPE_CHECKING:
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 # to show or not stacktrace

@@ -1,15 +1,16 @@
 from __future__ import annotations
-
 from abc import abstractmethod, ABC
 from collections import OrderedDict
 from enum import Enum
-from typing import Union, Dict, List, Tuple
+from typing import Union, Dict, List, Tuple, TYPE_CHECKING
 
 from testipy.configs import enums_data
-from testipy.reporter.package_manager import SuiteDetails, TestDetails
-from testipy.reporter.report_manager import ReportManager
 from testipy.helpers import get_traceback_tabulate, load_config, left_update_dict, prettify
 from testipy.helpers.handle_assertions import ExpectedError, SkipTestError
+
+if TYPE_CHECKING:
+    from testipy.models import SuiteDetails, TestDetails
+    from testipy.reporter import ReportManager
 
 
 class RunMode(Enum):
