@@ -3,6 +3,11 @@ let socket;
 let id_window_polling;
 
 
+/**
+ * Initializes and manages Socket.IO connection for a test reporting web application
+ * @param {void} - No parameters
+ * @returns {void} This function doesn't return a value
+ */
 $(document).ready(function() {
     const params = new Proxy(new URLSearchParams(window.location.search), {
         get: (searchParams, prop) => searchParams.get(prop),
@@ -152,6 +157,12 @@ $(document).ready(function() {
 
 
 
+/**
+ * Updates the package name and cycle in the HTML document
+ * @param {string} package_name - The name of the package to be displayed
+ * @param {string} pcycle - The package cycle to be displayed
+ * @returns {void} This function does not return a value
+ */
 function rt_package(package_name="", pcycle="", ) {
     $('#package_name').text(package_name);
     $('#package_cycle').text(pcycle);
@@ -160,6 +171,16 @@ function rt_suite(suite_name="", scycle="") {
     $('#suite_name').text(suite_name);
     $('#suite_cycle').text(scycle);
 }
+/**
+ * Updates the test information displayed on the user interface.
+ * @param {string} [test_name=""] - The name of the test.
+ * @param {string} [tcycle=""] - The test cycle identifier.
+ * @param {string} [usecase=""] - The use case description for the test.
+ * @param {string} [comment=""] - Any additional comments related to the test.
+ * @param {string} [meid="0"] - The Mobile Equipment Identifier (MEID).
+ * @param {string} [tid="0"] - The Test Identifier (TID).
+ * @returns {void} This function doesn't return a value.
+ */
 function rt_test(test_name="", tcycle="", usecase="", comment="", meid="0", tid="0") {
     $('#test_name').text(test_name);
     $('#test_cycle').text(tcycle);
@@ -169,21 +190,47 @@ function rt_test(test_name="", tcycle="", usecase="", comment="", meid="0", tid=
     $('#test_output').text("");
 }
 
+/**
+ * Displays the test log for a given test ID
+ * @param {string|number} tid - The test ID to retrieve the log for
+ * @returns {boolean} Always returns false to prevent default action
+ */
 function show_log(tid) {
     $('#test_log').text("").append(test_log[tid]);
     return false;
 }
 
+/**
+ /**
+  * Changes the class of all cells in a row of a table based on the method ID.
+  * @param {string} meid - The method ID to search for in the table.
+  * @param {string} [class_name="method_running"] - The CSS class name to apply to the cells.
+  * @returns {boolean} True if the row is found and updated, undefined otherwise.
+  */
+ * Displays a status message and appends it to the test output.
+ * @param {string} message - The status message to be displayed and appended.
+ * @returns {void} This function doesn't return a value.
+ */
 function show_status(message) {
     $('#status_message').text(message);
     $('#test_output').append(message).append("<hr>");
 }
 
+/**
+ * Updates the counters for total items and items with a specific status
+ * @param {string} status - The status of the item being added
+ * @returns {void} This function doesn't return a value
+ */
 
 function change_row_class_method_test_running(meid, class_name="method_running") {
     const table = document.getElementById("rm_selected_tests");
     for (let i = 0, row; row = table.rows[i]; i++)
         if (row.cells[0].innerText == meid)
+            /**
+             * Updates the global duration value displayed on the webpage.
+             * @param {number} global_duration_value - The new global duration value to be displayed.
+             * @returns {void} This function doesn't return a value.
+             */
             for (let j = 0, col; col = row.cells[j]; j++)
                 col.className = class_name;
                 return true;
@@ -204,6 +251,16 @@ function update_global_duration(global_duration_value) {
     span_obj.text(global_duration_value);
 }
 
+/**
+ * Clears all tables and resets counters in the user interface
+ * @returns {void} This function doesn't return a value
+ ```
+ /**
+  * Disconnects the client from the server and performs cleanup operations.
+  * @returns {void} This function does not return a value.
+  */
+ ```
+ */
 function clear_all_tables() {
     // clear Parameters
     $("#rm_params > tbody").empty();
