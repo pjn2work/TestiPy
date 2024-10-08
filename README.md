@@ -1,7 +1,5 @@
 ## TestiPy - Python Test Tool
 
----
-
 [![PyPI Version](https://img.shields.io/pypi/v/TestiPy.svg)](https://pypi.python.org/pypi/TestiPy)
 [![Python Versions](https://img.shields.io/pypi/pyversions/TestiPy.svg)](https://pypi.org/project/TestiPy)
 
