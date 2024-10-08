@@ -24,7 +24,6 @@ _exec_logger = get_exec_logger()
 
 
 class ReporterLog(ReportInterface):
-
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
 
@@ -43,18 +42,24 @@ class ReporterLog(ReportInterface):
 
     def save_file(self, current_test: TestDetails, data, filename: str):
         try:
+            folder_name = os.path.dirname(filename)
+            os.makedirs(folder_name, exist_ok=True)
             with open(filename, "w") as fh:
                 fh.write(data)
             self.__log(f"Created file {filename}", "INFO")
-        except Exception as e:
+        except Exception:
             self.__log(f"Could not create file {filename}", "ERROR")
 
-    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
+    def copy_file(
+        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
+    ):
         try:
+            folder_name = os.path.dirname(dest_filename)
+            os.makedirs(folder_name, exist_ok=True)
             with open(dest_filename, "wb") as fh:
                 fh.write(data)
             self.__log(f"Copied from '{orig_filename}' to {dest_filename}", "INFO")
-        except Exception as e:
+        except Exception:
             self.__log(f"Could not create file {dest_filename}", "ERROR")
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -67,24 +72,30 @@ class ReporterLog(ReportInterface):
                 tabulate(
                     _selected_tests["data"],
                     headers=_selected_tests["headers"],
-                    tablefmt=table_format
+                    tablefmt=table_format,
                 )
             ),
-            level="INFO"
+            level="INFO",
         )
 
     def _teardown_(self, end_state: str):
         sc = self.rm.pm.state_counter
-        tab_resume = tabulate(sc.get_summary_per_state_without_ros(),
-                              headers=("State", "Qty", "%"),
-                              floatfmt=".2f",
-                              tablefmt=table_format)
-        self.__log("Teardown - {:.2f}% success for {} tests, took {} to {}\n{}".format(
-            sc.get_state_percentage(enums_data.STATE_PASSED),
-            sc.get_total(),
-            format_duration(self.rm.pm.get_duration()),
-            end_state,
-            tab_resume), "INFO")
+        tab_resume = tabulate(
+            sc.get_summary_per_state_without_ros(),
+            headers=("State", "Qty", "%"),
+            floatfmt=".2f",
+            tablefmt=table_format,
+        )
+        self.__log(
+            "Teardown - {:.2f}% success for {} tests, took {} to {}\n{}".format(
+                sc.get_state_percentage(enums_data.STATE_PASSED),
+                sc.get_total(),
+                format_duration(self.rm.pm.get_duration()),
+                end_state,
+                tab_resume,
+            ),
+            "INFO",
+        )
 
         self.__close_logger()
 
@@ -94,10 +105,12 @@ class ReporterLog(ReportInterface):
     def end_package(self, pd: PackageDetails):
         sc = pd.state_counter
 
-        tab_resume = tabulate(sc.get_summary_per_state_without_ros(),
+        tab_resume = tabulate(
+            sc.get_summary_per_state_without_ros(),
             headers=("State", "Qty", "%"),
             floatfmt=".2f",
-            tablefmt=table_format)
+            tablefmt=table_format,
+        )
 
         self.__log(
             "Ending Package {} - {:.2f}% success for {} tests, took {}\n{}".format(
@@ -105,24 +118,33 @@ class ReporterLog(ReportInterface):
                 sc.get_state_percentage(enums_data.STATE_PASSED),
                 sc.get_total(),
                 format_duration(pd.get_duration()),
-                tab_resume),"INFO")
+                tab_resume,
+            ),
+            "INFO",
+        )
 
     def start_suite(self, sd: SuiteDetails):
         self.__log(f"Starting Suite {sd.get_full_name(with_cycle_number=True)}", "INFO")
         self.__create_folder(self.rm.get_results_folder_filename(sd, ""))
 
     def end_suite(self, sd: SuiteDetails):
-        tab_resume = tabulate(sd.state_counter.get_summary_per_state_without_ros(),
-                              headers=("State", "Qty", "%"),
-                              floatfmt=".2f",
-                              tablefmt=table_format)
+        tab_resume = tabulate(
+            sd.state_counter.get_summary_per_state_without_ros(),
+            headers=("State", "Qty", "%"),
+            floatfmt=".2f",
+            tablefmt=table_format,
+        )
 
-        self.__log("Ending Suite {} - {:.2f}% success for {} tests, took {}\n{}".format(
-            sd.get_full_name(with_cycle_number=True),
-            sd.state_counter.get_state_percentage(enums_data.STATE_PASSED),
-            sd.state_counter.get_total(),
-            format_duration(sd.get_duration()),
-            tab_resume), "INFO")
+        self.__log(
+            "Ending Suite {} - {:.2f}% success for {} tests, took {}\n{}".format(
+                sd.get_full_name(with_cycle_number=True),
+                sd.state_counter.get_state_percentage(enums_data.STATE_PASSED),
+                sd.state_counter.get_total(),
+                format_duration(sd.get_duration()),
+                tab_resume,
+            ),
+            "INFO",
+        )
 
     def start_test(self, current_test: TestDetails):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
@@ -132,30 +154,43 @@ class ReporterLog(ReportInterface):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
         self.__log(f"{test_full_name}: {info}", level)
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         self.__log_exception(current_test, exc_value)
         if take_screenshot:
             with mss() as sct:
                 self._screenshot_num += 1
                 output_file = f"log_screenshot_{self._screenshot_num:03.0f}.png"
                 sct.shot(output=output_file, mon=1)
-                self.rm.copy_file(current_test, orig_filename=output_file, delete_source=True)
+                self.rm.copy_file(
+                    current_test, orig_filename=output_file, delete_source=True
+                )
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
         test_duration = current_test.get_duration()
 
         self.__log_test_steps(current_test)
         self.__log_exception(current_test, exc_value)
 
-        self.__log(f"Ending Test {test_full_name} - {ending_state} - took {format_duration(test_duration)} - {end_reason}", "INFO")
+        self.__log(
+            f"Ending Test {test_full_name} - {ending_state} - took {format_duration(test_duration)} - {end_reason}",
+            "INFO",
+        )
 
     def show_status(self, message: str):
         pass
@@ -182,25 +217,29 @@ class ReporterLog(ReportInterface):
     def __log(self, info, level="DEBUG"):
         try:
             self.__get_logger().log(logging.getLevelName(level), info)
-        except Exception as e:
+        except Exception:
             _exec_logger.critical(info)
 
     def __create_folder(self, folder_name):
         try:
             os.makedirs(folder_name, exist_ok=True)
             self.__log(f"Created results folder = {folder_name}", level="DEBUG")
-        except:
+        except Exception:
             self.__log(f"Could not create results folder {folder_name}", "ERROR")
 
     def __log_test_steps(self, current_test: TestDetails):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
-            test_steps = current_test.get_test_step_counters_tabulate(tablefmt=table_format)
+            test_steps = current_test.get_test_step_counters_tabulate(
+                tablefmt=table_format
+            )
             self.__log(f"Test steps {test_full_name}:\n" + test_steps, "DEBUG")
             str_summary = "Steps Summary: " + tc.summary(verbose=False)
         else:
-            str_summary = "Test Summary: " + current_test.get_counters().summary(verbose=False)
+            str_summary = "Test Summary: " + current_test.get_counters().summary(
+                verbose=False
+            )
         self.__log(str_summary, "DEBUG")
 
     def __log_exception(self, current_test, exc_value):

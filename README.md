@@ -1,3 +1,10 @@
+## TestiPy - Python Test Tool
+
+[![PyPI Version](https://img.shields.io/pypi/v/TestiPy.svg)](https://pypi.python.org/pypi/TestiPy)
+[![Python Versions](https://img.shields.io/pypi/pyversions/TestiPy.svg)](https://pypi.org/project/TestiPy)
+
+This documentation provides an overview of TestiPy, a Python tool designed for test selection, execution, and reporting. TestiPy offers features like test management, parallel execution, and integration with various reporting tools. It aims to streamline the testing process, making it easier to organize, execute, and analyze test results.
+
 
 # 1. Installation
   - ## From GitHub
@@ -26,7 +33,7 @@
     ```bash
     # goto your folder where you've cloned this repo
     cd /where_you_have_cloned_this_repo
-    
+
     # run demo tests indicating where the tests are and using the web reporter
     python testipy/run.py -tf testipy/tests -r web
     ```
@@ -55,7 +62,7 @@
       -ef         Exclude tests by @FEATURES tag
       -itn        Include tests by @TN tag (beginsWith) (ex: -itn 1.3.1.10)
       -etn        Exclude tests by @TN tag (beginsWith)
-        
+
 
 # 2.2. Select Reporters
   - ### options:
@@ -72,28 +79,30 @@
 
 # 2.3. Run:
   - ### options:
-    * **-rid**        RunID (ex: -rid 17, if not passed then current hour and minute will be used ex: 2359)
-    * **-pn**         ProjectName (ex: -pn jules)
-    * **-env**        EnvironmentName to test (ex: -env dev)
-    * **-rf**         ResultsFolder (ex: -rf "/qa/test_results/"), where the tests results will be stored
-    * **-tf**         TestsFolder (ex: -tf "/qa/tests_scripts/jules/"), full path to where the tests are
-    * **-repeat**     Run the exact same pipeline that amount of times (ex: -repeat 3)
-    * **-st**         Suite Threads = 1..8 (ex: -st 4, meaning 4 suites can run in parallel) 
-  
+    *   `-rid`:  Run ID (e.g., `-rid 17`). If not provided, the current hour and minute will be used (e.g., `2359`).
+    *   `-pn`: Project Name (e.g., `-pn my_project`).
+    *   `-env`: Environment Name for testing (e.g., `-env qa`).
+    *   `-rf`: Results Folder (e.g., `-rf /path/to/results/`), where test results will be stored.
+    *   `-tf`: Tests Folder (e.g., `-tf /path/to/tests/`), the directory containing test scripts.
+    *   `-r` or `-reporter`: Add a reporter (e.g., `-r echo -r log -r web`).
+        *   Available reporters include: `echo`, `excel`, `log`, `portalio`, `slack`, `web`, `xml`.
+    *   `-repeat`: Number of times to repeat the test execution (e.g., `-repeat 3`).
+    *   `-st`: Suite Threads (1 to 8), controls the number of suites that can run in parallel (e.g., `-st 4`).
+
   - ### flags
-    * **--dryrun**         All tests will run but without really being executed (all of them will end with SKIPPED)
-    * **--debugcode**      Disables the try/except on tests so errors are shown
-    * **--debug-testipy**  will show the stacktrace for testipy classes
-    * **--1**              Override test definitions of how many times tests will run (ncycle)
-    * **--prof**           Create file .prof with profiling data
-    
+    *   `--dryrun`: Runs tests without actual execution (all tests are marked as 'SKIPPED').
+    *   `--debugcode`: Disables try/except blocks in tests, showing detailed error messages.
+    *   `--debug-testipy`: Shows stack traces for TestiPy classes (useful for debugging the tool itself).
+    *   `--1`: Overrides the default number of test cycles (ncycles) defined in test suites, forcing all tests to run only once.
+    *   `--prof`: Generates a `.prof` file with profiling data.
+
 
 # 3. Example of usage:
   - #### Example of usage:
     ```
     python3 run.py -env dev -reporter log -reporter web -rid 1 -tf "/home/testipy/my_test_scripts" -et NO_RUN -it DEV
     ```
-  - #### Storyboard:      
+  - #### Storyboard:
       - If storyboard passed, tests will run by the order defined on json file
       - If no storyboard is passed, then tests will run ordered (DESC) by package name, @PRIO defined on suite, then by @PRIO defined on test itself
   - #### Results Folder:
@@ -101,7 +110,15 @@
       - Under the folder defined above, subfolders can be created with package_name/suite_name containing the tests results (created by each reporter)
   - #### Tests not ended:
       - If a test ends without being formally ended (by a testFailed, testSkipped or testPassed), it will be passed by the executor
-           
+
+
+In addition to the reporter-specific outputs, TestiPy creates a `results.yaml` file in the results folder, containing a summary of the overall test execution results.
+
+This tool provides a flexible and customizable framework for Python testing, offering features for test organization, execution control, and comprehensive reporting through various channels.
+
+
+For integrations with Behave framework, [check the example here](https://github.com/pjn2work/testipy-tests)
+
 
 # 4. Suite Example
 ``` python
