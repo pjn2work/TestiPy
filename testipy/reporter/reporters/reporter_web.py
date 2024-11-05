@@ -14,14 +14,15 @@ from time import sleep
 from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import Timer, prettify, format_duration
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 from engineio.payload import Payload
+
 Payload.max_decode_packets = 100
 
 
@@ -33,14 +34,19 @@ STATUS_TO_CLASS = {
     enums_data.STATE_PASSED: "passed",
     enums_data.STATE_SKIPPED: "skipped",
     enums_data.STATE_FAILED: "failed",
-    enums_data.STATE_FAILED_KNOWN_BUG: "failed_bug"
+    enums_data.STATE_FAILED_KNOWN_BUG: "failed_bug",
 }
 
 clients_connected = []
 cached_content: Dict[str, List[Dict]] = dict()
 response = None
 
-app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_url_path="/templates", static_folder=TEMPLATE_FOLDER)
+app = Flask(
+    __name__,
+    template_folder=TEMPLATE_FOLDER,
+    static_url_path="/templates",
+    static_folder=TEMPLATE_FOLDER,
+)
 app.use_reloader = False
 app.config["SECRET_KEY"] = "dGVzdGlweSBzZWNyZXQgZm9yIHdlYnNvY2tldHM="
 socket_io = SocketIO(app, async_mode=None, engineio_logger=DEBUG_MODE_SOCKET_IO)
@@ -60,7 +66,14 @@ def get_image_from_attachment(attachment: Dict) -> str:
 
 
 def _run_flask_in_thread(port: int = PORT):
-    socket_io.run(app, host="0.0.0.0", port=port, debug=False, log_output=DEBUG_MODE_SOCKET_IO, allow_unsafe_werkzeug=True)
+    socket_io.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        debug=False,
+        log_output=DEBUG_MODE_SOCKET_IO,
+        allow_unsafe_werkzeug=True,
+    )
 
 
 def _send_cached_content():
@@ -86,20 +99,19 @@ def _callback_response(resp):
 
 
 class ServerSocketIO:
-
     def __init__(self, app, socket_io, namespace: str):
         self.setup(app, socket_io, namespace)
 
     def setup(self, app, socket_io, namespace: str):
-        @app.route('/')
+        @app.route("/")
         def index():
-            return render_template('webreport.html', async_mode=socket_io.async_mode)
+            return render_template("webreport.html", async_mode=socket_io.async_mode)
 
-        @socket_io.on('my_ping', namespace=namespace)
+        @socket_io.on("my_ping", namespace=namespace)
         def ping_pong():
-            emit('my_pong')
+            emit("my_pong")
 
-        @socket_io.on('connect', namespace=namespace)
+        @socket_io.on("connect", namespace=namespace)
         def new_client_connect():
             global WAIT_FOR_FIRST_CLIENT
 
@@ -107,7 +119,7 @@ class ServerSocketIO:
             _send_cached_content()
             WAIT_FOR_FIRST_CLIENT = False
 
-        @socket_io.on('disconnect_request', namespace=namespace)
+        @socket_io.on("disconnect_request", namespace=namespace)
         def disconnect_request():
             @copy_current_request_context
             def can_disconnect():
@@ -116,11 +128,10 @@ class ServerSocketIO:
 
             # for this emit we use a callback function
             # when the callback function is invoked we know that the message has been received and it is safe to disconnect
-            emit('s2c', "Server Disconnected!", callback=can_disconnect)
+            emit("s2c", "Server Disconnected!", callback=can_disconnect)
 
 
 class ReporterWeb(ReportInterface):
-
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
         self.port = int(rm.get_ap().get_option("-r-web-port", PORT))
@@ -129,7 +140,14 @@ class ReporterWeb(ReportInterface):
         self.rm = rm
 
         # get running parameters
-        _push_to_cache("rm_params", {k: str(v) for k, v in sa.as_dict().items() if k not in ["results_folder_base", "foldername_runtime", "namespace"]})
+        _push_to_cache(
+            "rm_params",
+            {
+                k: str(v)
+                for k, v in sa.as_dict().items()
+                if k not in ["results_folder_base", "foldername_runtime", "namespace"]
+            },
+        )
 
         # setup socket_io
         self.socket_io = socket_io
@@ -141,7 +159,9 @@ class ReporterWeb(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
+    def copy_file(
+        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
+    ):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -159,9 +179,12 @@ class ReporterWeb(ReportInterface):
     def _teardown_(self, end_state: str):
         global WAIT_FOR_FIRST_CLIENT
 
-        msg = {"global_duration_value": "Ended within " + format_duration(self.rm.pm.get_duration())}
+        msg = {
+            "global_duration_value": "Ended within "
+            + format_duration(self.rm.pm.get_duration())
+        }
 
-        self._notify_clients('teardown', msg)
+        self._notify_clients("teardown", msg)
 
         if WAIT_FOR_FIRST_CLIENT:
             # wait 5 sec for a client to connect - so it won't lose all results
@@ -180,14 +203,18 @@ class ReporterWeb(ReportInterface):
     def start_package(self, pd: PackageDetails):
         _delete_from_cache("start_suite")
         _delete_from_cache("start_test")
-        self._notify_clients("start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()})
+        self._notify_clients(
+            "start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()}
+        )
 
     def end_package(self, pd: PackageDetails):
         pass
 
     def start_suite(self, sd: SuiteDetails):
         _delete_from_cache("start_test")
-        self._notify_clients("start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()})
+        self._notify_clients(
+            "start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()}
+        )
 
     def end_suite(self, sd: SuiteDetails):
         pass
@@ -200,28 +227,38 @@ class ReporterWeb(ReportInterface):
             "usecase": current_test.get_usecase(),
             "method_id": current_test.get_method_id(),
             "test_id": current_test.get_test_id(),
-            "comment": current_test.get_comment()
+            "comment": current_test.get_comment(),
         }
         self._notify_clients("start_test", test_details)
 
-        self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
+        self.test_info(
+            current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG"
+        )
 
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
         msg = {"test_id": current_test.get_test_id(), "data": data}
         self._notify_clients("test_info", msg)
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         self.show_status(f"{state} || {reason_of_state} || {description}")
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         package_name = current_test.suite.package.get_name()
         suite_name = current_test.suite.get_name()
         test_method_id = current_test.get_method_id()
@@ -232,33 +269,53 @@ class ReporterWeb(ReportInterface):
 
         info = self._format_info(current_test, ending_state, end_reason)
 
-        data = {"status": ending_state,
-                "method_id": test_method_id,
-                "test_id": test_id,
-                "log_output": info,
-                "data": (test_method_id, package_name, suite_name, test_name, test_id, test_usecase, ending_state, f"{test_duration:.3f} s", end_reason),
-                "global_duration_value": format_duration(test_duration),
-                "status_class": STATUS_TO_CLASS.get(ending_state)}
-        self._notify_clients('end_test', data)
+        data = {
+            "status": ending_state,
+            "method_id": test_method_id,
+            "test_id": test_id,
+            "log_output": info,
+            "data": (
+                test_method_id,
+                package_name,
+                suite_name,
+                test_name,
+                test_id,
+                test_usecase,
+                ending_state,
+                f"{test_duration:.3f} s",
+                end_reason,
+            ),
+            "global_duration_value": format_duration(test_duration),
+            "status_class": STATUS_TO_CLASS.get(ending_state),
+        }
+        self._notify_clients("end_test", data)
 
     def show_status(self, message: str):
         _delete_from_cache("show_status")
-        self._notify_clients('show_status', message, save_to_cache=True)
+        self._notify_clients("show_status", message, save_to_cache=True)
 
     def show_alert_message(self, message: str):
-        self._notify_clients('show_alert_message', message, save_to_cache=False)
+        self._notify_clients("show_alert_message", message, save_to_cache=False)
 
     def input_prompt_message(self, message: str, default_value: str = ""):
-        global response; response = None
+        global response
+        response = None
         timer = Timer(25)
 
-        self._notify_clients('input_prompt_message', {"message": message, "default_value": default_value}, save_to_cache=False, callback=_callback_response)
+        self._notify_clients(
+            "input_prompt_message",
+            {"message": message, "default_value": default_value},
+            save_to_cache=False,
+            callback=_callback_response,
+        )
         while response is None and timer.is_timer_valid():
             timer.sleep_for_if_not_over(2)
 
         return response
 
-    def _format_info(self, current_test: TestDetails, ending_state: str, end_reason: str):
+    def _format_info(
+        self, current_test: TestDetails, ending_state: str, end_reason: str
+    ):
         test_attr = {
             "package": current_test.suite.package.get_name(),
             "suite": current_test.suite.get_name(),
@@ -269,12 +326,23 @@ class ReporterWeb(ReportInterface):
 
         str_res = "<h2>Test Attributes:</h2>"
         str_res += f"<p>{escaped_text(prettify(test_attr, as_yaml=True))}</p><HR>"
-        str_res += f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
+        str_res += (
+            f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
+        )
         str_res += escaped_text("    Status: ") + f"<strong>{ending_state}</strong><br>"
         str_res += escaped_text("End reason: ") + f"{end_reason}<br>"
-        str_res += escaped_text("   Started: ") + f"{current_test.get_counters().get_begin_time()}<br>"
-        str_res += escaped_text("     Ended: ") + f"{current_test.get_counters().get_end_time()}<br>"
-        str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
+        str_res += (
+            escaped_text("   Started: ")
+            + f"{current_test.get_counters().get_begin_time()}<br>"
+        )
+        str_res += (
+            escaped_text("     Ended: ")
+            + f"{current_test.get_counters().get_end_time()}<br>"
+        )
+        str_res += (
+            escaped_text("      Took: ")
+            + f"{format_duration(current_test.get_duration())}"
+        )
 
         # add test info log
         for ts, current_time, level, info, attachment in current_test.get_info():
@@ -284,30 +352,44 @@ class ReporterWeb(ReportInterface):
         # add test steps
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
-            str_res += "<hr>" + escaped_text(current_test.get_test_step_counters_tabulate()).replace("\n", "<br>")
+            str_res += "<hr>" + escaped_text(
+                current_test.get_test_step_counters_tabulate()
+            ).replace("\n", "<br>")
         else:
-            str_res += "<hr>Test Summary: " + escaped_text(str(current_test.get_counters().summary(verbose=False)))
+            str_res += "<hr>Test Summary: " + escaped_text(
+                str(current_test.get_counters().summary(verbose=False))
+            )
 
         return str_res
 
-    def _notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):
+    def _notify_clients(self, event, msg, save_to_cache: bool = True, callback=None):
         if save_to_cache:
             _push_to_cache(event, msg)
 
         for client_sid in _get_clients_connected():
-            self.socket_io.emit(event, msg, room=client_sid, include_self=True, namespace=self.namespace, callback=callback)
+            self.socket_io.emit(
+                event,
+                msg,
+                room=client_sid,
+                include_self=True,
+                namespace=self.namespace,
+                callback=callback,
+            )
             if DEBUG_MODE_SOCKET_IO:
                 print(f"--> Notify {event} - {client_sid}")
+
 
 def _client_connected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> connected {request.sid}")
     clients_connected.append(request.sid)
 
+
 def _client_disconnected():
     if DEBUG_MODE_SOCKET_IO:
         print(f"--> disconnected {request.sid}")
     clients_connected.remove(request.sid)
+
 
 def _get_clients_connected():
     return clients_connected

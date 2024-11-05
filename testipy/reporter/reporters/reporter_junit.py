@@ -5,13 +5,13 @@ import os
 from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list
-from testipy.lib_modules.state_counter import StateCounter
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
+    from testipy.lib_modules.state_counter import StateCounter
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 
@@ -19,7 +19,6 @@ _exec_logger = get_exec_logger()
 
 
 class ReporterJUnitXML(ReportInterface):
-
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
         self.rm = rm
@@ -28,7 +27,7 @@ class ReporterJUnitXML(ReportInterface):
         self.__ensure_folder(rm.get_results_folder_runtime())
 
         # full path name
-        self.fpn = os.path.join(rm.get_results_folder_runtime(), f"report.xml")
+        self.fpn = os.path.join(rm.get_results_folder_runtime(), "report.xml")
 
         # try to create empty file
         with open(self.fpn, "w"):
@@ -37,7 +36,9 @@ class ReporterJUnitXML(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
+    def copy_file(
+        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
+    ):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -66,17 +67,25 @@ class ReporterJUnitXML(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         pass
 
     def show_status(self, message: str):
@@ -110,13 +119,19 @@ class ReporterJUnitXML(ReportInterface):
         tests = str(atc.get_total())
 
         # set total of failures
-        failures = str(atc[enums_data.STATE_FAILED] + atc[enums_data.STATE_FAILED_KNOWN_BUG])
+        failures = str(
+            atc[enums_data.STATE_FAILED] + atc[enums_data.STATE_FAILED_KNOWN_BUG]
+        )
 
         # set total of duration
         time = "{:.3f}".format(self.rm.pm.get_duration())
 
         # Log XML tag
-        xml_file.write(f"<testsuites {id=} {name=} {tests=} {failures=} {time=}>\n".replace("'", '"'))
+        xml_file.write(
+            f"<testsuites {id=} {name=} {tests=} {failures=} {time=}>\n".replace(
+                "'", '"'
+            )
+        )
         self._generate_tag_testsuite(xml_file)
         xml_file.write("</testsuites>")
 
@@ -135,13 +150,19 @@ class ReporterJUnitXML(ReportInterface):
                 tests = str(sc.get_total())
 
                 # set total of failures
-                failures = str(sc[enums_data.STATE_FAILED] + sc[enums_data.STATE_FAILED_KNOWN_BUG])
+                failures = str(
+                    sc[enums_data.STATE_FAILED] + sc[enums_data.STATE_FAILED_KNOWN_BUG]
+                )
 
                 # set total of duration
                 time = "{:.3f}".format(sd.get_duration())
 
                 # Log XML tag
-                xml_file.write(f" <testsuite {id=} {name=} {tests=} {failures=} {time=}>\n".replace("'", '"'))
+                xml_file.write(
+                    f" <testsuite {id=} {name=} {tests=} {failures=} {time=}>\n".replace(
+                        "'", '"'
+                    )
+                )
                 self._generate_tag_testcase(xml_file, sd, id)
                 xml_file.write(" </testsuite>\n")
 
@@ -153,39 +174,72 @@ class ReporterJUnitXML(ReportInterface):
             id = string_fixer(current_test.get_full_name(with_cycle_number=True))
 
             # set name
-            name = string_fixer(" - ".join(filter(None, [current_test.get_name(), usecase_name])))
+            name = string_fixer(
+                " - ".join(filter(None, [current_test.get_name(), usecase_name]))
+            )
 
             # set total of duration
             time = "{:.3f}".format(current_test.get_duration())
 
             # set total of failures
             fail_counters = current_test.get_test_step_counters()
-            failures = fail_counters[enums_data.STATE_FAILED] + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
+            failures = (
+                fail_counters[enums_data.STATE_FAILED]
+                + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
+            )
             if failures == 0:
                 fail_counters = current_test.get_counters()
-                failures = fail_counters[enums_data.STATE_FAILED] + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
+                failures = (
+                    fail_counters[enums_data.STATE_FAILED]
+                    + fail_counters[enums_data.STATE_FAILED_KNOWN_BUG]
+                )
             failures = str(failures)
 
             # show testcase
-            xml_file.write(f'  <testcase id="{id}" name="{name}" failures="{failures}" time="{time}"')
+            xml_file.write(
+                f'  <testcase id="{id}" name="{name}" failures="{failures}" time="{time}"'
+            )
             if failures == "0":
-                xml_file.write(f' />\n')
+                xml_file.write(" />\n")
             else:
-                xml_file.write(f'>\n')
-                self._generate_tag_failure(xml_file, fail_counters, current_test.get_counters())
+                xml_file.write(">\n")
+                self._generate_tag_failure(
+                    xml_file, fail_counters, current_test.get_counters()
+                )
                 xml_file.write("  </testcase>\n")
 
-    def _generate_tag_failure(self, xml_file, fail_counters: StateCounter, test_counters: StateCounter):
-        self._generate_failure_detail(xml_file, fail_counters, test_counters, enums_data.STATE_FAILED)
-        self._generate_failure_detail(xml_file, fail_counters, test_counters, enums_data.STATE_FAILED_KNOWN_BUG)
+    def _generate_tag_failure(
+        self, xml_file, fail_counters: StateCounter, test_counters: StateCounter
+    ):
+        self._generate_failure_detail(
+            xml_file, fail_counters, test_counters, enums_data.STATE_FAILED
+        )
+        self._generate_failure_detail(
+            xml_file, fail_counters, test_counters, enums_data.STATE_FAILED_KNOWN_BUG
+        )
 
-    def _generate_failure_detail(self, xml_file, fail_counters: StateCounter, test_counters: StateCounter, filter_state):
+    def _generate_failure_detail(
+        self,
+        xml_file,
+        fail_counters: StateCounter,
+        test_counters: StateCounter,
+        filter_state,
+    ):
         is_test_failed = test_counters.get_last_state() == enums_data.STATE_FAILED
         failure_type = "ERROR" if is_test_failed else "WARNING"
 
-        for state, qty, total_seconds, reason_of_state, description, exc_value, end_time in fail_counters.get_timed_laps(filter_state):
-
-            message = string_fixer(reason_of_state)  # test_counters.get_last_reason_of_state())
+        for (
+            state,
+            qty,
+            total_seconds,
+            reason_of_state,
+            description,
+            exc_value,
+            end_time,
+        ) in fail_counters.get_timed_laps(filter_state):
+            message = string_fixer(
+                reason_of_state
+            )  # test_counters.get_last_reason_of_state())
 
             xml_file.write(f'   <failure message="{message}" type="{failure_type}">\n')
 

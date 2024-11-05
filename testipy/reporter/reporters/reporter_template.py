@@ -1,16 +1,15 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 class ReporterTemplate(ReportInterface):
-
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
         self.rm = rm
@@ -19,7 +18,9 @@ class ReporterTemplate(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
+    def copy_file(
+        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
+    ):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -46,17 +47,25 @@ class ReporterTemplate(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails, 
-                  state: str, 
-                  reason_of_state: str = "", 
-                  description: str = "", 
-                  take_screenshot: bool = False, 
-                  qty: int = 1, 
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         package_name = current_test.suite.package.get_name()
         package_cycle = current_test.suite.package.get_cycle()
 
