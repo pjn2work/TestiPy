@@ -50,9 +50,7 @@ def get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
     return df_dummies
 
 
-def _get_state_summary(
-    df, columns=("Package", "Suite", "Test", "Level", "State", "Usecase", "Reason")
-):
+def _get_state_summary(df, columns=("Package", "Suite", "Test", "Level", "State", "Usecase", "Reason")):
     df_ss = df.copy()
 
     # group by Reason of State

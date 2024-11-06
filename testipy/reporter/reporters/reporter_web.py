@@ -244,17 +244,7 @@ class ReporterWeb(ReportInterface):
             "method_id": test_method_id,
             "test_id": test_id,
             "log_output": info,
-            "data": (
-                test_method_id,
-                package_name,
-                suite_name,
-                test_name,
-                test_id,
-                test_usecase,
-                ending_state,
-                f"{test_duration:.3f} s",
-                end_reason,
-            ),
+            "data": (test_method_id, package_name, suite_name, test_name, test_id, test_usecase, ending_state, f"{test_duration:.3f} s", end_reason),
             "global_duration_value": format_duration(test_duration),
             "status_class": STATUS_TO_CLASS.get(ending_state),
         }
