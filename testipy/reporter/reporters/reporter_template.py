@@ -69,8 +69,8 @@ class ReporterTemplate(ReportInterface):
         package_name = current_test.suite.package.get_name()
         package_cycle = current_test.suite.package.get_cycle()
 
-        suite_name = current_test.get_name()
-        suite_cycle = current_test.get_cycle()
+        suite_name = current_test.suite.get_name()
+        suite_cycle = current_test.suite.get_cycle()
 
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()

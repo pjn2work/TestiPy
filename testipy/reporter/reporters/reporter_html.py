@@ -8,11 +8,13 @@ from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import prettify, format_duration
 from testipy.reporter import ReportInterface
+from testipy.reporter.reporters import df_manager as dfm
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
     from testipy.lib_modules.start_arguments import StartArguments
+    import pandas as pd
 
 
 _exec_logger = get_exec_logger()
@@ -57,16 +59,40 @@ class ReporterHtml(ReportInterface):
                         title=self.sa.environment_name
                         + "-"
                         + self.sa.foldername_runtime,
-                        javascript=JAVASCRIPT,
+                        js_expand_test_log=_js_expand_test_log,
                         rm_params=_add_rm_params(self.sa),
+                        dashboard=_get_dashboard(),
                         selected_tests=_add_selected_tests(selected_tests),
                         css=css.read(),
                     )
                 )
 
     def _teardown_(self, end_state: str):
+        sc = self.rm.pm.state_counter
+        total_passed = sc[enums_data.STATE_PASSED]
+        total_failed = sc[enums_data.STATE_FAILED]
+        total_failed_bug = sc[enums_data.STATE_FAILED_KNOWN_BUG]
+        total_skipped = sc[enums_data.STATE_SKIPPED]
+        total = sc.get_total()
+        total_perc = total_passed / total if total else 0
+
+        _tear_down_js = f"""
+    document.addEventListener('DOMContentLoaded', function() {{
+        document.getElementById('total_passed').textContent = '{total_passed}';
+        document.getElementById('total_failed').textContent = '{total_failed}';
+        document.getElementById('total_failed_bug').textContent = '{total_failed_bug}';
+        document.getElementById('total_skipped').textContent = '{total_skipped}';
+        document.getElementById('total').textContent = '{total}';
+        document.getElementById('total_perc').textContent = '{total_perc:.2%}';
+
+        document.getElementById('global_duration').textContent = '{format_duration(self.rm.pm.get_duration())}';
+
+        document.getElementById('summary').innerHTML = "{_get_div_summary(self.rm)}";
+        expand_summary();
+    }});"""
+
         with open(self.filename, "a") as f:
-            f.write(HTML_FOOTER)
+            f.write(HTML_FOOTER.format(tear_down_js=_tear_down_js))
 
     def start_package(self, pd: PackageDetails):
         pass
@@ -106,7 +132,7 @@ class ReporterHtml(ReportInterface):
         exc_value: BaseException = None,
     ):
         package_name = current_test.suite.package.get_name()
-        suite_name = current_test.get_name()
+        suite_name = current_test.suite.get_name()
 
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()
@@ -157,13 +183,14 @@ def _ensure_folder(folder_name: str):
 
 def _add_rm_params(sa: StartArguments) -> str:
     text = """
-        <table id="rm_params" class="list" style="width: 600px; max-width: 600px; height: 100%">
+        <table id="rm_params" class="list" style="width: 700px; max-width: 700px; height: 100%">
             <caption>Parameters</caption>
             <tbody>
             {tbody}
             </tbody>
         </table>
     """
+
     tbody = ""
     for k, v in sa.as_dict().items():
         tbody += f"""
@@ -171,7 +198,62 @@ def _add_rm_params(sa: StartArguments) -> str:
                 <td class='label'>{k}</td>
                 <td class='label_value'>{v}</td>
             </tr>"""
+    tbody += """
+            <tr>
+                <td class='label'>Global duration</td>
+                <td class='label_value'><span id="global_duration">0ms</span></td>
+            </tr>"""
     return text.format(tbody=tbody)
+
+
+def _get_dashboard() -> str:
+    text = """
+                <table class="list" style="width: 1100px; max-width: 1100px; height: 100%">
+                    <caption>Global counters</caption>
+                    <thead>
+                    <tr>
+                        <th>PASSED</th>
+                        <th>SKIPPED</th>
+                        <th>FAILED</th>
+                        <th>FAILED_BUG</th>
+                        <th>TOTAL</th>
+                        <th>Success</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td class="passed"  style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_passed">0</span></td>
+                        <td class="skipped" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_skipped">0</span></td>
+                        <td class="failed"  style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_failed">0</span></td>
+                        <td class="failed_bug"  style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_failed_bug">0</span></td>
+                        <td class="label_value" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total">0</span></td>
+                        <td class="label" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_perc">0</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <br>
+
+                <div id="summary" style="width: 1100px; max-width: 1100px; height: 100%">
+                    <table class="list"style="width: 1100px; max-width: 1100px; height: 100%">
+                        <caption>Package/Suite summary</caption>
+                        <thead>
+                        <tr>
+                            <th colspan=2>Package/Suite</th>
+                            <th>PASSED</th>
+                            <th>SKIPPED</th>
+                            <th>FAILED</th>
+                            <th>FAILED_BUG</th>
+                            <th>TOTAL</th>
+                            <th>Success</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+    """
+    return text
 
 
 def _add_selected_tests(selected_tests: List[PackageAttr]) -> str:
@@ -275,6 +357,97 @@ def _format_info(current_test: TestDetails, ending_state: str, end_reason: str):
     return str_res
 
 
+def _get_div_summary(rm: ReportManager) -> str:
+    text = """
+    <table class='list' style='width: 1100px; max-width: 1100px; height: 100%'>
+        <caption>Package/Suite summary</caption>
+        <thead>
+        <tr>
+            <th colspan=2>Package/Suite</th>
+            <th>PASSED</th>
+            <th>SKIPPED</th>
+            <th>FAILED</th>
+            <th>FAILED_BUG</th>
+            <th>TOTAL</th>
+            <th>Success</th>
+        </tr>
+        </thead>
+        <tbody>"""
+
+    results = []
+
+    def _create_row(_obj: str = "Package", _class="label"):
+        total_passed = (
+            row[enums_data.STATE_PASSED],
+            STATUS_TO_CLASS[enums_data.STATE_PASSED],
+        )
+        total_failed = (
+            row[enums_data.STATE_FAILED],
+            STATUS_TO_CLASS[enums_data.STATE_FAILED],
+        )
+        total_failed_bug = (
+            row[enums_data.STATE_FAILED_KNOWN_BUG],
+            STATUS_TO_CLASS[enums_data.STATE_FAILED_KNOWN_BUG],
+        )
+        total_skipped = (
+            row[enums_data.STATE_SKIPPED],
+            STATUS_TO_CLASS[enums_data.STATE_SKIPPED],
+        )
+        total = (
+            total_passed[0] + total_failed[0] + total_failed_bug[0] + total_skipped[0],
+            "label_value",
+        )
+        total_perc = (f"{total_passed[0] / total[0] if total[0] else 0:.2%}", "label")
+
+        name = (row[_obj], _class)
+
+        data = [
+            _obj,
+            name,
+            total_passed,
+            total_skipped,
+            total_failed,
+            total_failed_bug,
+            total,
+            total_perc,
+        ]
+        results.append(data)
+
+    df = rm.get_df()
+    df_packages: pd.DataFrame = dfm.get_state_dummies(df, columns=["Package"])
+    for index, row in df_packages.iterrows():
+        _create_row("Package", "label")
+
+        df_pkg = df[df["Package"] == row["Package"]]
+        df_suites: pd.DataFrame = dfm.get_state_dummies(
+            df_pkg, columns=["Package", "Suite"]
+        )
+        for index, row in df_suites.iterrows():
+            _create_row("Suite", "label_value")
+
+    for row in results:
+        if row[0] == "Package":
+            _style = "text-align: center; font-size: 17px; font-weight: bold;"
+            cells = "<td colspan=2 "
+        else:
+            _style = "text-align: center; font-size: 15px;"
+            cells = "<td></td><td "
+
+        cells += f"class='{row[1][1]}'>{row[1][0]}</td> "
+        cells += " ".join(
+            [
+                f"<td class='{_class}' style='{_style}'>{_value}</td>"
+                for _value, _class in row[2:]
+            ]
+        )
+        _class = "collapse" if row[0] == "Suite" else "visible"
+        text += f"<tr class='{row[0]} {_class}'>{cells}</tr>"
+
+    text += "</tbody></table>"
+
+    return text.replace("\n", " ")
+
+
 HTML_HEADER = """<!DOCTYPE html>
 <html lang="en">
     <head>
@@ -284,12 +457,22 @@ HTML_HEADER = """<!DOCTYPE html>
 {css}
         </style>
         <script>
-{javascript}
+{js_expand_test_log}
         </script>
     </head>
 
     <body>
-        {rm_params}
+        <table class="no_spacing" style="width: 100%; max-width: 2820px;">
+        <tbody>
+            <tr>
+            <td class="no_spacing">
+            {rm_params}
+            </td><td class="no_spacing">
+            {dashboard}
+            </td>
+            </tr>
+        </tbody>
+        </table>
         <br>
         {selected_tests}
         <br>
@@ -311,47 +494,101 @@ HTML_HEADER = """<!DOCTYPE html>
                 </thead>
                 <tbody>"""
 
+
 HTML_FOOTER = """
                 </tbody>
             </table>
         </div>
 
+        <script>
+        {tear_down_js}
+        </script>
+
     </body>
 </html>
 """
 
-JAVASCRIPT = """
-  document.addEventListener('DOMContentLoaded', function() {
-      const table = document.getElementById('ended_tests');
-      const rows = table.querySelectorAll('tbody tr');
 
-      // Add click handler to data rows (every other row)
-      for(let i = 0; i < rows.length; i += 2) {
-          const dataRow = rows[i];
-          const logRow = rows[i + 1];
+_js_expand_test_log = """
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('ended_tests');
+        const rows = table.querySelectorAll('tbody tr');
 
-          // Add visual indicator that row is clickable
-          dataRow.style.cursor = 'pointer';
+        // Add click handler to data rows (every other row)
+        for(let i = 0; i < rows.length; i += 2) {
+            const dataRow = rows[i];
+            const logRow = rows[i + 1];
 
-          // Add click handler
-          dataRow.addEventListener('click', function() {
-              // Toggle the visibility of the log row
-              if(logRow.classList.contains('collapse')) {
-                  logRow.classList.remove('collapse');
-                  logRow.classList.add('visible');
-              } else {
-                  logRow.classList.remove('visible');
-                  logRow.classList.add('collapse');
-              }
+            // Add visual indicator that row is clickable
+            dataRow.style.cursor = 'pointer';
 
-              // Optional: collapse all other rows
-              //for(let j = 1; j < rows.length; j += 2) {
-              //    if(j !== i + 1) {  // Skip the row we just toggled
-              //        rows[j].classList.remove('visible');
-              //        rows[j].classList.add('collapse');
-              //    }
-              //}
-          });
-      }
-  });
+            // Add click handler
+            dataRow.addEventListener('click', function() {
+                // Toggle the visibility of the log row
+                if(logRow.classList.contains('collapse')) {
+                    logRow.classList.remove('collapse');
+                    logRow.classList.add('visible');
+                } else {
+                    logRow.classList.remove('visible');
+                    logRow.classList.add('collapse');
+                }
+
+                // Optional: collapse all other rows
+                //for(let j = 1; j < rows.length; j += 2) {
+                //    if(j !== i + 1) {  // Skip the row we just toggled
+                //        rows[j].classList.remove('visible');
+                //        rows[j].classList.add('collapse');
+                //    }
+                //}
+            });
+        }
+
+    });
+
+
+    function expand_summary() {
+        console.log("1----");
+
+        // Get all Package rows
+        const packageRows = document.querySelectorAll('tr.Package');
+
+        // Initialize all Suite rows as expanded
+        //const suiteRows = document.querySelectorAll('tr.Suite');
+        //suiteRows.forEach(row => {
+        //  row.classList.remove('collapse');
+        //});
+
+        console.log("2----");
+        console.log(packageRows);
+
+        // Add click handler to each Package row
+        packageRows.forEach(packageRow => {
+            console.log("OK0");
+            packageRow.style.cursor = 'pointer';
+            console.log("OK1");
+            console.log(packageRow);
+
+            packageRow.addEventListener('click', function() {
+                let currentRow = this.nextElementSibling;
+                let isCollapsed = false;
+
+                // Check if the next Suite row is collapsed
+                if (currentRow && currentRow.classList.contains('Suite')) {
+                    isCollapsed = currentRow.classList.contains('collapse');
+                }
+
+                // Toggle all consecutive Suite rows
+                while (currentRow && currentRow.classList.contains('Suite')) {
+                    if (isCollapsed) {
+                    currentRow.classList.remove('collapse');
+                    } else {
+                    currentRow.classList.add('collapse');
+                    }
+                    currentRow = currentRow.nextElementSibling;
+                }
+            });
+
+        });
+    }
+
 """
