@@ -84,8 +84,7 @@ class ReporterHtml(ReportInterface):
         document.getElementById('total_skipped').textContent = '{total_skipped}';
         document.getElementById('total').textContent = '{total}';
         document.getElementById('total_perc').textContent = '{total_perc:.2%}';
-
-        document.getElementById('global_duration').textContent = '{format_duration(self.rm.pm.get_duration())}';
+        document.getElementById('total_duration').textContent = '{format_duration(self.rm.pm.get_duration())}';
 
         document.getElementById('summary').innerHTML = "{_get_div_summary(self.rm)}";
         expand_summary();
@@ -198,11 +197,6 @@ def _add_rm_params(sa: StartArguments) -> str:
                 <td class='label'>{k}</td>
                 <td class='label_value'>{v}</td>
             </tr>"""
-    tbody += """
-            <tr>
-                <td class='label'>Global duration</td>
-                <td class='label_value'><span id="global_duration">0ms</span></td>
-            </tr>"""
     return text.format(tbody=tbody)
 
 
@@ -218,6 +212,7 @@ def _get_dashboard() -> str:
                         <th>FAILED_BUG</th>
                         <th>TOTAL</th>
                         <th>Success</th>
+                        <th>Duration</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -228,6 +223,7 @@ def _get_dashboard() -> str:
                         <td class="failed_bug"  style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_failed_bug">0</span></td>
                         <td class="label_value" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total">0</span></td>
                         <td class="label" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_perc">0</span></td>
+                        <td class="label" style="text-align: center; font-size: 17px; font-weight: bold;"><span id="total_duration">0</span></td>
                     </tr>
                     </tbody>
                 </table>
@@ -246,6 +242,7 @@ def _get_dashboard() -> str:
                             <th>FAILED_BUG</th>
                             <th>TOTAL</th>
                             <th>Success</th>
+                            <th>Duration</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -326,17 +323,9 @@ def _format_info(current_test: TestDetails, ending_state: str, end_reason: str):
     str_res += f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
     str_res += escaped_text("    Status: ") + f"<strong>{ending_state}</strong><br>"
     str_res += escaped_text("End reason: ") + f"{end_reason}<br>"
-    str_res += (
-        escaped_text("   Started: ")
-        + f"{current_test.get_counters().get_begin_time()}<br>"
-    )
-    str_res += (
-        escaped_text("     Ended: ")
-        + f"{current_test.get_counters().get_end_time()}<br>"
-    )
-    str_res += (
-        escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
-    )
+    str_res += escaped_text("   Started: ") + f"{current_test.get_counters().get_begin_time()}<br>"
+    str_res += escaped_text("     Ended: ") + f"{current_test.get_counters().get_end_time()}<br>"
+    str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
 
     # add test info log
     for ts, current_time, level, info, attachment in current_test.get_info():
@@ -346,13 +335,9 @@ def _format_info(current_test: TestDetails, ending_state: str, end_reason: str):
     # add test steps
     tc = current_test.get_test_step_counters()
     if len(tc.get_timed_laps()) > 0:
-        str_res += "<hr>" + escaped_text(
-            current_test.get_test_step_counters_tabulate()
-        ).replace("\n", "<br>")
+        str_res += "<hr>" + escaped_text(current_test.get_test_step_counters_tabulate()).replace("\n", "<br>")
     else:
-        str_res += "<hr>Test Summary: " + escaped_text(
-            str(current_test.get_counters().summary(verbose=False))
-        )
+        str_res += "<hr>Test Summary: " + escaped_text(str(current_test.get_counters().summary(verbose=False)))
 
     return str_res
 
@@ -370,6 +355,7 @@ def _get_div_summary(rm: ReportManager) -> str:
             <th>FAILED_BUG</th>
             <th>TOTAL</th>
             <th>Success</th>
+            <th>Duration</th>
         </tr>
         </thead>
         <tbody>"""
@@ -377,40 +363,17 @@ def _get_div_summary(rm: ReportManager) -> str:
     results = []
 
     def _create_row(_obj: str = "Package", _class="label"):
-        total_passed = (
-            row[enums_data.STATE_PASSED],
-            STATUS_TO_CLASS[enums_data.STATE_PASSED],
-        )
-        total_failed = (
-            row[enums_data.STATE_FAILED],
-            STATUS_TO_CLASS[enums_data.STATE_FAILED],
-        )
-        total_failed_bug = (
-            row[enums_data.STATE_FAILED_KNOWN_BUG],
-            STATUS_TO_CLASS[enums_data.STATE_FAILED_KNOWN_BUG],
-        )
-        total_skipped = (
-            row[enums_data.STATE_SKIPPED],
-            STATUS_TO_CLASS[enums_data.STATE_SKIPPED],
-        )
-        total = (
-            total_passed[0] + total_failed[0] + total_failed_bug[0] + total_skipped[0],
-            "label_value",
-        )
+        total_passed = (row[enums_data.STATE_PASSED], STATUS_TO_CLASS[enums_data.STATE_PASSED])
+        total_failed = (row[enums_data.STATE_FAILED], STATUS_TO_CLASS[enums_data.STATE_FAILED])
+        total_failed_bug = (row[enums_data.STATE_FAILED_KNOWN_BUG], STATUS_TO_CLASS[enums_data.STATE_FAILED_KNOWN_BUG])
+        total_skipped = (row[enums_data.STATE_SKIPPED], STATUS_TO_CLASS[enums_data.STATE_SKIPPED])
+        total = (total_passed[0] + total_failed[0] + total_failed_bug[0] + total_skipped[0], "label_value")
         total_perc = (f"{total_passed[0] / total[0] if total[0] else 0:.2%}", "label")
+        duration = (format_duration(row["Duration"]), "label")
 
         name = (row[_obj], _class)
 
-        data = [
-            _obj,
-            name,
-            total_passed,
-            total_skipped,
-            total_failed,
-            total_failed_bug,
-            total,
-            total_perc,
-        ]
+        data = [_obj, name, total_passed, total_skipped, total_failed, total_failed_bug, total, total_perc, duration]
         results.append(data)
 
     df = rm.get_df()
@@ -419,9 +382,7 @@ def _get_div_summary(rm: ReportManager) -> str:
         _create_row("Package", "label")
 
         df_pkg = df[df["Package"] == row["Package"]]
-        df_suites: pd.DataFrame = dfm.get_state_dummies(
-            df_pkg, columns=["Package", "Suite"]
-        )
+        df_suites: pd.DataFrame = dfm.get_state_dummies(df_pkg, columns=["Package", "Suite"])
         for index, row in df_suites.iterrows():
             _create_row("Suite", "label_value")
 
@@ -434,12 +395,10 @@ def _get_div_summary(rm: ReportManager) -> str:
             cells = "<td></td><td "
 
         cells += f"class='{row[1][1]}'>{row[1][0]}</td> "
-        cells += " ".join(
-            [
-                f"<td class='{_class}' style='{_style}'>{_value}</td>"
-                for _value, _class in row[2:]
-            ]
-        )
+        cells += " ".join([
+            f"<td class='{_class}' style='{_style}'>{_value}</td>"
+            for _value, _class in row[2:]
+        ])
         _class = "collapse" if row[0] == "Suite" else "visible"
         text += f"<tr class='{row[0]} {_class}'>{cells}</tr>"
 
