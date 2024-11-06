@@ -547,26 +547,12 @@ _js_expand_test_log = """
 
 
     function expand_summary() {
-        console.log("1----");
-
         // Get all Package rows
         const packageRows = document.querySelectorAll('tr.Package');
 
-        // Initialize all Suite rows as expanded
-        //const suiteRows = document.querySelectorAll('tr.Suite');
-        //suiteRows.forEach(row => {
-        //  row.classList.remove('collapse');
-        //});
-
-        console.log("2----");
-        console.log(packageRows);
-
         // Add click handler to each Package row
         packageRows.forEach(packageRow => {
-            console.log("OK0");
             packageRow.style.cursor = 'pointer';
-            console.log("OK1");
-            console.log(packageRow);
 
             packageRow.addEventListener('click', function() {
                 let currentRow = this.nextElementSibling;
@@ -580,9 +566,9 @@ _js_expand_test_log = """
                 // Toggle all consecutive Suite rows
                 while (currentRow && currentRow.classList.contains('Suite')) {
                     if (isCollapsed) {
-                    currentRow.classList.remove('collapse');
+                        currentRow.classList.remove('collapse');
                     } else {
-                    currentRow.classList.add('collapse');
+                        currentRow.classList.add('collapse');
                     }
                     currentRow = currentRow.nextElementSibling;
                 }

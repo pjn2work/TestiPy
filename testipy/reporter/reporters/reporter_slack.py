@@ -34,6 +34,7 @@ _exec_logger = get_exec_logger()
 
 
 class ReporterSlack(ReportInterface):
+
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
         self.client = WebClient(token=SLACK_API_TOKEN)
@@ -46,9 +47,7 @@ class ReporterSlack(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(
-        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
-    ):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -62,9 +61,7 @@ class ReporterSlack(ReportInterface):
     def _teardown_(self, end_state: str):
         flag = emojis.get(end_state, f":{end_state}:")
 
-        self._send_message(
-            reply_broadcast=True, text=f"{flag} {self.rm.pm.state_counter}"
-        )
+        self._send_message(reply_broadcast=True, text=f"{flag} {self.rm.pm.state_counter}")
         for name, user in NOTIFY_USERS.items():
             self._send_message(
                 channel=user,
@@ -76,17 +73,13 @@ class ReporterSlack(ReportInterface):
         pass
 
     def end_package(self, pd: PackageDetails):
-        self._send_message(
-            text=f":file_folder: Package {pd.get_name()} {self.rm.pm.state_counter}"
-        )
+        self._send_message(text=f":file_folder: Package {pd.get_name()} {self.rm.pm.state_counter}")
 
     def start_suite(self, sd: SuiteDetails):
         pass
 
     def end_suite(self, sd: SuiteDetails):
-        self._send_message(
-            text=f":scroll: Suite {sd.get_name()} {self.rm.pm.state_counter}"
-        )
+        self._send_message(text=f":scroll: Suite {sd.get_name()} {self.rm.pm.state_counter}")
 
     def start_test(self, current_test: TestDetails):
         pass
@@ -118,9 +111,7 @@ class ReporterSlack(ReportInterface):
         test_duration = current_test.get_duration()
         emoji = emojis.get(ending_state, f":{ending_state}:")
 
-        self._send_message(
-            text=f"{emoji} {test_name}:{test_usecase} {ending_state} {test_duration:.2f}sec - {end_reason}"
-        )
+        self._send_message(text=f"{emoji} {test_name}:{test_usecase} {ending_state} {test_duration:.2f}sec - {end_reason}")
 
     def show_status(self, message: str):
         pass
@@ -131,9 +122,7 @@ class ReporterSlack(ReportInterface):
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def _send_message(
-        self, channel=DEFAULT_CHANNEL, threadts=True, reply_broadcast=False, **message
-    ):
+    def _send_message(self, channel=DEFAULT_CHANNEL, threadts=True, reply_broadcast=False, **message):
         thread_ts = self.TS if threadts else None
         retry = 3
         while retry > 0:

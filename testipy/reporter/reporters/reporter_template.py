@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 class ReporterTemplate(ReportInterface):
+
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
         self.rm = rm
@@ -18,9 +19,7 @@ class ReporterTemplate(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(
-        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
-    ):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):

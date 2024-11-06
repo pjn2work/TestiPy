@@ -47,18 +47,14 @@ def my_error_handler(exc_info):
 
 
 class ReporterPortalIO(ReportInterface):
+
     def __init__(self, rm: ReportManager, sa: StartArguments):
         super().__init__(self.__class__.__name__)
 
-        global DEBUGCODE
-        DEBUGCODE = rm.is_debugcode()
+        global DEBUGCODE; DEBUGCODE = rm.is_debugcode()
 
-        endpoint, rp_project, launch_name, api_key = get_credentials(
-            rm.get_project_name(), rm.get_environment_name()
-        )
-        description = dict_without_keys(
-            sa.as_dict(), ("ap", "results_folder_base", "foldername_runtime")
-        )
+        endpoint, rp_project, launch_name, api_key = get_credentials(rm.get_project_name(), rm.get_environment_name())
+        description = dict_without_keys(sa.as_dict(), ("ap", "results_folder_base", "foldername_runtime"))
         description["valid_reporters"] = list(sa.valid_reporters)
         # description.update(param["ap"].get_dict())
         description = json.dumps(description, indent=2, sort_keys=False)
@@ -69,7 +65,7 @@ class ReporterPortalIO(ReportInterface):
             endpoint=endpoint,
             project=rp_project,
             api_key=api_key,
-            error_handler=my_error_handler,
+            error_handler=my_error_handler
         )
 
         # launch Tests on ReportPortal
@@ -83,32 +79,22 @@ class ReporterPortalIO(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(
-        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
-    ):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
         pass
 
     def _teardown_(self, end_state: str):
-        self._service.finish_launch(
-            end_time=timestamp(), status=enums_data.STATE_PASSED
-        )
+        self._service.finish_launch(end_time=timestamp(), status=enums_data.STATE_PASSED)
         self._service.terminate()
 
     def start_package(self, pd: PackageDetails):
         pd.reportportal_package_id = self._service.start_test_item(
-            name=pd.get_name(),
-            description="Package",
-            start_time=timestamp(),
-            item_type="SUITE",
-        )
+            name=pd.get_name(), description="Package", start_time=timestamp(), item_type="SUITE")
 
     def end_package(self, pd: PackageDetails):
-        self._service.finish_test_item(
-            end_time=timestamp(), status=None, item_id=pd.reportportal_package_id
-        )
+        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=pd.reportportal_package_id)
 
     def start_suite(self, sd: SuiteDetails):
         attr = sd.get_attr()
@@ -128,9 +114,7 @@ class ReporterPortalIO(ReportInterface):
 
     def end_suite(self, sd: SuiteDetails):
         self.__close_parent_tests(sd)
-        self._service.finish_test_item(
-            end_time=timestamp(), status=None, item_id=sd.reportportal_suite_id
-        )
+        self._service.finish_test_item(end_time=timestamp(), status=None, item_id=sd.reportportal_suite_id)
 
     def start_test(self, current_test: TestDetails):
         test_name = current_test.get_name()
@@ -191,9 +175,7 @@ class ReporterPortalIO(ReportInterface):
     def input_prompt_message(self, message: str, default_value: str = ""):
         pass
 
-    def end_test(
-        self, current_test, ending_state, end_reason, exc_value: BaseException = None
-    ):
+    def end_test(self, current_test, ending_state, end_reason, exc_value: BaseException = None):
         test_name = current_test.get_name(False)
 
         # Get parent test or suite
@@ -201,11 +183,7 @@ class ReporterPortalIO(ReportInterface):
             parent_item_id = self._all_parent_tests_by_name[test_name]["parent_item_id"]
             usecase = current_test.get_usecase() or "NO_USECASE"
 
-            if (
-                ending_state != enums_data.STATE_PASSED
-                and self._all_parent_tests_by_name[test_name]["end_state"]
-                != enums_data.STATE_FAILED
-            ):
+            if ending_state != enums_data.STATE_PASSED and self._all_parent_tests_by_name[test_name]["end_state"] != enums_data.STATE_FAILED:
                 self._all_parent_tests_by_name[test_name]["end_state"] = ending_state
         else:
             parent_item_id = self._suite_id
@@ -251,9 +229,7 @@ class ReporterPortalIO(ReportInterface):
             issue = None
 
         # Close test usecase
-        self._service.finish_test_item(
-            end_time=end_time, status=ending_state, item_id=usecase_id, issue=issue
-        )
+        self._service.finish_test_item(end_time=end_time, status=ending_state, item_id=usecase_id, issue=issue)
 
     def __log_infos(self, current_test, item_id):
         for ts, _, level, info, attachment in current_test.get_info():
@@ -261,36 +237,16 @@ class ReporterPortalIO(ReportInterface):
                 attachment["name"] = os.path.basename(attachment["name"])
             else:
                 attachment = None
-            self._service.log(
-                time=str(ts),
-                message=str(info),
-                level=level,
-                attachment=attachment,
-                item_id=item_id,
-            )
+            self._service.log(time=str(ts), message=str(info), level=level, attachment=attachment, item_id=item_id)
 
     def __log_test_steps(self, current_test, item_id):
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
-            self._service.log(
-                time=timestamp(),
-                message=current_test.get_test_step_counters_tabulate(),
-                level="DEBUG",
-                attachment=None,
-                item_id=item_id,
-            )
+            self._service.log(time=timestamp(), message=current_test.get_test_step_counters_tabulate(), level="DEBUG", attachment=None, item_id=item_id)
             str_res = "Steps Summary:\n" + tc.summary()
         else:
-            str_res = "Test Summary:\n" + current_test.get_counters().summary(
-                verbose=False
-            )
-        self._service.log(
-            time=timestamp(),
-            message=str_res,
-            level="INFO",
-            attachment=None,
-            item_id=item_id,
-        )
+            str_res = "Test Summary:\n" + current_test.get_counters().summary(verbose=False)
+        self._service.log(time=timestamp(), message=str_res, level="INFO", attachment=None, item_id=item_id)
 
     def __close_parent_tests(self):
         # This will close all tests that have a usecase under it (that usecase item is already closed, now the parent)

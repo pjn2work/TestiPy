@@ -41,12 +41,7 @@ clients_connected = []
 cached_content: Dict[str, List[Dict]] = dict()
 response = None
 
-app = Flask(
-    __name__,
-    template_folder=TEMPLATE_FOLDER,
-    static_url_path="/templates",
-    static_folder=TEMPLATE_FOLDER,
-)
+app = Flask(__name__, template_folder=TEMPLATE_FOLDER, static_url_path="/templates", static_folder=TEMPLATE_FOLDER)
 app.use_reloader = False
 app.config["SECRET_KEY"] = "dGVzdGlweSBzZWNyZXQgZm9yIHdlYnNvY2tldHM="
 socket_io = SocketIO(app, async_mode=None, engineio_logger=DEBUG_MODE_SOCKET_IO)
@@ -66,14 +61,7 @@ def get_image_from_attachment(attachment: Dict) -> str:
 
 
 def _run_flask_in_thread(port: int = PORT):
-    socket_io.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        debug=False,
-        log_output=DEBUG_MODE_SOCKET_IO,
-        allow_unsafe_werkzeug=True,
-    )
+    socket_io.run(app, host="0.0.0.0", port=port, debug=False, log_output=DEBUG_MODE_SOCKET_IO, allow_unsafe_werkzeug=True)
 
 
 def _send_cached_content():
@@ -140,14 +128,7 @@ class ReporterWeb(ReportInterface):
         self.rm = rm
 
         # get running parameters
-        _push_to_cache(
-            "rm_params",
-            {
-                k: str(v)
-                for k, v in sa.as_dict().items()
-                if k not in ["results_folder_base", "foldername_runtime", "namespace"]
-            },
-        )
+        _push_to_cache("rm_params", {k: str(v) for k, v in sa.as_dict().items() if k not in ["results_folder_base", "foldername_runtime", "namespace"]})
 
         # setup socket_io
         self.socket_io = socket_io
@@ -159,9 +140,7 @@ class ReporterWeb(ReportInterface):
     def save_file(self, current_test: TestDetails, data, filename: str):
         pass
 
-    def copy_file(
-        self, current_test: TestDetails, orig_filename: str, dest_filename: str, data
-    ):
+    def copy_file(self, current_test: TestDetails, orig_filename: str, dest_filename: str, data):
         pass
 
     def _startup_(self, selected_tests: List[PackageAttr]):
@@ -179,10 +158,7 @@ class ReporterWeb(ReportInterface):
     def _teardown_(self, end_state: str):
         global WAIT_FOR_FIRST_CLIENT
 
-        msg = {
-            "global_duration_value": "Ended within "
-            + format_duration(self.rm.pm.get_duration())
-        }
+        msg = {"global_duration_value": "Ended within " + format_duration(self.rm.pm.get_duration())}
 
         self._notify_clients("teardown", msg)
 
@@ -203,18 +179,14 @@ class ReporterWeb(ReportInterface):
     def start_package(self, pd: PackageDetails):
         _delete_from_cache("start_suite")
         _delete_from_cache("start_test")
-        self._notify_clients(
-            "start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()}
-        )
+        self._notify_clients("start_package", {"name": pd.get_name(), "ncycle": pd.get_cycle()})
 
     def end_package(self, pd: PackageDetails):
         pass
 
     def start_suite(self, sd: SuiteDetails):
         _delete_from_cache("start_test")
-        self._notify_clients(
-            "start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()}
-        )
+        self._notify_clients("start_suite", {"name": sd.get_name(), "ncycle": sd.get_cycle()})
 
     def end_suite(self, sd: SuiteDetails):
         pass
@@ -231,9 +203,7 @@ class ReporterWeb(ReportInterface):
         }
         self._notify_clients("start_test", test_details)
 
-        self.test_info(
-            current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG"
-        )
+        self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
 
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
@@ -298,24 +268,16 @@ class ReporterWeb(ReportInterface):
         self._notify_clients("show_alert_message", message, save_to_cache=False)
 
     def input_prompt_message(self, message: str, default_value: str = ""):
-        global response
-        response = None
+        global response; response = None
         timer = Timer(25)
 
-        self._notify_clients(
-            "input_prompt_message",
-            {"message": message, "default_value": default_value},
-            save_to_cache=False,
-            callback=_callback_response,
-        )
+        self._notify_clients('input_prompt_message', {"message": message, "default_value": default_value}, save_to_cache=False, callback=_callback_response)
         while response is None and timer.is_timer_valid():
             timer.sleep_for_if_not_over(2)
 
         return response
 
-    def _format_info(
-        self, current_test: TestDetails, ending_state: str, end_reason: str
-    ):
+    def _format_info(self, current_test: TestDetails, ending_state: str, end_reason: str):
         test_attr = {
             "package": current_test.suite.package.get_name(),
             "suite": current_test.suite.get_name(),
@@ -326,23 +288,12 @@ class ReporterWeb(ReportInterface):
 
         str_res = "<h2>Test Attributes:</h2>"
         str_res += f"<p>{escaped_text(prettify(test_attr, as_yaml=True))}</p><HR>"
-        str_res += (
-            f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
-        )
+        str_res += f"{escaped_text(current_test.get_full_name(with_cycle_number=True))}<br>"
         str_res += escaped_text("    Status: ") + f"<strong>{ending_state}</strong><br>"
         str_res += escaped_text("End reason: ") + f"{end_reason}<br>"
-        str_res += (
-            escaped_text("   Started: ")
-            + f"{current_test.get_counters().get_begin_time()}<br>"
-        )
-        str_res += (
-            escaped_text("     Ended: ")
-            + f"{current_test.get_counters().get_end_time()}<br>"
-        )
-        str_res += (
-            escaped_text("      Took: ")
-            + f"{format_duration(current_test.get_duration())}"
-        )
+        str_res += escaped_text("   Started: ") + f"{current_test.get_counters().get_begin_time()}<br>"
+        str_res += escaped_text("     Ended: ") + f"{current_test.get_counters().get_end_time()}<br>"
+        str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
 
         # add test info log
         for ts, current_time, level, info, attachment in current_test.get_info():
@@ -352,29 +303,18 @@ class ReporterWeb(ReportInterface):
         # add test steps
         tc = current_test.get_test_step_counters()
         if len(tc.get_timed_laps()) > 0:
-            str_res += "<hr>" + escaped_text(
-                current_test.get_test_step_counters_tabulate()
-            ).replace("\n", "<br>")
+            str_res += "<hr>" + escaped_text(current_test.get_test_step_counters_tabulate()).replace("\n", "<br>")
         else:
-            str_res += "<hr>Test Summary: " + escaped_text(
-                str(current_test.get_counters().summary(verbose=False))
-            )
+            str_res += "<hr>Test Summary: " + escaped_text(str(current_test.get_counters().summary(verbose=False)))
 
         return str_res
 
-    def _notify_clients(self, event, msg, save_to_cache: bool = True, callback=None):
+    def _notify_clients(self, event, msg, save_to_cache: bool = True, callback = None):
         if save_to_cache:
             _push_to_cache(event, msg)
 
         for client_sid in _get_clients_connected():
-            self.socket_io.emit(
-                event,
-                msg,
-                room=client_sid,
-                include_self=True,
-                namespace=self.namespace,
-                callback=callback,
-            )
+            self.socket_io.emit(event, msg, room=client_sid, include_self=True, namespace=self.namespace, callback=callback)
             if DEBUG_MODE_SOCKET_IO:
                 print(f"--> Notify {event} - {client_sid}")
 
