@@ -10,12 +10,12 @@ from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list, prettify, format_duration
 from testipy.lib_modules.common_methods import get_app_version
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 log_format = "%(asctime)s %(levelname)s - %(message)s"
@@ -222,8 +222,9 @@ class ReporterLog(ReportInterface):
 
     def __create_folder(self, folder_name):
         try:
-            os.makedirs(folder_name, exist_ok=True)
-            self.__log(f"Created results folder = {folder_name}", level="DEBUG")
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name, exist_ok=True)
+                self.__log(f"Created results folder = {folder_name}", level="DEBUG")
         except Exception:
             self.__log(f"Could not create results folder {folder_name}", "ERROR")
 

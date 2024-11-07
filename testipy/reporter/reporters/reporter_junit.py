@@ -5,13 +5,13 @@ import os
 from testipy import get_exec_logger
 from testipy.configs import enums_data
 from testipy.helpers import get_traceback_list
-from testipy.lib_modules.state_counter import StateCounter
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
+    from testipy.lib_modules.state_counter import StateCounter
 
 HEADER = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 
@@ -28,7 +28,7 @@ class ReporterJUnitXML(ReportInterface):
         self.__ensure_folder(rm.get_results_folder_runtime())
 
         # full path name
-        self.fpn = os.path.join(rm.get_results_folder_runtime(), f"report.xml")
+        self.fpn = os.path.join(rm.get_results_folder_runtime(), "report.xml")
 
         # try to create empty file
         with open(self.fpn, "w"):
@@ -66,14 +66,16 @@ class ReporterJUnitXML(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
     def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):

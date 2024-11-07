@@ -5,13 +5,13 @@ from tabulate import tabulate
 from testipy.configs import enums_data
 from testipy.helpers import format_duration, prettify
 from testipy.lib_modules import textdecor
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 from testipy.reporter.reporters import df_manager as dfm
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 _line_size = 160
@@ -37,10 +37,10 @@ class ReporterEcho(ReportInterface):
 
     def _startup_(self, selected_tests: List[PackageAttr]):
         _selected_tests = self.rm.get_selected_tests_as_dict()
-        print("\n"*2)
-        print("#"*_line_size)
+        print("\n" * 2)
+        print("#" * _line_size)
         print(" Selected tests to run ".center(_line_size, "#"))
-        print("#"*_line_size)
+        print("#" * _line_size)
         print(tabulate(_selected_tests["data"], headers=_selected_tests["headers"], tablefmt="simple"))
         print("\n"*2)
 
@@ -55,10 +55,10 @@ class ReporterEcho(ReportInterface):
         summary = f"{self.rm.pm.state_counter.get_state_percentage(enums_data.STATE_PASSED):.2f}% [{self.rm.pm.state_counter}] took {format_duration(self.rm.pm.get_duration())}"
 
         # show results
-        print("\n"*6)
-        print("#"*_line_size)
+        print("\n" * 6)
+        print("#" * _line_size)
         print(f" Teardown {summary} ".center(_line_size, "#"))
-        print("#"*_line_size)
+        print("#" * _line_size)
 
         # show resume tables
         print("")
@@ -82,8 +82,8 @@ class ReporterEcho(ReportInterface):
         pass
 
     def start_test(self, current_test: TestDetails):
-        print("\n"*5)
-        print("-"*_line_size)
+        print("\n" * 5)
+        print("-" * _line_size)
         print(f"> Starting test: {current_test} <".center(_line_size, "-"))
 
     def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):

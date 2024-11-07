@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 class ReporterTemplate(ReportInterface):
@@ -46,22 +46,30 @@ class ReporterTemplate(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails, 
-                  state: str, 
-                  reason_of_state: str = "", 
-                  description: str = "", 
-                  take_screenshot: bool = False, 
-                  qty: int = 1, 
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         package_name = current_test.suite.package.get_name()
         package_cycle = current_test.suite.package.get_cycle()
 
-        suite_name = current_test.get_name()
-        suite_cycle = current_test.get_cycle()
+        suite_name = current_test.suite.get_name()
+        suite_cycle = current_test.suite.get_cycle()
 
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()

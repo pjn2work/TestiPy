@@ -4,13 +4,13 @@ import os
 import pandas as pd
 
 from testipy import get_exec_logger
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 from testipy.reporter.reporters import df_manager as dfm
 
 if TYPE_CHECKING:
     from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 _exec_logger = get_exec_logger()
@@ -28,10 +28,10 @@ class ReporterExcel(ReportInterface):
         self.__ensure_folder(sa.full_path_results_folder_runtime)
 
         # full path name
-        self._fpn = os.path.join(sa.full_path_results_folder_runtime, f"report.xlsx")
+        self._fpn = os.path.join(sa.full_path_results_folder_runtime, "report.xlsx")
 
         # create Excel Writer
-        self.writer = pd.ExcelWriter(self._fpn, engine='xlsxwriter', datetime_format='yyyy-mm-dd hh:mm:ss.000')
+        self.writer = pd.ExcelWriter(self._fpn, engine="xlsxwriter", datetime_format="yyyy-mm-dd hh:mm:ss.000")
 
         # DataFrame for testStepCounters
         self._df_step_counters = pd.DataFrame(columns=self._columns)
@@ -61,8 +61,8 @@ class ReporterExcel(ReportInterface):
 
         # format cells
         fmt = self.writer.book.add_format({"font_name": "Calibri", "font_size": 9})
-        for (name, sheet) in self.writer.sheets.items():
-            sheet.set_column('A:Z', None, fmt)
+        for name, sheet in self.writer.sheets.items():
+            sheet.set_column("A:Z", None, fmt)
 
         # save file
         self.writer.close()
@@ -98,14 +98,16 @@ class ReporterExcel(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
     # this will serve the purpose only for testSteps, because for tests is done on teardown

@@ -7,15 +7,14 @@ from slack_sdk.errors import SlackApiError
 
 from testipy import get_exec_logger
 from testipy.configs import enums_data
-from testipy.models import PackageAttr
 from testipy.helpers import Timer
 from testipy.lib_modules.common_methods import get_app_version
-from testipy.lib_modules.start_arguments import StartArguments
 from testipy.reporter import ReportInterface
 
 if TYPE_CHECKING:
-    from testipy.models import PackageDetails, SuiteDetails, TestDetails
+    from testipy.models import PackageAttr, PackageDetails, SuiteDetails, TestDetails
     from testipy.reporter import ReportManager
+    from testipy.lib_modules.start_arguments import StartArguments
 
 
 SLACK_API_TOKEN = os.getenv("TESTIPY_SLACK_API_TOKEN")
@@ -28,7 +27,7 @@ emojis = {
     enums_data.STATE_PASSED: ":large_green_circle:",
     enums_data.STATE_FAILED: ":red_circle:",
     enums_data.STATE_FAILED_KNOWN_BUG: ":negative_squared_cross_mark:",
-    enums_data.STATE_SKIPPED: ":arrow_right_hook:"
+    enums_data.STATE_SKIPPED: ":arrow_right_hook:",
 }
 
 _exec_logger = get_exec_logger()
@@ -53,7 +52,10 @@ class ReporterSlack(ReportInterface):
 
     def _startup_(self, selected_tests: List[PackageAttr]):
         __app__, __version__, _ = get_app_version()
-        response = self._send_message(threadts=False, text=f":arrow_forward: {__app__} {__version__}b{self.build} Starting tests for {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})")
+        response = self._send_message(
+            threadts=False,
+            text=f":arrow_forward: {__app__} {__version__}b{self.build} Starting tests for {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})",
+        )
         self.TS = response.get("ts") if response else None
 
     def _teardown_(self, end_state: str):
@@ -61,7 +63,11 @@ class ReporterSlack(ReportInterface):
 
         self._send_message(reply_broadcast=True, text=f"{flag} {self.rm.pm.state_counter}")
         for name, user in NOTIFY_USERS.items():
-            self._send_message(channel=user, threadts=False, text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{self.rm.pm.state_counter}")
+            self._send_message(
+                channel=user,
+                threadts=False,
+                text=f"{flag} {self.rm.get_foldername_runtime()} (env={self.rm.get_environment_name()}, user={self.sa.user}, host={self.sa.hostname})\n{self.rm.pm.state_counter}",
+            )
 
     def start_package(self, pd: PackageDetails):
         pass
@@ -81,17 +87,25 @@ class ReporterSlack(ReportInterface):
     def test_info(self, current_test: TestDetails, info, level, attachment=None):
         pass
 
-    def test_step(self,
-                  current_test: TestDetails,
-                  state: str,
-                  reason_of_state: str = "",
-                  description: str = "",
-                  take_screenshot: bool = False,
-                  qty: int = 1,
-                  exc_value: BaseException = None):
+    def test_step(
+        self,
+        current_test: TestDetails,
+        state: str,
+        reason_of_state: str = "",
+        description: str = "",
+        take_screenshot: bool = False,
+        qty: int = 1,
+        exc_value: BaseException = None,
+    ):
         pass
 
-    def end_test(self, current_test: TestDetails, ending_state: str, end_reason: str = "", exc_value: BaseException = None):
+    def end_test(
+        self,
+        current_test: TestDetails,
+        ending_state: str,
+        end_reason: str = "",
+        exc_value: BaseException = None,
+    ):
         test_name = current_test.get_name()
         test_usecase = current_test.get_usecase()
         test_duration = current_test.get_duration()
@@ -115,7 +129,12 @@ class ReporterSlack(ReportInterface):
             retry -= 1
             try:
                 self.timer.sleep_until_over().set_timer_for(RATE_WAIT_SEC)
-                return self.client.chat_postMessage(channel=channel, thread_ts=thread_ts, reply_broadcast=reply_broadcast, **message)
+                return self.client.chat_postMessage(
+                    channel=channel,
+                    thread_ts=thread_ts,
+                    reply_broadcast=reply_broadcast,
+                    **message,
+                )
             except SlackApiError as e:
                 self.timer.set_timer_for(RATE_WAIT_SEC)
                 if retry == 0:

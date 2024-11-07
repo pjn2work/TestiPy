@@ -8,7 +8,7 @@ pd.options.display.max_columns = None
 pd.options.display.width = 220
 
 
-def _get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
+def get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
     df_dummies = df.copy()
 
     # get dummies for States
@@ -22,11 +22,21 @@ def _get_state_dummies(df, columns=("Package", "Suite", "Test", "Level")):
         dict_states[state] = "sum"
 
     # aggregate mode
-    aggregate = {"T#": "size", "Steps": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}  # , "Reason": "unique"
+    aggregate = {
+        "T#": "size",
+        "Steps": "sum",
+        "Duration": "sum",
+        "Start time": "min",
+        "End time": "max",
+    }  # , "Reason": "unique"
     aggregate.update(dict_states)
 
     # group by tests
-    df_dummies = df_dummies.groupby(columns).agg(aggregate).rename(columns={"T#": "Total"}, inplace=False)
+    df_dummies = (
+        df_dummies.groupby(columns)
+        .agg(aggregate)
+        .rename(columns={"T#": "Total"}, inplace=False)
+    )
 
     # calc Passed percentage
     df_dummies["%PASS"] = df_dummies[enums_data.STATE_PASSED] / df_dummies["Total"]
@@ -44,7 +54,19 @@ def _get_state_summary(df, columns=("Package", "Suite", "Test", "Level", "State"
     df_ss = df.copy()
 
     # group by Reason of State
-    df_ss = df_ss.groupby(columns).agg({"T#": "size", "Steps": "sum", "Duration": "sum", "Start time": "min", "End time": "max"}).rename(columns={"T#": "Total"}, inplace=False)
+    df_ss = (
+        df_ss.groupby(columns)
+        .agg(
+            {
+                "T#": "size",
+                "Steps": "sum",
+                "Duration": "sum",
+                "Start time": "min",
+                "End time": "max",
+            }
+        )
+        .rename(columns={"T#": "Total"}, inplace=False)
+    )
 
     # calc percentage of each row
     df_ss["%"] = df_ss["Total"] / df_ss["Total"].sum()
@@ -58,7 +80,7 @@ def _get_state_summary(df, columns=("Package", "Suite", "Test", "Level", "State"
 
 
 def reduce_datetime(df, endwith=":%S"):
-    for column in df.select_dtypes(include='datetime64').columns:
+    for column in df.select_dtypes(include="datetime64").columns:
         df[column] = df[column].dt.strftime(f"%Y-%m-%d %H:%M{endwith}")
     return df
 
@@ -66,22 +88,24 @@ def reduce_datetime(df, endwith=":%S"):
 # -----------------------------------------------------------------------------------------------------
 """
                                                         Total  Duration          Start time            End time  PASSED  FAILED  SKIPPED  %PASSED
-Package Suite         Test                                                                                                                                     
+Package Suite         Test
 demo    suite_demo_01 test_01_show_internal_counters        2      0.20 2020-02-05 14:51:34 2020-02-05 14:51:34       2       0        0   100.00
                       test_02_division_by_zero              2      0.00 2020-02-05 14:51:34 2020-02-05 14:51:34       1       1        0    50.00
 """
 
 
 def get_test_dummies(df):
-    return _get_state_dummies(df, columns=["Package", "Suite", "Test", "Level"]) #, "TAGs"
+    return get_state_dummies(
+        df, columns=["Package", "Suite", "Test", "Level"]
+    )  # , "TAGs"
 
 
 def get_suite_dummies(df):
-    return _get_state_dummies(df, columns=["Package", "Suite", "Level"])
+    return get_state_dummies(df, columns=["Package", "Suite", "Level"])
 
 
 def get_package_dummies(df):
-    return _get_state_dummies(df, columns=["Package", "Level"])
+    return get_state_dummies(df, columns=["Package", "Level"])
 
 
 # -----------------------------------------------------------------------------------------------------
@@ -95,13 +119,15 @@ qa.team01  suiteDemo01  GetClients       30        1  PASSED   after login   rec
 
 
 def get_test_ros_summary(df):
-    return _get_state_summary(df, ["Package", "Suite", "Test", "Prio", "Level", "State", "Usecase", "Reason"])
+    return _get_state_summary(
+        df, ["Package", "Suite", "Test", "Prio", "Level", "State", "Usecase", "Reason"]
+    )
 
 
 # -----------------------------------------------------------------------------------------------------
 """
                               Total  Duration          Start time            End time
-Package Suite         State                                                                        
+Package Suite         State
 demo    suite_demo_01 FAILED      2  0.901410 2020-02-05 14:14:22 2020-02-05 14:14:23
                       PASSED      7  0.202453 2020-02-05 14:14:22 2020-02-05 14:14:23
 """
@@ -121,5 +147,6 @@ def get_levels_state_summary(df):
 
 def get_state_summary(df):
     return _get_state_summary(df, ["State"])
+
 
 # -----------------------------------------------------------------------------------------------------

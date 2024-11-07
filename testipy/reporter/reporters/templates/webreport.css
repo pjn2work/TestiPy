@@ -99,3 +99,14 @@ td.method_ended {
     color: rgb(51, 51, 204);
     background-color: #b1ecf8;
 }
+
+
+tr.collapse {
+    visibility: collapse;
+    transition: visibility 0.2s;
+}
+
+tr.visible {
+    visibility: visible;
+    transition: visibility 0.2s;
+}
