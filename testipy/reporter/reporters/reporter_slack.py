@@ -84,7 +84,7 @@ class ReporterSlack(ReportInterface):
     def start_test(self, current_test: TestDetails):
         pass
 
-    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+    def test_info(self, current_test: TestDetails, info, level, attachment=None, true_html: bool = False):
         pass
 
     def test_step(

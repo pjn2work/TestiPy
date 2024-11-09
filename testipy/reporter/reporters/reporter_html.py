@@ -108,7 +108,7 @@ class ReporterHtml(ReportInterface):
     def start_test(self, current_test: TestDetails):
         pass
 
-    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+    def test_info(self, current_test: TestDetails, info, level, attachment=None, true_html: bool = False):
         pass
 
     def test_step(
@@ -328,8 +328,10 @@ def _format_info(current_test: TestDetails, ending_state: str, end_reason: str):
     str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
 
     # add test info log
-    for ts, current_time, level, info, attachment in current_test.get_info():
-        data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
+    for ts, current_time, level, info, attachment, true_html in current_test.get_info():
+        if not true_html:
+            info = escaped_text(info)
+        data = f"<p>{info}</p>{get_image_from_attachment(attachment)}"
         str_res += f"<hr><strong>{current_time} {level}</strong><br>{data}"
 
     # add test steps

@@ -53,7 +53,7 @@ class ReportInterface(ABC):
         pass
 
     @abstractmethod
-    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):
+    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None, true_html: bool = False):
         pass
 
     @abstractmethod

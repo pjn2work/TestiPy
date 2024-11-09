@@ -17,6 +17,7 @@ class TestInfo(NamedTuple):
     level: str
     info: str
     attachment: Dict[str, Any]
+    true_html: bool
 
 
 class CommonDetails:
@@ -131,7 +132,7 @@ class TestDetails(CommonDetails):
         self.test_state: str = ""
         self.test_reason_of_state: str = ""
 
-        self._info: List[TestInfo] = list()
+        self._info: List[TestInfo] = []
         self._test_step: StateCounter = StateCounter()
 
     def get_rm(self) -> ReportManager:
@@ -189,8 +190,8 @@ class TestDetails(CommonDetails):
     def get_features(self) -> str:
         return self.test_method_attr.features
 
-    def add_info(self, ts: int, current_time: str, level: str, info: str, attachment: Dict):
-        self._info.append(TestInfo(ts, current_time, str(level).upper(), info, attachment))
+    def add_info(self, ts: int, current_time: str, level: str, info: str, attachment: Dict, true_html: bool):
+        self._info.append(TestInfo(ts, current_time, str(level).upper(), info, attachment, true_html))
 
     def get_info(self) -> List[TestInfo]:
         return list(self._info)

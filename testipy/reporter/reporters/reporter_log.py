@@ -150,9 +150,10 @@ class ReporterLog(ReportInterface):
         test_full_name = current_test.get_full_name(with_cycle_number=True)
         self.__log(f"Starting Test {test_full_name}", "INFO")
 
-    def test_info(self, current_test: TestDetails, info, level, attachment=None):
-        test_full_name = current_test.get_full_name(with_cycle_number=True)
-        self.__log(f"{test_full_name}: {info}", level)
+    def test_info(self, current_test: TestDetails, info, level, attachment=None, true_html: bool = False):
+        if not true_html:
+            test_full_name = current_test.get_full_name(with_cycle_number=True)
+            self.__log(f"{test_full_name}: {info}", level)
 
     def test_step(
         self,

@@ -205,8 +205,10 @@ class ReporterWeb(ReportInterface):
 
         self.test_info(current_test, f"Test details:\n{prettify(current_test.get_attr())}", "DEBUG")
 
-    def test_info(self, current_test: TestDetails, info, level, attachment=None):
-        data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
+    def test_info(self, current_test: TestDetails, info, level, attachment=None, true_html: bool = False):
+        if not true_html:
+            info = escaped_text(info)
+        data = f"<p>{info}</p>{get_image_from_attachment(attachment)}"
         msg = {"test_id": current_test.get_test_id(), "data": data}
         self._notify_clients("test_info", msg)
 
@@ -286,8 +288,10 @@ class ReporterWeb(ReportInterface):
         str_res += escaped_text("      Took: ") + f"{format_duration(current_test.get_duration())}"
 
         # add test info log
-        for ts, current_time, level, info, attachment in current_test.get_info():
-            data = f"<p>{escaped_text(info)}</p>{get_image_from_attachment(attachment)}"
+        for ts, current_time, level, info, attachment, true_html in current_test.get_info():
+            if not true_html:
+                info = escaped_text(info)
+            data = f"<p>{info}</p>{get_image_from_attachment(attachment)}"
             str_res += f"<hr><strong>{current_time} {level}</strong><br>{data}"
 
         # add test steps
