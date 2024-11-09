@@ -151,7 +151,7 @@ class ReporterPortalIO(ReportInterface):
                     "end_state": enums_data.STATE_PASSED,
                 }
 
-    def test_info(self, current_test, info, level, attachment=None):
+    def test_info(self, current_test, info, level, attachment=None, true_html: bool = False):
         pass
 
     def test_step(
@@ -232,12 +232,13 @@ class ReporterPortalIO(ReportInterface):
         self._service.finish_test_item(end_time=end_time, status=ending_state, item_id=usecase_id, issue=issue)
 
     def __log_infos(self, current_test, item_id):
-        for ts, _, level, info, attachment in current_test.get_info():
-            if isinstance(attachment, dict):
-                attachment["name"] = os.path.basename(attachment["name"])
-            else:
-                attachment = None
-            self._service.log(time=str(ts), message=str(info), level=level, attachment=attachment, item_id=item_id)
+        for ts, _, level, info, attachment, true_html in current_test.get_info():
+            if not true_html:
+                if isinstance(attachment, dict):
+                    attachment["name"] = os.path.basename(attachment["name"])
+                else:
+                    attachment = None
+                self._service.log(time=str(ts), message=str(info), level=level, attachment=attachment, item_id=item_id)
 
     def __log_test_steps(self, current_test, item_id):
         tc = current_test.get_test_step_counters()

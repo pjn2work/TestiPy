@@ -86,11 +86,10 @@ class ReporterEcho(ReportInterface):
         print("-" * _line_size)
         print(f"> Starting test: {current_test} <".center(_line_size, "-"))
 
-    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None):
+    def test_info(self, current_test: TestDetails, info: str, level: str, attachment: Dict=None, true_html: bool = False):
         full_name = current_test.get_full_name(with_cycle_number=True)
-        usecase = current_test.get_usecase()
-
-        print(f"{level} {full_name}: {prettify(info)}")
+        if not true_html:
+            print(f"{level} {full_name}: {prettify(info)}")
 
     def test_step(self,
                   current_test: TestDetails,

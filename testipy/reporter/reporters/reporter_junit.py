@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
+from xml.sax.saxutils import escape
 import os
 
 from testipy import get_exec_logger
@@ -63,7 +64,7 @@ class ReporterJUnitXML(ReportInterface):
     def start_test(self, current_test: TestDetails):
         pass
 
-    def test_info(self, current_test: TestDetails, info, level, attachment=None):
+    def test_info(self, current_test: TestDetails, info, level, attachment=None, true_html: bool = False):
         pass
 
     def test_step(
@@ -204,12 +205,12 @@ class ReporterJUnitXML(ReportInterface):
                 category = file = method = code = "-"
                 line = 0
 
-            xml_file.write(f"{failure_type}: {reason_of_state}\n")
-            xml_file.write(f"Category: {category}\n")
-            xml_file.write(f"File: {file}\n")
-            xml_file.write(f"Line: {line}\n")
-            xml_file.write(f"Method: {method}\n")
-            xml_file.write(f"Code: {code}\n")
+            xml_file.write(f"Category: {escape(category)}\n")
+            xml_file.write(f" Message: {escape(reason_of_state)}\n")
+            xml_file.write(f"    File: {escape(file)}\n")
+            xml_file.write(f"    Line: {line}\n")
+            xml_file.write(f"  Method: {escape(method)}\n")
+            xml_file.write(f"    Code: {escape(code)}\n")
 
             xml_file.write("   </failure>\n")
 
@@ -217,4 +218,4 @@ class ReporterJUnitXML(ReportInterface):
 def string_fixer(text):
     if not isinstance(text, str):
         text = str(text)
-    return text.replace('"', "'").replace("\n", " | ")
+    return escape(text.replace('"', "'").replace("\n", " | "))

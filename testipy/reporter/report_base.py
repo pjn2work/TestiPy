@@ -131,8 +131,8 @@ class ReportBase(ReportInterface):
     def start_test(self, current_test: TestDetails):
         pass
 
-    def test_info(self, current_test, info, level, attachment=None):
-        current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment)
+    def test_info(self, current_test, info, level, attachment=None, true_html=False):
+        current_test.add_info(get_timestamp(), get_current_date_time_ns(), level, info, attachment, true_html)
 
     def test_step(self, current_test, state: str, reason_of_state: str = "", description: str = "", take_screenshot: bool = False, qty: int = 1, exc_value: BaseException = None):
         current_test.test_step(state, reason_of_state=reason_of_state, description=description, qty=qty, exc_value=exc_value)

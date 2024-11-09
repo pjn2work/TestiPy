@@ -151,11 +151,11 @@ class ReportManager(ReportBase, ReportManagerAddons):
                     raise
 
     @synchronized
-    def test_info(self, current_test: TestDetails, info: str, level: str = "DEBUG", attachment: Dict = None) -> ReportManager:
-        super().test_info(current_test, info, level, attachment)
+    def test_info(self, current_test: TestDetails, info: str, level: str = "DEBUG", attachment: Dict = None, true_html: bool = False) -> ReportManager:
+        super().test_info(current_test, info, level, attachment, true_html)
         for reporter_name, reporter in self._reporters_list.items():
             try:
-                reporter.test_info(current_test, info, str(level).upper(), attachment)
+                reporter.test_info(current_test, info, str(level).upper(), attachment, true_html)
             except Exception as e:
                 _exec_logger.critical(f"Internal error rm.test_info on {reporter_name}: {e}")
                 if self.is_debugcode():
