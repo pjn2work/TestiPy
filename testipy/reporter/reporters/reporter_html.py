@@ -380,6 +380,7 @@ def _get_div_summary(rm: ReportManager) -> str:
 
     df = rm.get_df()
     df_packages: pd.DataFrame = dfm.get_state_dummies(df, columns=["Package"])
+    df_packages.sort_values(by="%PASS", inplace=True)
     for index, row in df_packages.iterrows():
         _create_row("Package", "label")
 
