@@ -135,9 +135,10 @@ class ReporterHtml(ReportInterface):
 
         test_method_id = current_test.get_method_id()
         test_id = current_test.get_test_id()
-        test_name = current_test.get_name()
-        test_usecase = current_test.get_usecase()
+        test_name = escaped_text(current_test.get_name())
+        test_usecase = escaped_text(current_test.get_usecase())
         test_duration = current_test.get_duration()
+        end_reason = escaped_text(end_reason)
 
         sc = STATUS_TO_CLASS.get(ending_state)
 
